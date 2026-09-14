@@ -42,11 +42,11 @@ maas = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/redhat-lightwell/lw-agents"
-Repository = "https://github.com/redhat-lightwell/lw-agents"
-Documentation = "https://github.com/redhat-lightwell/lw-agents/tree/main/docs"
-Issues = "https://github.com/redhat-lightwell/lw-agents/issues"
-Changelog = "https://github.com/redhat-lightwell/lw-agents/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/rrbanda/lw-agents"
+Repository = "https://github.com/rrbanda/lw-agents"
+Documentation = "https://github.com/rrbanda/lw-agents/tree/main/docs"
+Issues = "https://github.com/rrbanda/lw-agents/issues"
+Changelog = "https://github.com/rrbanda/lw-agents/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["hatchling"]

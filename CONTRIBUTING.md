@@ -7,7 +7,7 @@ how to set up your development environment, run tests, and submit changes.
 
 ```bash
 # Clone the repo
-git clone https://github.com/redhat-lightwell/lw-agents.git
+git clone https://github.com/rrbanda/lw-agents.git
 cd lw-agents
 
 # Install dependencies (requires uv)

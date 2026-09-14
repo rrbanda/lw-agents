@@ -1,7 +1,7 @@
 <!-- Logo placeholder: replace with actual Lightwell logo when available -->
-<!-- <p align="center"><img src="docs/images/lightwell-logo.png" width="400" alt="Lightwell Agents"></p> -->
+<!-- <p align="center"><img src="docs/images/lw-agents-logo.png" width="400" alt="lw-agents"></p> -->
 
-<h1 align="center">Lightwell Agents</h1>
+<h1 align="center">lw-agents</h1>
 
 <p align="center">
 <strong>AI-accelerated CVE remediation for software supply chain security</strong>
@@ -37,7 +37,7 @@ CVE fixes in open-source dependencies -- then open a pull request. Built on
 
 ---
 
-## Why Lightwell Agents?
+## Why lw-agents?
 
 When Anthropic's Claude Mythos proved that frontier AI could autonomously
 discover decades-old zero-day flaws and weaponize them faster than any human
@@ -88,7 +88,7 @@ speed. This repository is the agent application that powers that engine.
 
 ```bash
 # Clone
-git clone https://github.com/redhat-lightwell/lw-agents.git
+git clone https://github.com/rrbanda/lw-agents.git
 cd lw-agents
 
 # Install (requires uv)
@@ -261,8 +261,8 @@ including Tekton eval gates and OpenShift namespace layout.
 
 ## Contact
 
-- **Issues:** [GitHub Issues](https://github.com/redhat-lightwell/lw-agents/issues) for bugs and feature requests
-- **Discussions:** [GitHub Discussions](https://github.com/redhat-lightwell/lw-agents/discussions) for questions and ideas
+- **Issues:** [GitHub Issues](https://github.com/rrbanda/lw-agents/issues) for bugs and feature requests
+- **Discussions:** [GitHub Discussions](https://github.com/rrbanda/lw-agents/discussions) for questions and ideas
 - **Security:** See [SECURITY.md](SECURITY.md) for vulnerability disclosure
 
 ## Contributing
