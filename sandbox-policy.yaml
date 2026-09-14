@@ -23,8 +23,12 @@ filesystem_policy:
     - /opt/openshell
     - /opt/app-root
   read_write:
+    - /sandbox
     - /tmp
     - /dev/null
+    - /root
+    - /run
+    - /home
     - /workspace
 
 landlock:
