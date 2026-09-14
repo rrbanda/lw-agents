@@ -1,0 +1,4 @@
+agents_cli_version: ">=1.4.0"
+agent_name: lw-agents
+agent_directory: app
+deployment_target: none

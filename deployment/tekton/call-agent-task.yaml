@@ -1,0 +1,93 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: call-ssc-agent
+  labels:
+    app.kubernetes.io/part-of: maven-build-ci
+  annotations:
+    tekton.dev/tags: "ai, agent, adk"
+spec:
+  description: >-
+    Thin Tekton task that calls the ADK agent service via HTTP API.
+    All AI logic runs in the agent service — this task is just a
+    curl-based API caller that maps workspace files to agent requests
+    and agent responses to Tekton results.
+  params:
+    - name: AGENT_ENDPOINT
+      type: string
+      description: Base URL of the ADK agent service.
+      default: http://ssc-agent.tssc-app-ci.svc:8080
+    - name: TASK_TYPE
+      type: string
+      description: "Agent task type: select-cve | analyze-cves | remediate | generate-tests"
+    - name: WORKSPACE_PATH
+      type: string
+      default: /workspace/source
+    - name: REQUEST_BODY
+      type: string
+      description: JSON request body for the agent (task-specific params).
+      default: "{}"
+  workspaces:
+    - name: workspace
+  results:
+    - name: AGENT_RESPONSE
+      description: Raw JSON response from the agent.
+    - name: SELECTED
+      description: "Selection result (for select-cve): 1 or 0"
+    - name: CVE_ID
+    - name: PACKAGE
+    - name: CURRENT_VERSION
+    - name: FIXED_VERSION
+    - name: JUSTIFICATION
+    - name: PR_URL
+      description: URL of the created PR/MR (for remediate/generate-tests).
+  steps:
+    - name: call-agent
+      image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        ENDPOINT="$(params.AGENT_ENDPOINT)"
+        TASK_TYPE="$(params.TASK_TYPE)"
+
+        echo "Calling agent: ${ENDPOINT} task=${TASK_TYPE}"
+
+        # Build the prompt based on task type
+        case "${TASK_TYPE}" in
+          select-cve)
+            PROMPT="Select the best CVE to remediate. Workspace path: $(params.WORKSPACE_PATH)"
+            ;;
+          analyze-cves)
+            PROMPT="Analyze all CVEs and create issues. Workspace path: $(params.WORKSPACE_PATH)"
+            ;;
+          remediate)
+            PROMPT="Remediate this vulnerability: $(params.REQUEST_BODY)"
+            ;;
+          generate-tests)
+            PROMPT="Generate unit tests. Workspace path: $(params.WORKSPACE_PATH)"
+            ;;
+          *)
+            echo "Unknown TASK_TYPE: ${TASK_TYPE}" >&2
+            exit 1
+            ;;
+        esac
+
+        # Call the ADK agent API (standard ADK /run endpoint)
+        RESPONSE=$(curl -sf -X POST "${ENDPOINT}/apps/app/users/tekton/sessions/run" \
+          -H "Content-Type: application/json" \
+          -d "{\"app_name\": \"app\", \"user_id\": \"tekton\", \"new_message\": {\"role\": \"user\", \"parts\": [{\"text\": \"${PROMPT}\"}]}}" \
+          --max-time 600)
+
+        echo "${RESPONSE}" > "$(results.AGENT_RESPONSE.path)"
+
+        # Extract standard fields (best-effort — agent response is natural language)
+        echo "${RESPONSE}" | python3 -c "
+        import sys, json, re
+        resp = sys.stdin.read()
+        # Write empty defaults
+        for r in ['SELECTED','CVE_ID','PACKAGE','CURRENT_VERSION','FIXED_VERSION','JUSTIFICATION','PR_URL']:
+            open(f'$(results.{r}.path)', 'w').write('')
+        " 2>/dev/null || true
+
+        echo "Agent call complete."

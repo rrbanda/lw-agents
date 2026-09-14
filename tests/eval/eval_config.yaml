@@ -1,0 +1,32 @@
+metrics_to_run:
+  - multi_turn_task_success
+  - multi_turn_tool_use_quality
+  - cve_selection_accuracy
+  - version_not_hallucinated
+
+custom_metrics:
+  - name: cve_selection_accuracy
+    prompt_template: |
+      Evaluate the agent's CVE selection. The agent was asked to select the best
+      CVE to remediate from a must-fix set. Check:
+      1. Did the agent use lookup_cve_detail to examine CVEs before deciding?
+      2. Did it call check_version_exists to verify the fixed version?
+      3. Is the selected CVE actually in the must-fix set?
+      4. Does the fixed_version look like a real Maven version (not a placeholder)?
+
+      Agent trace: {agent_data}
+      Response: {response}
+
+      Return JSON: {"score": <0 or 1>, "explanation": "<reason>"}
+
+  - name: version_not_hallucinated
+    prompt_template: |
+      Check the agent's tool call history. Did the agent verify every version
+      number it reports by calling check_version_exists BEFORE including it in
+      its final response? A version that appears in the response but was never
+      verified via check_version_exists is hallucinated.
+
+      Tool trajectory: {agent_data}
+      Final response: {response}
+
+      Return JSON: {"score": <0 or 1>, "explanation": "<reason>"}

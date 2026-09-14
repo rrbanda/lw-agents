@@ -1,0 +1,32 @@
+{
+  "eval_cases": [
+    {
+      "eval_case_id": "remediate-jackson-databind",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Remediate this vulnerability: {\"cve_id\": \"CVE-2024-29025\", \"package\": \"com.fasterxml.jackson.core:jackson-databind\", \"current_version\": \"2.13.2\", \"fixed_version\": \"2.13.4.2\", \"justification\": \"Critical RCE with single-dep fix\", \"workspace_path\": \"/workspace/test-data/remediation1\", \"repo_url\": \"https://gitlab.example.com/org/app\"}"
+          }
+        ]
+      },
+      "context": {
+        "description": "Standard property-controlled Jackson dependency bump in a Quarkus project"
+      }
+    },
+    {
+      "eval_case_id": "remediate-direct-dependency",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Remediate this vulnerability: {\"cve_id\": \"CVE-2024-1597\", \"package\": \"org.postgresql:postgresql\", \"current_version\": \"42.6.0\", \"fixed_version\": \"42.6.1\", \"justification\": \"SQL injection fix\", \"workspace_path\": \"/workspace/test-data/remediation2\", \"repo_url\": \"https://gitlab.example.com/org/app\"}"
+          }
+        ]
+      },
+      "context": {
+        "description": "Direct inline dependency version bump"
+      }
+    }
+  ]
+}
