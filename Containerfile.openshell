@@ -41,10 +41,12 @@ RUN curl -fsSL "https://repo1.maven.org/maven2/org/apache/maven/apache-maven/${M
     && rm /tmp/maven.tar.gz
 
 # OpenCode — open-source coding agent (headless mode for ExecuteBashTool)
-# Installer puts binary at $HOME/.opencode/bin/opencode
-RUN curl -fsSL https://opencode.ai/install | bash \
-    && cp /root/.opencode/bin/opencode /usr/local/bin/opencode \
-    && opencode --version
+# Install and find the binary wherever the installer puts it
+RUN curl -fsSL https://opencode.ai/install | bash; \
+    OPENCODE_BIN=$(find / -name opencode -type f -executable 2>/dev/null | head -1); \
+    if [ -z "$OPENCODE_BIN" ]; then echo "ERROR: opencode binary not found after install" && exit 1; fi; \
+    cp "$OPENCODE_BIN" /usr/local/bin/opencode && \
+    opencode --version
 
 # glab (GitLab CLI) for opening MRs and issues
 RUN ARCH=$(uname -m | sed 's/x86_64/amd64/; s/aarch64/arm64/') \
