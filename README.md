@@ -76,49 +76,32 @@ speed. This repository is the agent application that powers that engine.
 How a CVE goes from discovery to a validated pull request:
 
 ```mermaid
-flowchart LR
-    subgraph input [Discovery]
-        rhtpa["RHTPA / Trustify\nscans your app"]
-        mustfix["must-fix-cves.json\n+ vulnerabilities.json"]
-        rhtpa --> mustfix
-    end
+flowchart TD
+    scan(["RHTPA / Trustify scans your app"])
+    scan --> mustfix[("must-fix-cves.json")]
 
-    subgraph agents [lw-agents Pipeline]
-        direction TB
-        select["1 SELECT\nPick best CVE\nvia cve-triage skill"]
-        analyze["2 ANALYZE\nAll CVEs → SCM issues"]
-        remediate["3 REMEDIATE\nEdit pom.xml → mvn build\n→ retry up to 3x"]
-        testgen["4 TEST\nGenerate JUnit tests\n→ iterate until passing"]
-        validate["5 VALIDATE\nArchitect + Pentester\n→ deterministic scoring"]
-        select --> remediate
-        select --> analyze
-        remediate --> testgen
-        remediate --> validate
-    end
+    mustfix --> gate1{"EvalHub Gate\nsafety + security\nbenchmarks"}
+    gate1 -->|FAIL| blocked1[Pipeline Blocked]
+    gate1 -->|PASS| gate2{"Agent Eval Gate\n38 cases\nregression check"}
+    gate2 -->|FAIL| blocked2[Pipeline Blocked]
 
-    subgraph gates [Quality Gates]
-        evalgate["EvalHub\nsafety + security\nbenchmarks"]
-        agenteval["Agent Evals\n38 cases\nregression check"]
-        evalgate --> agenteval
-    end
+    gate2 -->|PASS| select
 
-    subgraph output [Delivery]
-        issues["SCM Issues\ncreated per\nfixable CVE"]
-        fixpr["Remediation PR\nwith verified build"]
-        testpr["Tests PR\nwith passing suite"]
-        verdict["Validation Verdict\nFIXED / PARTIAL\n/ NOT_FIXED"]
-        human["Human Reviewer\nreviews + merges"]
-        fixpr --> human
-        testpr --> human
-        verdict --> human
-    end
+    select["1 SELECT\nPick the highest-impact CVE\nvia cve-triage skill + Maven Central verification"]
+    select --> analyze["2 ANALYZE\nIterate all CVEs\nCreate SCM issue per fixable vulnerability"]
+    select --> remediate["3 REMEDIATE\nEdit pom.xml via OpenCode\nmvn build + retry up to 3x"]
+    remediate --> testgen["4 TEST\nGenerate JUnit tests\nIterate until passing"]
+    remediate --> validate["5 VALIDATE\nSecurity Architect + Penetration Tester\nDeterministic weighted scoring"]
 
-    mustfix --> gates
-    gates -->|"PASS"| agents
-    analyze --> issues
-    remediate --> fixpr
-    testgen --> testpr
-    validate --> verdict
+    analyze --> issues(["SCM Issues created"])
+    remediate --> fixpr(["Remediation PR opened"])
+    testgen --> testpr(["Tests PR opened"])
+    validate --> verdict{{"FIXED / PARTIALLY_FIXED / NOT_FIXED"}}
+
+    fixpr --> human["Human Reviewer"]
+    testpr --> human
+    verdict --> human
+    human --> merge(["Merge"])
 ```
 
 **Step by step:**
