@@ -24,6 +24,11 @@ async def extract_structured_results(callback_context) -> None:
     API response to populate Tekton results.
     """
     state = callback_context.state
+
+    # If a sub-agent's fail-closed callback already set structured_result, keep it
+    if state.get("structured_result"):
+        return
+
     structured: dict[str, Any] = {
         "SELECTED": "0",
         "CVE_ID": "",

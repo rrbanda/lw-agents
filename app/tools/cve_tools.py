@@ -9,24 +9,32 @@ import re
 from pathlib import Path
 from typing import Any
 
-def list_must_fix_cves(workspace_path: str) -> list[dict[str, Any]]:
+def list_must_fix_cves(workspace_path: str) -> dict[str, Any]:
     """List all CVEs in the Conforma policy-gated must-fix set.
 
-    Returns a compact list with cve_id, severity, affected_purls, and
-    fixed_version_hints per CVE. Call lookup_cve_detail for the full
-    advisory text of individual CVEs.
+    Returns a dict with status, count, and cves list. The status field
+    distinguishes success from degraded (file unreadable) so the agent
+    can reason about data quality.
 
     Args:
         workspace_path: Path to the pipeline workspace containing rhtpa/ directory.
     """
     ws = workspace_path or os.environ.get("WORKSPACE_PATH", "")
     must_fix_path = Path(ws) / "rhtpa" / "must-fix-cves.json"
-    if not must_fix_path.exists():
-        return []
 
-    raw = json.loads(must_fix_path.read_text(encoding="utf-8"))
+    if not must_fix_path.exists():
+        return {"status": "not_found", "count": 0, "cves": [],
+                "error": f"must-fix-cves.json not found at {must_fix_path}"}
+
+    try:
+        raw = json.loads(must_fix_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as e:
+        return {"status": "degraded", "count": 0, "cves": [],
+                "error": f"Failed to read must-fix-cves.json: {e}"}
+
     if not isinstance(raw, list):
-        return []
+        return {"status": "degraded", "count": 0, "cves": [],
+                "error": "must-fix-cves.json is not a JSON array"}
 
     results = []
     for item in raw:
@@ -40,7 +48,7 @@ def list_must_fix_cves(workspace_path: str) -> list[dict[str, Any]]:
                 "affected_purls": item.get("affected_purls", []),
                 "fixed_version_hints": item.get("fixed_version_hints", []),
             })
-    return results
+    return {"status": "ok", "count": len(results), "cves": results}
 
 
 def lookup_cve_detail(cve_id: str, workspace_path: str) -> dict[str, Any]:
@@ -77,7 +85,8 @@ def lookup_cve_detail(cve_id: str, workspace_path: str) -> dict[str, Any]:
     )
 
     if finding is None and detail is None:
-        return {"error": f"CVE {cve_id} not found in vulnerability report"}
+        return {"status": "not_found",
+                "error": f"CVE {cve_id} not found in vulnerability report"}
 
     result: dict[str, Any] = {"cve_id": cve_id}
     if finding:
@@ -147,14 +156,31 @@ def check_version_exists(
 
     try:
         resp = httpx.head(url, follow_redirects=True, timeout=10.0)
-        exists = resp.status_code == 200
-    except httpx.HTTPError:
-        exists = False
-
-    return {
-        "group_id": group_id,
-        "artifact_id": artifact_id,
-        "version": version,
-        "exists": exists,
-        "checked_url": url,
-    }
+        return {
+            "group_id": group_id,
+            "artifact_id": artifact_id,
+            "version": version,
+            "exists": resp.status_code == 200,
+            "status": "checked",
+            "checked_url": url,
+        }
+    except httpx.TimeoutException:
+        return {
+            "group_id": group_id,
+            "artifact_id": artifact_id,
+            "version": version,
+            "exists": False,
+            "status": "timeout",
+            "error": "Maven Central check timed out — version unverified",
+            "checked_url": url,
+        }
+    except httpx.HTTPError as e:
+        return {
+            "group_id": group_id,
+            "artifact_id": artifact_id,
+            "version": version,
+            "exists": False,
+            "status": "error",
+            "error": f"Network error checking version: {e}",
+            "checked_url": url,
+        }

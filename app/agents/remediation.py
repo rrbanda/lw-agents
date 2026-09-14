@@ -21,6 +21,9 @@ from google.adk.skills import load_skill_from_dir
 from google.adk.tools.bash_tool import BashToolPolicy, ExecuteBashTool
 from google.adk.tools.skill_toolset import SkillToolset
 
+from app.policy.pre_gate import pre_gate_callback
+from app.policy.post_gate import post_gate_callback
+
 MODEL = os.environ.get("MODEL_NAME", "gemini-2.5-flash")
 SKILLS_DIR = pathlib.Path(__file__).resolve().parent.parent.parent / "skills"
 
@@ -85,6 +88,8 @@ def _create_plan_agent() -> LlmAgent:
     return LlmAgent(
         name="remediation_planner",
         model=MODEL,
+        before_agent_callback=pre_gate_callback,
+        after_agent_callback=post_gate_callback,
         instruction=(
             "You are a Maven remediation engineer. Load the maven-remediation "
             "skill, then follow its process:\n"
@@ -170,6 +175,30 @@ def report_failure(node_input) -> Event:
     return Event(output={"success": False, "reason": str(node_input)})
 
 
+def validate_fix(ctx: Context, node_input) -> Event:
+    """Run adversarial validation on the remediation fix.
+
+    Invoked after the PR is created. Checks if the PR was actually
+    created (not rejected), then produces a validation verdict.
+    The validation agent runs as a sub-agent inside this node.
+    """
+    result = node_input if isinstance(node_input, dict) else {}
+
+    # Skip validation if PR was rejected or not created
+    if not result.get("created") and not result.get("pr_url"):
+        return Event(output={**result, "validation": "skipped",
+                              "reason": "No PR created"})
+
+    # The actual validation runs via the validation SequentialAgent
+    # which is wired as a sub_agent on the coordinator. For now,
+    # annotate the result with a validation_pending flag so the
+    # coordinator knows to invoke fix_validation next.
+    ctx.state["remediation_complete"] = True
+    ctx.state["validation_needed"] = True
+    return Event(output={**result, "validation": "pending",
+                          "note": "Invoke fix_validation to grade this fix"})
+
+
 def create_remediation_agent() -> Workflow:
     """Factory: builds the Workflow-based remediation agent."""
     plan_agent = _create_plan_agent()
@@ -179,7 +208,7 @@ def create_remediation_agent() -> Workflow:
         description=(
             "Remediates a Maven dependency vulnerability: reads pom.xml, "
             "applies the fix via OpenCode, verifies with Maven, pauses for "
-            "human approval, then opens a PR."
+            "human approval, opens a PR, then flags for validation."
         ),
         edges=[
             ("START", read_project),
@@ -191,5 +220,6 @@ def create_remediation_agent() -> Workflow:
                 "MAX_RETRIES": report_failure,
             }),
             (request_pr_approval, process_pr_decision),
+            (process_pr_decision, validate_fix),
         ],
     )

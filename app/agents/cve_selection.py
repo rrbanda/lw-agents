@@ -14,6 +14,7 @@ from google.adk.agents import LlmAgent
 from google.adk.skills import load_skill_from_dir
 from google.adk.tools.skill_toolset import SkillToolset
 
+from app.scoring.validate_selection import fail_closed_selection_callback
 from app.tools.cve_tools import (
     check_version_exists,
     list_must_fix_cves,
@@ -36,6 +37,7 @@ def create_cve_selection_agent() -> LlmAgent:
     return LlmAgent(
         name="cve_selection",
         model=MODEL,
+        after_agent_callback=fail_closed_selection_callback,
         instruction=(
             "You are a CVE triage specialist. When asked to select a CVE, "
             "first call load_skill to read the cve-triage skill, then follow "
