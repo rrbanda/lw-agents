@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lw-agents-config
+  labels:
+    app.kubernetes.io/name: lw-agents
+data:
+  MODEL_NAME: "gemini-2.5-flash"
+  WORKSPACE_PATH: "/workspace/source"
+  SCM_BASE_BRANCH: "main"

@@ -1,0 +1,55 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: tssc-agents
+
+images:
+  - name: quay.io/placeholder/lw-agents
+    newName: quay.io/placeholder/lw-agents
+    newTag: latest
+
+patches:
+  - target:
+      kind: Deployment
+      name: lw-agents
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: MLFLOW_TRACKING_URI
+          valueFrom:
+            configMapKeyRef:
+              name: lw-agents-tracing
+              key: MLFLOW_TRACKING_URI
+              optional: true
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: MLFLOW_EXPERIMENT_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: lw-agents-tracing
+              key: MLFLOW_EXPERIMENT_NAME
+              optional: true
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: MLFLOW_WORKSPACE
+          valueFrom:
+            configMapKeyRef:
+              name: lw-agents-tracing
+              key: MLFLOW_WORKSPACE
+              optional: true
+
+configMapGenerator:
+  - name: lw-agents-tracing
+    literals:
+      - MLFLOW_TRACKING_URI=
+      - MLFLOW_EXPERIMENT_NAME=lw-agents
+      - MLFLOW_WORKSPACE=autorag

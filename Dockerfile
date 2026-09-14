@@ -1,74 +1,43 @@
-# ADK agent service — containerized for OpenShift deployment.
-# Serves via ADK's built-in adk api_server (no custom FastAPI needed).
+# lw-agents service image — ADK agent on UBI9 for OpenShift.
 #
-# Contains: Python 3.11 + ADK + OpenCode (coding agent) + glab/gh (SCM CLIs)
-#           + Maven (for build verification) + git
+# This is the agent service only. OpenCode, Maven, and SCM CLIs
+# run in a separate OpenShell sandbox (see Containerfile.openshell).
 #
 # Build:
-#   podman build --platform linux/amd64 -t quay.io/<org>/lw-agents:v1.0.0 .
-#   podman push quay.io/<org>/lw-agents:v1.0.0
+#   podman build --platform linux/amd64 -t quay.io/<org>/lw-agents:latest .
 #
 # Run locally:
-#   podman run -p 8080:8080 --env-file .env quay.io/<org>/lw-agents:v1.0.0
+#   podman run -p 8080:8080 --env-file .env quay.io/<org>/lw-agents:latest
 
-FROM python:3.11-slim
+# --- Base: Red Hat UBI9 Python 3.12 ---
+FROM registry.access.redhat.com/ubi9/python-312@sha256:e95978812895b9abb2bdc109b501078da2a47c8dbb9fa23758af40ed50ab6023
+WORKDIR /opt/app-root/src
 
-ARG GLAB_VERSION=1.48.0
-ARG GH_VERSION=2.63.2
-ARG MAVEN_VERSION=3.9.9
+# Switch to root for installs
+USER 0
 
-# System deps
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl git jq ca-certificates tar gzip findutils \
-    openjdk-17-jdk-headless \
-    && rm -rf /var/lib/apt/lists/*
+# uv for fast reproducible dependency installs (pinned digest)
+COPY --from=ghcr.io/astral-sh/uv@sha256:fc93e9ecd7218e9ec8fba117af89348eef8fd2463c50c13347478769aaedd0ce /uv /usr/local/bin/uv
 
-# Maven (for build verification in remediation/test-gen tasks)
-RUN curl -fsSL "https://repo1.maven.org/maven2/org/apache/maven/apache-maven/${MAVEN_VERSION}/apache-maven-${MAVEN_VERSION}-bin.tar.gz" \
-    -o /tmp/maven.tar.gz \
-    && tar -xzf /tmp/maven.tar.gz -C /opt \
-    && ln -s "/opt/apache-maven-${MAVEN_VERSION}/bin/mvn" /usr/local/bin/mvn \
-    && rm /tmp/maven.tar.gz
+# Install dependencies from lockfile (reproducible builds)
+COPY pyproject.toml uv.lock ./
+COPY app/ ./app/
+ENV UV_PROJECT_ENVIRONMENT=/opt/app-root
+RUN uv sync --frozen --no-dev
 
-# OpenCode — open-source coding agent (headless mode for ExecuteBashTool)
-RUN curl -fsSL https://opencode.ai/install | bash \
-    && opencode --version
+# Copy skills (loaded at runtime via SkillToolset)
+COPY skills/ ./skills/
 
-# glab (GitLab CLI) for opening MRs and issues
-RUN ARCH=$(dpkg --print-architecture | sed 's/amd64/amd64/; s/arm64/arm64/') \
-    && curl -fsSL "https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads/glab_${GLAB_VERSION}_linux_${ARCH}.tar.gz" \
-    -o /tmp/glab.tar.gz \
-    && tar -xzf /tmp/glab.tar.gz -C /usr/local bin/glab \
-    && rm /tmp/glab.tar.gz
+# Ensure app directory is owned by default non-root user (UID 1001)
+RUN chown -R 1001:0 /opt/app-root/src && chmod -R g=u /opt/app-root/src
 
-# gh (GitHub CLI) for opening PRs and issues
-RUN ARCH=$(dpkg --print-architecture | sed 's/amd64/amd64/; s/arm64/arm64/') \
-    && curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.tar.gz" \
-    -o /tmp/gh.tar.gz \
-    && tar -xzf /tmp/gh.tar.gz -C /tmp \
-    && cp "/tmp/gh_${GH_VERSION}_linux_${ARCH}/bin/gh" /usr/local/bin/gh \
-    && rm -rf /tmp/gh.tar.gz "/tmp/gh_${GH_VERSION}_linux_${ARCH}"
+# Switch to non-root (OpenShift standard UID)
+USER 1001
 
-# Install uv for fast Python dependency management
-RUN pip install --no-cache-dir uv
-
-WORKDIR /app
-
-# Copy project files
-COPY pyproject.toml .
-COPY app/ app/
-COPY skills/ skills/
-
-# Install Python dependencies
-RUN uv pip install --system --no-cache .
-
-# ADK api_server serves on port 8080 by default
 EXPOSE 8080
 
-# Non-root user for OpenShift compatibility
-RUN useradd -m -s /bin/bash agent \
-    && chown -R agent:agent /app
-USER agent
+ENV PORT=8080 \
+    PYTHONPATH=/opt/app-root/src
 
-# Use ADK's built-in server — discovers root_agent from app/agent.py
+# ADK's built-in server — discovers root_agent from app/agent.py
 CMD ["adk", "api_server", "--port", "8080", "app"]

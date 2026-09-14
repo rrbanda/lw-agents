@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: lw-agents
+  labels:
+    app.kubernetes.io/name: lw-agents
+spec:
+  selector:
+    app.kubernetes.io/name: lw-agents
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http

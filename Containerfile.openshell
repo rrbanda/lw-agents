@@ -1,0 +1,79 @@
+# lw-agents OpenCode sandbox image for OpenShell.
+#
+# BYOC (Bring Your Own Container) following the OpenShell pattern:
+# https://github.com/NVIDIA/OpenShell/tree/main/examples/bring-your-own-container
+#
+# Contains: OpenCode (coding agent) + Maven + JDK 17 + git + glab/gh CLIs.
+# The lw-agents service calls OpenCode via ExecuteBashTool; OpenCode runs
+# inside this sandbox with policy-enforced network isolation.
+#
+# Build:
+#   podman build --platform linux/amd64 -t quay.io/<org>/lw-agents-sandbox:latest \
+#     -f Containerfile.openshell .
+#
+# Run via OpenShell:
+#   openshell sandbox create --name lw-sandbox \
+#     --from quay.io/<org>/lw-agents-sandbox:latest \
+#     --forward 8080 \
+#     -e MAAS_BASE_URL=... -e MAAS_API_KEY=... \
+#     -- opencode --headless
+
+FROM registry.access.redhat.com/ubi9/python-312@sha256:e95978812895b9abb2bdc109b501078da2a47c8dbb9fa23758af40ed50ab6023
+
+ARG GLAB_VERSION=1.48.0
+ARG GH_VERSION=2.63.2
+ARG MAVEN_VERSION=3.9.9
+
+USER 0
+
+# OpenShell deps + Java + build tools
+RUN dnf install -y --nodocs \
+        iproute nftables \
+        java-17-openjdk-headless \
+        git jq tar gzip findutils \
+    && dnf clean all && rm -rf /var/cache/dnf
+
+# Maven (for build verification in remediation/test-gen tasks)
+RUN curl -fsSL "https://repo1.maven.org/maven2/org/apache/maven/apache-maven/${MAVEN_VERSION}/apache-maven-${MAVEN_VERSION}-bin.tar.gz" \
+    -o /tmp/maven.tar.gz \
+    && tar -xzf /tmp/maven.tar.gz -C /opt \
+    && ln -s "/opt/apache-maven-${MAVEN_VERSION}/bin/mvn" /usr/local/bin/mvn \
+    && rm /tmp/maven.tar.gz
+
+# OpenCode — open-source coding agent (headless mode for ExecuteBashTool)
+RUN curl -fsSL https://opencode.ai/install | bash \
+    && opencode --version
+
+# glab (GitLab CLI) for opening MRs and issues
+RUN ARCH=$(uname -m | sed 's/x86_64/amd64/; s/aarch64/arm64/') \
+    && curl -fsSL "https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads/glab_${GLAB_VERSION}_linux_${ARCH}.tar.gz" \
+    -o /tmp/glab.tar.gz \
+    && tar -xzf /tmp/glab.tar.gz -C /usr/local bin/glab \
+    && rm /tmp/glab.tar.gz
+
+# gh (GitHub CLI) for opening PRs and issues
+RUN ARCH=$(uname -m | sed 's/x86_64/amd64/; s/aarch64/arm64/') \
+    && curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.tar.gz" \
+    -o /tmp/gh.tar.gz \
+    && tar -xzf /tmp/gh.tar.gz -C /tmp \
+    && cp "/tmp/gh_${GH_VERSION}_linux_${ARCH}/bin/gh" /usr/local/bin/gh \
+    && rm -rf /tmp/gh.tar.gz "/tmp/gh_${GH_VERSION}_linux_${ARCH}"
+
+# uv for fast dependency management
+COPY --from=ghcr.io/astral-sh/uv@sha256:fc93e9ecd7218e9ec8fba117af89348eef8fd2463c50c13347478769aaedd0ce /uv /usr/local/bin/uv
+
+# Sandbox working directory (OpenShell convention)
+RUN install -d -o 1001 -g 0 -m 775 /sandbox
+WORKDIR /sandbox
+
+USER 1001
+
+ENV PORT=8080 \
+    JAVA_HOME=/usr/lib/jvm/jre-17-openjdk \
+    PATH="/opt/apache-maven-${MAVEN_VERSION}/bin:/opt/app-root/bin:${PATH}"
+
+EXPOSE 8080
+
+# NOTE: OpenShell's sandbox supervisor replaces CMD at runtime.
+# Pass the start command explicitly via: openshell sandbox create ... -- <command>
+CMD ["opencode", "--headless"]

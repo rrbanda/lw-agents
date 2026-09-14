@@ -1,6 +1,9 @@
 .PHONY: install install-tracing dev dev-traced playground test lint eval eval-generate eval-grade run \
        evalhub-safety evalhub-security evalhub-status evalhub-cve-eval evalhub-full \
-       agent-eval agent-eval-baseline agent-eval-ci deploy-eval-tasks
+       agent-eval agent-eval-baseline agent-eval-ci deploy-eval-tasks \
+       build build-sandbox push deploy undeploy dry-run
+
+CONTAINER_CLI := $(shell command -v podman 2>/dev/null || command -v docker 2>/dev/null)
 
 install:
 	uv sync
@@ -102,3 +105,42 @@ ci-gate:  ## Full CI quality gate: model evals + agent evals (what Tekton runs)
 	@echo "=== Gate 2: Model Security ===" && $(MAKE) evalhub-security-wait
 	@echo "=== Gate 3: Agent Evals ===" && $(MAKE) agent-eval-ci
 	@echo "ALL GATES PASSED"
+
+# --- Container image build targets ---
+
+build:  ## Build the lw-agents service image
+	@[ -n "$(CONTAINER_CLI)" ] || { echo "ERROR: neither podman nor docker found"; exit 1; }
+	@source .env 2>/dev/null; \
+	[ -n "$${CONTAINER_IMAGE}" ] || { echo "ERROR: CONTAINER_IMAGE not set in .env"; exit 1; }; \
+	$(CONTAINER_CLI) build --platform linux/amd64 -t "$${CONTAINER_IMAGE}" -f Dockerfile .
+
+build-sandbox:  ## Build the OpenCode sandbox image
+	@[ -n "$(CONTAINER_CLI)" ] || { echo "ERROR: neither podman nor docker found"; exit 1; }
+	@source .env 2>/dev/null; \
+	[ -n "$${SANDBOX_IMAGE}" ] || { echo "ERROR: SANDBOX_IMAGE not set in .env"; exit 1; }; \
+	$(CONTAINER_CLI) build --platform linux/amd64 -t "$${SANDBOX_IMAGE}" -f Containerfile.openshell .
+
+push:  ## Push both images to registry
+	@[ -n "$(CONTAINER_CLI)" ] || { echo "ERROR: neither podman nor docker found"; exit 1; }
+	@source .env 2>/dev/null; \
+	[ -n "$${CONTAINER_IMAGE}" ] || { echo "ERROR: CONTAINER_IMAGE not set in .env"; exit 1; }; \
+	[ -n "$${SANDBOX_IMAGE}" ] || { echo "ERROR: SANDBOX_IMAGE not set in .env"; exit 1; }; \
+	$(CONTAINER_CLI) push "$${CONTAINER_IMAGE}" && \
+	$(CONTAINER_CLI) push "$${SANDBOX_IMAGE}"
+
+# --- Kustomize deployment targets ---
+
+KUSTOMIZE_OVERLAY ?= production
+
+deploy:  ## Deploy to OpenShift via Kustomize (KUSTOMIZE_OVERLAY=dev|production)
+	oc apply -k deployment/kustomize/overlays/$(KUSTOMIZE_OVERLAY)
+	@echo "Waiting for rollout..." && \
+	oc rollout status deployment/lw-agents --timeout=120s && \
+	ROUTE=$$(oc get route lw-agents -o jsonpath='{.spec.host}' 2>/dev/null || true); \
+	if [ -n "$$ROUTE" ]; then echo "Agent available at: https://$$ROUTE"; fi
+
+undeploy:  ## Remove deployment from OpenShift
+	oc delete -k deployment/kustomize/overlays/$(KUSTOMIZE_OVERLAY)
+
+dry-run:  ## Preview Kustomize manifests without deploying
+	oc kustomize deployment/kustomize/overlays/$(KUSTOMIZE_OVERLAY)
