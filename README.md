@@ -76,29 +76,29 @@ speed. This repository is the agent application that powers that engine.
 How a CVE goes from discovery to a validated pull request:
 
 ```mermaid
-flowchart TD
-    scan(["RHTPA / Trustify scans your app"])
+flowchart LR
+    scan(["RHTPA scans\nyour app"])
     scan --> mustfix[("must-fix-cves.json")]
 
-    mustfix --> gate1{"EvalHub Gate\nsafety + security\nbenchmarks"}
-    gate1 -->|FAIL| blocked1[Pipeline Blocked]
-    gate1 -->|PASS| gate2{"Agent Eval Gate\n38 cases\nregression check"}
-    gate2 -->|FAIL| blocked2[Pipeline Blocked]
-
+    mustfix --> gate1{"EvalHub\nGate"}
+    gate1 -->|FAIL| blocked1[Blocked]
+    gate1 -->|PASS| gate2{"Agent Eval\nGate"}
+    gate2 -->|FAIL| blocked2[Blocked]
     gate2 -->|PASS| select
 
-    select["1 SELECT\nPick the highest-impact CVE\nvia cve-triage skill + Maven Central verification"]
-    select --> analyze["2 ANALYZE\nIterate all CVEs\nCreate SCM issue per fixable vulnerability"]
-    select --> remediate["3 REMEDIATE\nEdit pom.xml via OpenCode\nmvn build + retry up to 3x"]
-    remediate --> testgen["4 TEST\nGenerate JUnit tests\nIterate until passing"]
-    remediate --> validate["5 VALIDATE\nSecurity Architect + Penetration Tester\nDeterministic weighted scoring"]
+    select["1 SELECT\nPick best CVE"]
+    select --> analyze["2 ANALYZE\nFile issues"]
+    select --> remediate["3 REMEDIATE\nFix + build + retry"]
 
-    analyze --> issues(["SCM Issues created"])
-    remediate --> fixpr(["Remediation PR opened"])
-    testgen --> testpr(["Tests PR opened"])
-    validate --> verdict{{"FIXED / PARTIALLY_FIXED / NOT_FIXED"}}
+    remediate --> testgen["4 TEST\nGenerate + iterate"]
+    remediate --> validate["5 VALIDATE\nArchitect + Pentester"]
 
-    fixpr --> human["Human Reviewer"]
+    analyze --> issues(["Issues"])
+    remediate --> fixpr(["Fix PR"])
+    testgen --> testpr(["Tests PR"])
+    validate --> verdict{{"Verdict"}}
+
+    fixpr --> human["Human\nReview"]
     testpr --> human
     verdict --> human
     human --> merge(["Merge"])
