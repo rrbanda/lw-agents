@@ -1,0 +1,162 @@
+{
+  "eval_cases": [
+    {
+      "eval_case_id": "route-to-cve-selection",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Select the best CVE to remediate. Workspace path: /workspace/source"
+          }
+        ]
+      },
+      "context": {
+        "description": "Coordinator should delegate to the cve_selection sub-agent.",
+        "expected_delegate": "cve_selection"
+      },
+      "reference_answer_key_points": [
+        "delegated to cve_selection agent",
+        "did NOT attempt to answer directly",
+        "did NOT delegate to remediation or analysis"
+      ]
+    },
+    {
+      "eval_case_id": "route-to-cve-analysis",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Analyze all CVEs and create issues. Workspace path: /workspace/source"
+          }
+        ]
+      },
+      "context": {
+        "description": "Coordinator should delegate to the cve_analysis sub-agent.",
+        "expected_delegate": "cve_analysis"
+      },
+      "reference_answer_key_points": [
+        "delegated to cve_analysis agent",
+        "did NOT attempt to analyze CVEs directly"
+      ]
+    },
+    {
+      "eval_case_id": "route-to-remediation",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Remediate this vulnerability: {\"cve_id\": \"CVE-2024-29025\", \"package\": \"com.fasterxml.jackson.core:jackson-databind\", \"current_version\": \"2.13.2\", \"fixed_version\": \"2.13.4.2\"}"
+          }
+        ]
+      },
+      "context": {
+        "description": "Coordinator should delegate to the remediation sub-agent.",
+        "expected_delegate": "remediation"
+      },
+      "reference_answer_key_points": [
+        "delegated to remediation agent",
+        "passed through CVE details to the sub-agent"
+      ]
+    },
+    {
+      "eval_case_id": "route-to-test-generation",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Generate unit tests for the remediated vulnerability. Workspace path: /workspace/source"
+          }
+        ]
+      },
+      "context": {
+        "description": "Coordinator should delegate to the test_generation sub-agent.",
+        "expected_delegate": "test_generation"
+      },
+      "reference_answer_key_points": [
+        "delegated to test_generation agent",
+        "did NOT attempt to write tests directly"
+      ]
+    },
+    {
+      "eval_case_id": "route-to-fix-validation",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Validate the remediation fix. The fix bumped jackson-databind from 2.13.2 to 2.13.4.2 in pom.xml."
+          }
+        ]
+      },
+      "context": {
+        "description": "Coordinator should delegate to the fix_validation sub-agent.",
+        "expected_delegate": "fix_validation"
+      },
+      "reference_answer_key_points": [
+        "delegated to fix_validation agent",
+        "did NOT attempt to validate the fix directly"
+      ]
+    },
+    {
+      "eval_case_id": "route-ambiguous-request",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "There's a vulnerability in our jackson dependency. Can you help?"
+          }
+        ]
+      },
+      "context": {
+        "description": "Ambiguous request. Coordinator should ask for clarification or start with cve_selection to identify the specific CVE, NOT jump directly to remediation.",
+        "expected_behavior": "clarify_or_start_with_selection"
+      },
+      "reference_answer_key_points": [
+        "did NOT jump directly to remediation without CVE details",
+        "either asked for clarification OR started with cve_selection",
+        "demonstrated awareness that specific CVE info is needed"
+      ]
+    },
+    {
+      "eval_case_id": "route-full-pipeline-request",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Find the most critical CVE in our project, fix it, write tests, and validate the fix. Workspace path: /workspace/source. Repository: https://gitlab.example.com/org/app"
+          }
+        ]
+      },
+      "context": {
+        "description": "Full pipeline request. Coordinator should orchestrate all 5 agents in sequence: selection -> analysis -> remediation -> test_generation -> fix_validation.",
+        "expected_delegates_in_order": ["cve_selection", "cve_analysis", "remediation", "test_generation", "fix_validation"]
+      },
+      "reference_answer_key_points": [
+        "started with cve_selection to pick the best CVE",
+        "used results from selection to drive remediation",
+        "generated tests after remediation",
+        "validated the fix",
+        "orchestrated agents in logical order"
+      ]
+    },
+    {
+      "eval_case_id": "route-does-not-hallucinate-capabilities",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Deploy the fix to production and run integration tests on the staging cluster."
+          }
+        ]
+      },
+      "context": {
+        "description": "Request for capabilities outside the agent's scope (deployment, integration testing). Coordinator should explain what it CAN do and decline what it cannot.",
+        "expected_behavior": "decline_gracefully"
+      },
+      "reference_answer_key_points": [
+        "did NOT hallucinate deployment capabilities",
+        "explained what it can do (CVE selection, analysis, remediation, test generation, validation)",
+        "did NOT attempt to run deployment commands"
+      ]
+    }
+  ]
+}

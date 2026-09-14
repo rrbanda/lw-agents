@@ -1,0 +1,160 @@
+{
+  "eval_cases": [
+    {
+      "eval_case_id": "validate-clean-version-bump-fix",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Validate this remediation fix for CVE-2024-29025. The fix bumped com.fasterxml.jackson.core:jackson-databind from 2.13.2 to 2.13.4.2 in pom.xml. Diff:\n--- a/pom.xml\n+++ b/pom.xml\n@@ -42,7 +42,7 @@\n   <properties>\n-    <jackson.version>2.13.2</jackson.version>\n+    <jackson.version>2.13.4.2</jackson.version>\n   </properties>\n\nWorkspace path: /workspace/test-data/validation-case1"
+          }
+        ]
+      },
+      "context": {
+        "description": "Clean single-line version bump — should pass all 4 gates with FIXED verdict. Tests that the security_architect and penetration_tester agree, and deterministic_scoring produces the correct weighted score.",
+        "cve_id": "CVE-2024-29025",
+        "expected_verdict": "FIXED",
+        "expected_gates": {
+          "root_cause": "PASS",
+          "instance_coverage": "PASS",
+          "no_new_vulnerabilities": "PASS",
+          "security_best_practices": "PASS"
+        }
+      },
+      "reference_answer_key_points": [
+        "root_cause gate: PASS — version bump addresses the root vulnerability",
+        "instance_coverage gate: PASS — all instances of the dependency are covered",
+        "no_new_vulnerabilities gate: PASS — no security suppressions or risky patterns",
+        "security_best_practices gate: PASS — minimal, focused change",
+        "overall verdict: FIXED with score >= 0.80"
+      ]
+    },
+    {
+      "eval_case_id": "validate-fix-with-nosec-suppression",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Validate this remediation fix for CVE-2024-1597. The fix modified multiple files. Diff:\n--- a/pom.xml\n+++ b/pom.xml\n@@ -55,7 +55,7 @@\n-    <postgresql.version>42.6.0</postgresql.version>\n+    <postgresql.version>42.6.1</postgresql.version>\n--- a/src/main/java/com/example/DbConfig.java\n+++ b/src/main/java/com/example/DbConfig.java\n@@ -12,6 +12,7 @@\n+    @SuppressWarnings(\"SqlInjection\") // nosec\n     public DataSource dataSource() {\n\nWorkspace path: /workspace/test-data/validation-case2"
+          }
+        ]
+      },
+      "context": {
+        "description": "Fix contains a @SuppressWarnings + nosec annotation — a security anti-pattern. The no_new_vulnerabilities gate should FAIL, dragging the verdict down to PARTIALLY_FIXED or NOT_FIXED.",
+        "cve_id": "CVE-2024-1597",
+        "expected_verdict": "PARTIALLY_FIXED",
+        "expected_gates": {
+          "root_cause": "PASS",
+          "no_new_vulnerabilities": "FAIL"
+        }
+      },
+      "reference_answer_key_points": [
+        "root_cause gate: PASS — version was bumped",
+        "no_new_vulnerabilities gate: FAIL — nosec/SuppressWarnings detected",
+        "penetration_tester should flag the suppression as dangerous",
+        "verdict is NOT 'FIXED'"
+      ]
+    },
+    {
+      "eval_case_id": "validate-fix-wrong-root-cause",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Validate this remediation fix for CVE-2024-22201 (HTTP/2 Rapid Reset DoS). The fix added a rate limiter to the application controller rather than updating the Jetty server dependency. Diff:\n--- a/src/main/java/com/example/AppController.java\n+++ b/src/main/java/com/example/AppController.java\n@@ -8,6 +8,12 @@\n+    @RateLimiter(name = \"http2Shield\", fallbackMethod = \"rateLimited\")\n     @GetMapping(\"/api/data\")\n     public ResponseEntity<String> getData() {\n+    }\n+    public ResponseEntity<String> rateLimited(Exception e) {\n+        return ResponseEntity.status(429).body(\"Rate limited\");\n\nWorkspace path: /workspace/test-data/validation-case3"
+          }
+        ]
+      },
+      "context": {
+        "description": "Fix does NOT address the root cause — it's a workaround (rate limiting) instead of patching the vulnerable Jetty dependency. The root_cause gate should FAIL. With the critical gate cap, this should limit the verdict to at most PARTIALLY_FIXED regardless of other gate scores.",
+        "cve_id": "CVE-2024-22201",
+        "expected_verdict": "NOT_FIXED",
+        "expected_gates": {
+          "root_cause": "FAIL"
+        }
+      },
+      "reference_answer_key_points": [
+        "root_cause gate: FAIL — rate limiter does not fix the Jetty vulnerability",
+        "critical gate cap applies — root_cause FAIL caps verdict",
+        "verdict: NOT_FIXED",
+        "security_architect should identify that the HTTP/2 vulnerability is in Jetty, not application code"
+      ]
+    },
+    {
+      "eval_case_id": "validate-fix-partial-coverage",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Validate this remediation fix for CVE-2024-29025 (jackson-databind). The project has two pom.xml files (parent + child module). The fix only updated the parent pom. Diff:\n--- a/pom.xml\n+++ b/pom.xml\n@@ -42,7 +42,7 @@\n-    <jackson.version>2.13.2</jackson.version>\n+    <jackson.version>2.13.4.2</jackson.version>\n\nNote: module-b/pom.xml has <jackson-databind.version>2.13.2</jackson-databind.version> which overrides the parent.\n\nWorkspace path: /workspace/test-data/validation-case4"
+          }
+        ]
+      },
+      "context": {
+        "description": "Fix addresses the root cause in the parent but misses a child module override. instance_coverage gate should be PARTIAL.",
+        "cve_id": "CVE-2024-29025",
+        "expected_verdict": "PARTIALLY_FIXED",
+        "expected_gates": {
+          "root_cause": "PASS",
+          "instance_coverage": "PARTIAL"
+        }
+      },
+      "reference_answer_key_points": [
+        "root_cause gate: PASS — correct version bump",
+        "instance_coverage gate: PARTIAL or FAIL — child module still vulnerable",
+        "penetration_tester should identify the override in module-b",
+        "verdict: PARTIALLY_FIXED"
+      ]
+    },
+    {
+      "eval_case_id": "validate-fix-with-verify-false",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Validate this remediation fix for CVE-2024-34750 (Tomcat TLS vulnerability). Diff:\n--- a/pom.xml\n+++ b/pom.xml\n@@ -30,7 +30,7 @@\n-    <tomcat.version>9.0.85</tomcat.version>\n+    <tomcat.version>9.0.87</tomcat.version>\n--- a/src/main/resources/application.yml\n+++ b/src/main/resources/application.yml\n@@ -15,3 +15,5 @@\n server:\n   ssl:\n+    verify: false\n+    trust-store: classpath:truststore.jks\n\nWorkspace path: /workspace/test-data/validation-case5"
+          }
+        ]
+      },
+      "context": {
+        "description": "Fix bumps the right version BUT also disables SSL verification — a critical security anti-pattern. Both personas should flag this.",
+        "cve_id": "CVE-2024-34750",
+        "expected_verdict": "NOT_FIXED",
+        "expected_gates": {
+          "root_cause": "PASS",
+          "no_new_vulnerabilities": "FAIL",
+          "security_best_practices": "FAIL"
+        }
+      },
+      "reference_answer_key_points": [
+        "root_cause: PASS — Tomcat bumped",
+        "no_new_vulnerabilities: FAIL — verify: false disables TLS verification",
+        "security_best_practices: FAIL — introduced new vulnerability",
+        "both personas should flag verify: false as dangerous",
+        "verdict: NOT_FIXED despite correct version bump"
+      ]
+    },
+    {
+      "eval_case_id": "validate-personas-disagree",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Validate this remediation fix for CVE-2024-7254 (protobuf DoS). The fix bumped protobuf-java from 3.21.7 to 3.21.12 and added input size limits. Diff:\n--- a/pom.xml\n+++ b/pom.xml\n@@ -80,7 +80,7 @@\n-    <protobuf.version>3.21.7</protobuf.version>\n+    <protobuf.version>3.21.12</protobuf.version>\n--- a/src/main/java/com/example/ProtoParser.java\n+++ b/src/main/java/com/example/ProtoParser.java\n@@ -22,6 +22,8 @@\n     public Message parse(InputStream input) {\n+        CodedInputStream limited = CodedInputStream.newInstance(input);\n+        limited.setSizeLimit(1024 * 1024); // 1MB limit\n         return MyProto.parseFrom(limited);\n\nWorkspace path: /workspace/test-data/validation-case6"
+          }
+        ]
+      },
+      "context": {
+        "description": "Good fix with defense-in-depth. Security architect should approve fully. Penetration tester might note the hardcoded 1MB limit but should still pass. Tests the conservative-consensus rule when personas partially disagree.",
+        "cve_id": "CVE-2024-7254",
+        "expected_verdict": "FIXED"
+      },
+      "reference_answer_key_points": [
+        "both personas largely agree this is a good fix",
+        "version bump + input size limit = defense in depth",
+        "any disagreement on specifics resolved by conservative consensus",
+        "verdict: FIXED with high confidence"
+      ]
+    }
+  ]
+}

@@ -6,7 +6,6 @@ INCONCLUSIVE. A selection is only honored if ALL fields pass validation.
 
 from __future__ import annotations
 
-import json
 import re
 from typing import Any
 
@@ -35,8 +34,12 @@ def validate_selection(result: dict[str, Any]) -> dict[str, Any]:
     justification = str(result.get("justification", "")).strip()
 
     if selected not in ("1", "true", "True"):
-        return {**result, "SELECTED": "0", "validation_errors": [],
-                "validation_status": "not_selected"}
+        return {
+            **result,
+            "SELECTED": "0",
+            "validation_errors": [],
+            "validation_status": "not_selected",
+        }
 
     # CVE ID must match pattern
     if not CVE_PATTERN.match(cve_id):
@@ -61,8 +64,11 @@ def validate_selection(result: dict[str, Any]) -> dict[str, Any]:
         errors.append("Empty justification")
 
     # Placeholder detection (from original ssc-demo)
-    for field_name, value in [("package", package), ("fixed_version", fixed),
-                               ("current_version", current)]:
+    for field_name, value in [
+        ("package", package),
+        ("fixed_version", fixed),
+        ("current_version", current),
+    ]:
         lower = value.lower()
         if lower in ("string", "null", "none", "n/a", ""):
             errors.append(f"{field_name} is a placeholder: {value!r}")
@@ -103,13 +109,9 @@ async def fail_closed_selection_callback(callback_context) -> None:
     # Try to parse structured result from the agent output
     parsed: dict[str, Any] = {}
     if isinstance(raw, str):
-        # Try JSON extraction
-        json_match = re.search(r"\{[^{}]*\}", raw, re.DOTALL)
-        if json_match:
-            try:
-                parsed = json.loads(json_match.group(0))
-            except json.JSONDecodeError:
-                pass
+        from app.callbacks import _extract_json_object
+
+        parsed = _extract_json_object(raw) or parsed
 
         # Fallback: regex extraction
         if not parsed:

@@ -7,12 +7,14 @@ can validate the data structurally.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, field_validator
 import re
+
+from pydantic import BaseModel, Field, field_validator
 
 
 class CVEDecision(BaseModel):
     """Output of the CVE selection or analysis agent."""
+
     selected: bool = False
     cve_id: str = ""
     package: str = Field(default="", description="Maven groupId:artifactId")
@@ -57,6 +59,7 @@ class CVEDecision(BaseModel):
 
 class RemediationResult(BaseModel):
     """Output of the remediation agent."""
+
     success: bool = False
     changed_files: list[str] = Field(default_factory=list)
     diff_content: str = ""
@@ -70,8 +73,8 @@ class RemediationResult(BaseModel):
 
 class ValidationVerdict(BaseModel):
     """Output of the validation agent (deterministic scoring)."""
-    decision: str = Field(default="NOT_FIXED",
-                          description="FIXED / PARTIALLY_FIXED / NOT_FIXED")
+
+    decision: str = Field(default="NOT_FIXED", description="FIXED / PARTIALLY_FIXED / NOT_FIXED")
     score: float = Field(default=0.0, ge=0.0, le=1.0)
     gates: dict[str, dict] = Field(default_factory=dict)
     personas_consulted: list[str] = Field(default_factory=list)

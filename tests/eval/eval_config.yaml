@@ -1,9 +1,73 @@
+# Evaluation configuration for lw-agents
+# =========================================
+# Defines metrics used to evaluate each agent in the multi-agent system.
+# Run with: make eval  (or: uv run agents-cli eval run)
+
+# --- Built-in ADK eval metrics ---
 metrics_to_run:
   - multi_turn_task_success
   - multi_turn_tool_use_quality
+  # Custom metrics below
   - cve_selection_accuracy
   - version_not_hallucinated
+  - correct_routing
+  - skill_loaded_first
+  - tool_use_completeness
+  - remediation_build_passes
+  - validation_gate_accuracy
+  - pr_hygiene
 
+# --- Eval datasets per agent ---
+eval_sets:
+  - name: coordinator-routing
+    dataset: datasets/coordinator-routing.json
+    agent: ssc_coordinator
+    metrics:
+      - correct_routing
+      - multi_turn_task_success
+
+  - name: cve-selection
+    dataset: datasets/cve-selection.json
+    agent: cve_selection
+    metrics:
+      - cve_selection_accuracy
+      - version_not_hallucinated
+      - skill_loaded_first
+      - tool_use_completeness
+
+  - name: cve-analysis
+    dataset: datasets/cve-analysis.json
+    agent: cve_analysis
+    metrics:
+      - tool_use_completeness
+      - skill_loaded_first
+      - multi_turn_task_success
+
+  - name: remediation
+    dataset: datasets/remediation.json
+    agent: remediation
+    metrics:
+      - remediation_build_passes
+      - skill_loaded_first
+      - pr_hygiene
+      - multi_turn_tool_use_quality
+
+  - name: test-generation
+    dataset: datasets/test-generation.json
+    agent: test_generation
+    metrics:
+      - remediation_build_passes
+      - pr_hygiene
+      - multi_turn_task_success
+
+  - name: fix-validation
+    dataset: datasets/fix-validation.json
+    agent: fix_validation
+    metrics:
+      - validation_gate_accuracy
+      - multi_turn_task_success
+
+# --- Custom metric definitions (LLM-as-judge) ---
 custom_metrics:
   - name: cve_selection_accuracy
     prompt_template: |
@@ -30,3 +94,98 @@ custom_metrics:
       Final response: {response}
 
       Return JSON: {"score": <0 or 1>, "explanation": "<reason>"}
+
+  - name: correct_routing
+    prompt_template: |
+      The coordinator agent was asked to handle a task. Check if it delegated
+      to the correct specialist sub-agent. The expected delegate is: {expected_delegate}
+
+      Agent trace showing delegation: {agent_data}
+      Response: {response}
+
+      Scoring:
+      - 1 = delegated to the correct sub-agent
+      - 0 = delegated to wrong sub-agent, answered directly, or hallucinated
+
+      Return JSON: {"score": <0 or 1>, "explanation": "<reason>"}
+
+  - name: skill_loaded_first
+    prompt_template: |
+      Check the agent's tool call sequence. Did the agent call load_skill
+      (via SkillToolset) BEFORE making any substantive tool calls or decisions?
+      The skill contains methodology the agent must follow.
+
+      Tool trajectory (ordered): {agent_data}
+
+      Scoring:
+      - 1 = load_skill was called before substantive tools
+      - 0 = load_skill was not called, or was called after the agent already
+             started making decisions
+
+      Return JSON: {"score": <0 or 1>, "explanation": "<reason>"}
+
+  - name: tool_use_completeness
+    prompt_template: |
+      Given the task context, did the agent use ALL the necessary tools to
+      gather information before making its decision? Check against the
+      expected_tool_use list in the eval case context.
+
+      Expected tools: {expected_tool_use}
+      Actual tool trajectory: {agent_data}
+      Response: {response}
+
+      Scoring:
+      - 1 = all expected tools were called with at least the minimum counts
+      - 0.5 = most expected tools were called but some were missed
+      - 0 = critical tools were missed
+
+      Return JSON: {"score": <0 or 0.5 or 1>, "explanation": "<reason>"}
+
+  - name: remediation_build_passes
+    prompt_template: |
+      Check if the agent's remediation resulted in a passing build. Look for
+      evidence of:
+      1. Build command executed (mvn verify, mvn test, etc.)
+      2. Build result was SUCCESS (not FAILURE)
+      3. If build failed, did the agent retry and eventually succeed?
+
+      Agent trace: {agent_data}
+      Response: {response}
+
+      Return JSON: {"score": <0 or 1>, "explanation": "<reason>"}
+
+  - name: validation_gate_accuracy
+    prompt_template: |
+      The fix validation agent evaluated a remediation fix against 4 gates:
+      root_cause, instance_coverage, no_new_vulnerabilities, security_best_practices.
+
+      Expected gate results: {expected_gates}
+      Agent's actual gate assessments: {response}
+
+      Scoring:
+      - 1 = all gates match expected results
+      - 0.75 = 3 of 4 gates correct
+      - 0.5 = 2 of 4 gates correct
+      - 0.25 = 1 of 4 gates correct
+      - 0 = no gates correct or agent didn't assess gates
+
+      Return JSON: {"score": <0 to 1>, "explanation": "<reason>"}
+
+  - name: pr_hygiene
+    prompt_template: |
+      Evaluate the quality of the pull request created by the agent. Check:
+      1. PR title mentions the CVE ID
+      2. PR description explains what was changed and why
+      3. Diff is minimal and focused (no unrelated changes)
+      4. No security anti-patterns (nosec, SuppressWarnings, verify=false)
+      5. Changes are confined to expected file types (pom.xml, .java, .yml)
+
+      Agent trace showing PR creation: {agent_data}
+      Response: {response}
+
+      Scoring:
+      - 1 = all criteria met
+      - 0.5 = some criteria met, minor issues
+      - 0 = major issues (anti-patterns, unrelated changes, missing description)
+
+      Return JSON: {"score": <0 or 0.5 or 1>, "explanation": "<reason>"}

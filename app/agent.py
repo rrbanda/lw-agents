@@ -12,8 +12,6 @@ Architecture follows patterns from:
 
 from __future__ import annotations
 
-import os
-
 from google.adk.agents import LlmAgent
 from google.adk.apps import App, ResumabilityConfig
 
@@ -23,10 +21,9 @@ from app.agents.remediation import create_remediation_agent
 from app.agents.test_generation import create_test_generation_agent
 from app.agents.validation import create_validation_agent
 from app.callbacks import extract_structured_results
+from app.config import MODEL
 from app.plugins.redaction import RedactionPlugin
 from app.plugins.safety import SafetyPlugin
-
-MODEL = os.environ.get("MODEL_NAME", "gemini-2.5-flash")
 
 
 def _build_app() -> App:
@@ -39,7 +36,8 @@ def _build_app() -> App:
             "- For CVE **selection** (pick ONE CVE to fix): delegate to cve_selection\n"
             "- For CVE **analysis** (analyze ALL CVEs, open issues): delegate to cve_analysis\n"
             "- For dependency **remediation** (apply a fix, open PR): delegate to remediation\n"
-            "- For **test generation** (generate JUnit tests, open PR): delegate to test_generation\n"
+            "- For **test generation** (generate JUnit tests, open PR): "
+            "delegate to test_generation\n"
             "- For fix **validation** (adversarial review of a fix): delegate to fix_validation\n\n"
             "Always delegate — never attempt the task yourself. Pass the full "
             "request context (workspace path, CVE details, etc.) to the specialist."

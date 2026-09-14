@@ -12,6 +12,33 @@ import re
 from typing import Any
 
 
+def _extract_json_object(text: str) -> dict[str, Any] | None:
+    """Extract the first valid JSON object from text, supporting nested braces.
+
+    Finds the first '{' and tries json.loads on progressively longer slices
+    up to each matching '}'. Returns the parsed dict, or None.
+    """
+    start = text.find("{")
+    if start == -1:
+        return None
+
+    depth = 0
+    for i in range(start, len(text)):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                try:
+                    parsed = json.loads(text[start : i + 1])
+                    if isinstance(parsed, dict):
+                        return parsed
+                except json.JSONDecodeError:
+                    pass
+                break
+    return None
+
+
 async def extract_structured_results(callback_context) -> None:
     """Parse the agent's output into a structured result dict in session state.
 
@@ -44,9 +71,15 @@ async def extract_structured_results(callback_context) -> None:
 
     # Collect all agent output from known output_keys
     output_text = ""
-    for key in ("selection_result", "analysis_result", "remediation_result",
-                "remediation_output", "test_generation_result", "test_output",
-                "pr_result"):
+    for key in (
+        "selection_result",
+        "analysis_result",
+        "remediation_result",
+        "remediation_output",
+        "test_generation_result",
+        "test_output",
+        "pr_result",
+    ):
         val = state.get(key)
         if val:
             output_text += str(val) + "\n"
@@ -55,20 +88,15 @@ async def extract_structured_results(callback_context) -> None:
         state["structured_result"] = structured
         return
 
-    # Try to find JSON in the output
-    json_match = re.search(r"\{[^{}]*\}", output_text, re.DOTALL)
-    if json_match:
-        try:
-            parsed = json.loads(json_match.group(0))
-            if isinstance(parsed, dict):
-                for key in structured:
-                    lower_key = key.lower()
-                    for pkey, pval in parsed.items():
-                        if pkey.lower() == lower_key:
-                            structured[key] = str(pval)
-                            break
-        except json.JSONDecodeError:
-            pass
+    # Try to find JSON in the output (supports nested objects)
+    parsed = _extract_json_object(output_text)
+    if parsed:
+        for key in structured:
+            lower_key = key.lower()
+            for pkey, pval in parsed.items():
+                if pkey.lower() == lower_key:
+                    structured[key] = str(pval)
+                    break
 
     # Extract fields from natural language if JSON parsing didn't find them
     text_lower = output_text.lower()
@@ -97,7 +125,8 @@ async def extract_structured_results(callback_context) -> None:
             label = field.replace("_", " ").lower()
             match = re.search(
                 rf"{label}[:\s]+[\"']?(\d+\.\d+[\w.-]*)",
-                output_text, re.I,
+                output_text,
+                re.I,
             )
             if match:
                 structured[field] = match.group(1)

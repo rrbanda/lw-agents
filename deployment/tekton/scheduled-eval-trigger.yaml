@@ -1,0 +1,127 @@
+# Scheduled evaluation runs — catches regressions from model updates,
+# infrastructure changes, or upstream dependency shifts even when no
+# code was changed. Runs every 6 hours.
+#
+# This is a Kubernetes CronJob that triggers a Tekton PipelineRun.
+# It can also be wired to a Tekton TriggerTemplate for event-driven
+# runs (e.g. on model deployment events).
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scheduled-agent-eval
+  namespace: tssc-app-ci
+  labels:
+    app.kubernetes.io/part-of: maven-build-ci
+  annotations:
+    description: >-
+      Runs agent evals every 6 hours to detect regressions from model
+      updates or infrastructure changes. Alerts on failures via the
+      pipeline notification mechanism.
+spec:
+  schedule: "0 */6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          serviceAccountName: pipeline
+          restartPolicy: Never
+          containers:
+            - name: trigger-eval
+              image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -euo pipefail
+
+                  # Install tkn CLI if not available
+                  command -v tkn >/dev/null 2>&1 || {
+                    curl -sL https://mirror.openshift.com/pub/openshift-v4/clients/pipeline/latest/tkn-linux-amd64.tar.gz \
+                      | tar xz -C /usr/local/bin tkn
+                  }
+
+                  echo "Triggering scheduled agent eval pipeline run..."
+                  tkn pipeline start agent-with-eval-gates \
+                    --workspace name=shared-workspace,claimName=eval-workspace-pvc \
+                    --param TASK_TYPE=select-cve \
+                    --param AGENT_EVAL_SETS="" \
+                    --param MLFLOW_TRACKING_URI="http://mlflow.redhat-ods-applications.svc:5000" \
+                    --use-param-defaults \
+                    --showlog \
+                    -n tssc-app-ci
+
+                  echo "Scheduled eval complete."
+---
+# TriggerTemplate — for event-driven eval runs (e.g. model redeployment,
+# git push, or manual triggers via `tkn tt start`).
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: agent-eval-trigger
+  namespace: tssc-app-ci
+spec:
+  params:
+    - name: git-sha
+      description: Git SHA of the change triggering the eval.
+      default: HEAD
+    - name: eval-sets
+      description: Comma-separated eval sets to run. Empty = all.
+      default: ""
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1
+      kind: PipelineRun
+      metadata:
+        generateName: agent-eval-
+        labels:
+          tekton.dev/trigger: agent-eval
+      spec:
+        pipelineRef:
+          name: agent-with-eval-gates
+        params:
+          - name: TASK_TYPE
+            value: select-cve
+          - name: AGENT_EVAL_SETS
+            value: $(tt.params.eval-sets)
+          - name: MLFLOW_TRACKING_URI
+            value: http://mlflow.redhat-ods-applications.svc:5000
+        workspaces:
+          - name: shared-workspace
+            persistentVolumeClaim:
+              claimName: eval-workspace-pvc
+---
+# EventListener — exposes a webhook for external systems to trigger evals.
+# Example: model serving platform calls this after deploying a new model version.
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: agent-eval-listener
+  namespace: tssc-app-ci
+spec:
+  serviceAccountName: pipeline
+  triggers:
+    - name: on-model-update
+      template:
+        ref: agent-eval-trigger
+      bindings:
+        - name: git-sha
+          value: $(body.git_sha)
+        - name: eval-sets
+          value: $(body.eval_sets)
+---
+# PersistentVolumeClaim for eval workspace
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: eval-workspace-pvc
+  namespace: tssc-app-ci
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

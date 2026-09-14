@@ -18,29 +18,50 @@ SHAPE_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{36,}"), "[GITHUB_TOKEN]"),
     # GitLab tokens
     (re.compile(r"glpat-[A-Za-z0-9_\-]{20,}"), "[GITLAB_TOKEN]"),
-    # OpenAI / Anthropic API keys
-    (re.compile(r"sk-[A-Za-z0-9]{20,}"), "[API_KEY]"),
+    # Anthropic API keys (must precede generic sk- pattern)
     (re.compile(r"sk-ant-[A-Za-z0-9\-]{20,}"), "[ANTHROPIC_KEY]"),
+    # OpenAI API keys
+    (re.compile(r"sk-[A-Za-z0-9]{20,}"), "[API_KEY]"),
     # Bearer tokens
     (re.compile(r"Bearer\s+[A-Za-z0-9._~+/=\-]{20,}"), "[BEARER_TOKEN]"),
     # PEM private keys
-    (re.compile(r"-----BEGIN\s+\w+\s+PRIVATE\s+KEY-----[\s\S]*?-----END\s+\w+\s+PRIVATE\s+KEY-----"),
-     "[PRIVATE_KEY]"),
+    (
+        re.compile(
+            r"-----BEGIN\s+\w+\s+PRIVATE\s+KEY-----[\s\S]*?-----END\s+\w+\s+PRIVATE\s+KEY-----"
+        ),
+        "[PRIVATE_KEY]",
+    ),
     # JWTs (header.payload.signature)
     (re.compile(r"eyJ[A-Za-z0-9_\-]+\.eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+"), "[JWT_TOKEN]"),
     # Basic auth
     (re.compile(r"Basic\s+[A-Za-z0-9+/=]{20,}"), "[BASIC_AUTH]"),
     # Generic hex secrets (40+ chars, likely SHA/tokens)
-    (re.compile(r"(?:token|secret|password|apikey|api_key)\s*[=:]\s*['\"]?[A-Fa-f0-9]{40,}"),
-     "[REDACTED_SECRET]"),
+    (
+        re.compile(r"(?:token|secret|password|apikey|api_key)\s*[=:]\s*['\"]?[A-Fa-f0-9]{40,}"),
+        "[REDACTED_SECRET]",
+    ),
 ]
 
 # Credential key names — if a dict key contains these, mask the value
-CREDENTIAL_KEYS = frozenset({
-    "token", "secret", "password", "apikey", "api_key", "auth_token",
-    "authorization", "cookie", "session_id", "sessionid", "credential",
-    "private_key", "access_token", "refresh_token", "client_secret",
-})
+CREDENTIAL_KEYS = frozenset(
+    {
+        "token",
+        "secret",
+        "password",
+        "apikey",
+        "api_key",
+        "auth_token",
+        "authorization",
+        "cookie",
+        "session_id",
+        "sessionid",
+        "credential",
+        "private_key",
+        "access_token",
+        "refresh_token",
+        "client_secret",
+    }
+)
 
 
 def redact_text(text: str) -> str:
@@ -63,7 +84,9 @@ def redact_dict(data: dict[str, Any]) -> dict[str, Any]:
             result[key] = redact_dict(value)
         elif isinstance(value, list):
             result[key] = [
-                redact_text(str(v)) if isinstance(v, str) else v
+                redact_dict(v) if isinstance(v, dict)
+                else redact_text(v) if isinstance(v, str)
+                else v
                 for v in value
             ]
         else:
@@ -78,9 +101,11 @@ class RedactionPlugin(BasePlugin):
     Does NOT redact tool inputs (the agent needs to send auth to tools).
     """
 
+    def __init__(self):
+        super().__init__(name="redaction_plugin")
+
     async def after_tool_callback(
-        self, *, invocation_context, tool, args, tool_context,
-        tool_response, **kwargs
+        self, *, invocation_context, tool, args, tool_context, tool_response, **kwargs
     ):
         if tool_response is None:
             return None

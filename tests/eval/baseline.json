@@ -1,0 +1,44 @@
+{
+  "coordinator-routing": {
+    "correct_routing": 0.85,
+    "multi_turn_task_success": 0.75,
+    "_pass_rate": 0.75,
+    "_note": "Initial baseline — update after first real eval run with: python -m app.eval.agent_eval --update-baseline"
+  },
+  "cve-selection": {
+    "cve_selection_accuracy": 0.70,
+    "version_not_hallucinated": 0.90,
+    "skill_loaded_first": 0.85,
+    "tool_use_completeness": 0.70,
+    "_pass_rate": 0.70,
+    "_note": "Initial baseline"
+  },
+  "cve-analysis": {
+    "tool_use_completeness": 0.70,
+    "skill_loaded_first": 0.80,
+    "multi_turn_task_success": 0.70,
+    "_pass_rate": 0.70,
+    "_note": "Initial baseline"
+  },
+  "remediation": {
+    "remediation_build_passes": 0.60,
+    "skill_loaded_first": 0.80,
+    "pr_hygiene": 0.60,
+    "multi_turn_tool_use_quality": 0.60,
+    "_pass_rate": 0.60,
+    "_note": "Initial baseline"
+  },
+  "test-generation": {
+    "remediation_build_passes": 0.60,
+    "pr_hygiene": 0.60,
+    "multi_turn_task_success": 0.60,
+    "_pass_rate": 0.60,
+    "_note": "Initial baseline"
+  },
+  "fix-validation": {
+    "validation_gate_accuracy": 0.70,
+    "multi_turn_task_success": 0.70,
+    "_pass_rate": 0.70,
+    "_note": "Initial baseline"
+  }
+}

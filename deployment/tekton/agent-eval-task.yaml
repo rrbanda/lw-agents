@@ -1,0 +1,127 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: agent-eval-gate
+  labels:
+    app.kubernetes.io/part-of: maven-build-ci
+  annotations:
+    tekton.dev/tags: "ai, eval, agent, regression"
+spec:
+  description: >-
+    Runs agent-level evaluations against the live agent service.
+    Sends eval dataset prompts to each agent, scores responses,
+    compares against baselines, and fails the pipeline on regressions
+    or floor violations. Results are logged to MLflow automatically.
+  params:
+    - name: AGENT_ENDPOINT
+      type: string
+      description: URL of the ADK agent service.
+      default: http://ssc-agent.tssc-agents.svc:8080
+    - name: EVAL_SETS
+      type: string
+      description: >-
+        Comma-separated eval set names to run. Empty = all.
+        Options: coordinator-routing, cve-selection, cve-analysis,
+        remediation, test-generation, fix-validation
+      default: ""
+    - name: UPDATE_BASELINE
+      type: string
+      description: "Set to 'true' to save results as new baseline."
+      default: "false"
+    - name: MLFLOW_TRACKING_URI
+      type: string
+      description: MLflow tracking URI for result logging.
+      default: ""
+  workspaces:
+    - name: source
+  results:
+    - name: PASS
+      description: "Whether all evals passed: true or false."
+    - name: TOTAL_CASES
+      description: Total number of eval cases run.
+    - name: PASS_RATE
+      description: Overall pass rate as a decimal (0.0 - 1.0).
+    - name: REGRESSIONS
+      description: Number of metric regressions detected.
+    - name: REPORT
+      description: JSON report (truncated to Tekton result limit).
+  steps:
+    - name: run-agent-evals
+      image: registry.access.redhat.com/ubi9/python-312:latest
+      env:
+        - name: AGENT_ENDPOINT
+          value: $(params.AGENT_ENDPOINT)
+        - name: MLFLOW_TRACKING_URI
+          value: $(params.MLFLOW_TRACKING_URI)
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        echo "=== Agent Eval Gate ==="
+        cd "$(workspaces.source.path)"
+
+        # Install project with eval dependencies
+        pip install -q ".[eval]" httpx pyyaml 2>/dev/null
+
+        # Build args
+        ARGS="--agent-endpoint $(params.AGENT_ENDPOINT)"
+        ARGS="$ARGS --output /tmp/eval-report.json"
+
+        if [ "$(params.UPDATE_BASELINE)" = "true" ]; then
+          ARGS="$ARGS --update-baseline"
+        fi
+
+        if [ -n "$(params.EVAL_SETS)" ]; then
+          IFS=',' read -ra SETS <<< "$(params.EVAL_SETS)"
+          for s in "${SETS[@]}"; do
+            ARGS="$ARGS --set $s"
+          done
+        fi
+
+        # Run the eval — capture exit code but don't fail yet
+        set +e
+        python3 -m app.eval.agent_eval $ARGS 2>&1
+        EXIT_CODE=$?
+        set -e
+
+        # Parse results
+        python3 <<'PYEOF'
+        import json, sys
+
+        try:
+            with open("/tmp/eval-report.json") as f:
+                report = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            report = {"overall_pass": False, "summary": {}}
+
+        passed = str(report.get("overall_pass", False)).lower()
+        summary = report.get("summary", {})
+
+        with open("$(results.PASS.path)", "w") as f:
+            f.write(passed)
+        with open("$(results.TOTAL_CASES.path)", "w") as f:
+            f.write(str(summary.get("total_cases", 0)))
+        with open("$(results.PASS_RATE.path)", "w") as f:
+            f.write(str(summary.get("total_pass_rate", 0.0)))
+        with open("$(results.REGRESSIONS.path)", "w") as f:
+            f.write(str(summary.get("regressions_found", 0)))
+
+        # Tekton results have a 4096-byte limit — write condensed summary
+        condensed = {
+            "pass": report.get("overall_pass"),
+            "summary": summary,
+            "regressions": report.get("regressions", []),
+            "floor_violations": report.get("floor_violations", []),
+        }
+        truncated = json.dumps(condensed)[:4000]
+        with open("$(results.REPORT.path)", "w") as f:
+            f.write(truncated)
+
+        print(f"\nAgent eval: {'PASSED' if passed == 'true' else 'FAILED'}")
+        print(f"  Cases: {summary.get('total_cases', 0)}")
+        print(f"  Pass rate: {summary.get('total_pass_rate', 0)*100:.1f}%")
+        print(f"  Regressions: {summary.get('regressions_found', 0)}")
+
+        if passed != "true":
+            sys.exit(1)
+        PYEOF

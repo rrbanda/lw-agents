@@ -3,13 +3,11 @@ every must-fix CVE via tools, and creates SCM issues for fixable ones."""
 
 from __future__ import annotations
 
-import os
-import pathlib
-
 from google.adk.agents import LlmAgent
 from google.adk.skills import load_skill_from_dir
 from google.adk.tools.skill_toolset import SkillToolset
 
+from app.config import MODEL, SKILLS_DIR
 from app.tools.cve_tools import (
     check_version_exists,
     list_must_fix_cves,
@@ -17,9 +15,6 @@ from app.tools.cve_tools import (
     parse_maven_purl,
 )
 from app.tools.scm_tools import create_scm_issue_tool
-
-MODEL = os.environ.get("MODEL_NAME", "gemini-2.5-flash")
-SKILLS_DIR = pathlib.Path(__file__).resolve().parent.parent.parent / "skills"
 
 
 def create_cve_analysis_agent() -> LlmAgent:

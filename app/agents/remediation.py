@@ -1,92 +1,47 @@
-"""Remediation Agent — ADK 2.0 Workflow graph that reads the pom.xml,
+"""Remediation Agent — SequentialAgent pipeline that reads the pom.xml,
 plans the edit, applies it via OpenCode (ExecuteBashTool), verifies via
-Maven build, and opens a PR with HITL approval.
+Maven build with retry, and opens a PR with HITL approval.
 
-Uses the Workflow API (graph with conditional routing) from the
-ambient-expense-agent pattern. PR creation pauses for human approval
-via RequestInput (same HITL pattern as ambient-expense).
+Uses SequentialAgent + LoopAgent for the retry logic, following the same
+pattern as test_generation.py. The coordinator delegates here when the
+task is dependency remediation.
+
+Note: Workflow cannot yet be used as an LlmAgent sub-agent (ADK limitation),
+so we use SequentialAgent + LoopAgent which are compatible.
 """
 
 from __future__ import annotations
 
-import json
-import os
-import pathlib
-import time
+from typing import AsyncGenerator
 
-from google.adk import Context, Event, Workflow
-from google.adk.agents import LlmAgent
-from google.adk.events import RequestInput
+from google.adk.agents import BaseAgent, LlmAgent, LoopAgent, SequentialAgent
+from google.adk.agents.invocation_context import InvocationContext
+from google.adk.events import Event, EventActions
 from google.adk.skills import load_skill_from_dir
-from google.adk.tools.bash_tool import BashToolPolicy, ExecuteBashTool
 from google.adk.tools.skill_toolset import SkillToolset
 
-from app.policy.pre_gate import pre_gate_callback
+from app.config import BASE_BRANCH, MODEL, SKILLS_DIR, build_bash_tool
 from app.policy.post_gate import post_gate_callback
-
-MODEL = os.environ.get("MODEL_NAME", "gemini-2.5-flash")
-SKILLS_DIR = pathlib.Path(__file__).resolve().parent.parent.parent / "skills"
-
-
-def _build_bash_tool(workspace: str) -> ExecuteBashTool:
-    return ExecuteBashTool(
-        workspace=workspace,
-        policy=BashToolPolicy(
-            allowed_command_prefixes=(
-                "opencode ", "mvn ", "cat ", "ls ", "head ", "grep ", "find ",
-            ),
-            timeout_seconds=300,
-            max_memory_bytes=1024 * 1024 * 1024,
-        ),
-    )
+from app.policy.pre_gate import pre_gate_callback
+from app.tools.scm_tools import create_pull_request_tool
 
 
-def read_project(node_input, ctx: Context) -> Event:
-    """Parse the remediation request and stash params in state.
+def _create_plan_agent(name: str = "remediation_planner") -> LlmAgent:
+    """Create a remediation planner/executor agent.
 
-    Note: START node sends types.Content when no input_schema is set.
-    We extract the text and try to parse JSON from it.
+    Args:
+        name: Unique agent name (needed to avoid parent conflicts when
+              the same kind of agent appears in multiple pipeline stages).
     """
-    text = ""
-    if hasattr(node_input, "parts"):
-        for part in node_input.parts or []:
-            if hasattr(part, "text") and part.text:
-                text += part.text
-    elif isinstance(node_input, str):
-        text = node_input
-    else:
-        text = str(node_input)
-
-    try:
-        params = json.loads(text) if text.strip().startswith("{") else {}
-    except (json.JSONDecodeError, TypeError):
-        params = {}
-
-    ctx.state["cve_id"] = params.get("cve_id", ctx.state.get("cve_id", ""))
-    ctx.state["package"] = params.get("package", ctx.state.get("package", ""))
-    ctx.state["current_version"] = params.get("current_version", "")
-    ctx.state["fixed_version"] = params.get("fixed_version", "")
-    ctx.state["justification"] = params.get("justification", "")
-    ctx.state["repo_url"] = params.get("repo_url", "")
-    ctx.state["workspace"] = params.get("workspace_path",
-                                         os.environ.get("WORKSPACE_PATH", ""))
-    ctx.state["retry_count"] = 0
-
-    return Event(output=f"Project loaded. Remediating {ctx.state['cve_id']}: "
-                        f"{ctx.state['package']} -> {ctx.state['fixed_version']}")
-
-
-def _create_plan_agent() -> LlmAgent:
     skills = [
         load_skill_from_dir(SKILLS_DIR / "maven-remediation"),
         load_skill_from_dir(SKILLS_DIR / "scm-conventions"),
     ]
     skill_toolset = SkillToolset(skills=skills)
-    workspace = os.environ.get("WORKSPACE_PATH", "/workspace/source")
-    bash_tool = _build_bash_tool(workspace)
+    bash_tool = build_bash_tool()
 
     return LlmAgent(
-        name="remediation_planner",
+        name=name,
         model=MODEL,
         before_agent_callback=pre_gate_callback,
         after_agent_callback=post_gate_callback,
@@ -96,8 +51,9 @@ def _create_plan_agent() -> LlmAgent:
             "1. Read pom.xml to understand the project structure\n"
             "2. Apply the fix using opencode run\n"
             "3. Verify with mvn -B -q -DskipTests install\n"
-            "4. If build fails, report the error for retry\n"
-            "5. If build passes, run mvn -B -q verify for full tests\n\n"
+            "4. If build fails, report the error clearly with 'BUILD FAILURE' in output\n"
+            "5. If build passes, run mvn -B -q verify for full tests\n"
+            "6. If all passes, report 'BUILD SUCCESS'\n\n"
             "CVE: {cve_id}, Package: {package}, "
             "Current: {current_version}, Fixed: {fixed_version}\n"
             "Justification: {justification}"
@@ -108,118 +64,92 @@ def _create_plan_agent() -> LlmAgent:
     )
 
 
-def check_build_result(ctx: Context, node_input) -> Event:
-    """Route based on whether the remediation agent reported success or failure."""
-    output = str(node_input).lower() if node_input else ""
-    if "error" in output or "fail" in output or "exception" in output:
-        ctx.state["retry_count"] = ctx.state.get("retry_count", 0) + 1
-        if ctx.state["retry_count"] >= 3:
-            return Event(route="MAX_RETRIES", output="Max retries reached.")
-        return Event(route="RETRY", output=output)
-    return Event(route="SUCCESS", output=output)
+class BuildResultChecker(BaseAgent):
+    """Checks the build result and escalates (stops loop) on success.
 
-
-def request_pr_approval(ctx: Context, node_input) -> None:
-    """Pause for human approval before opening the PR (HITL pattern from ambient-expense).
-
-    Yields RequestInput to pause the workflow. The human reviews the
-    proposed changes and approves/rejects. The workflow resumes via the
-    frontend or API with the decision.
+    Similar to TestEscalationChecker in test_generation.py. When the
+    remediation planner reports BUILD SUCCESS, this agent escalates to
+    exit the retry loop. On failure, it lets the loop continue.
     """
-    cve_id = ctx.state.get("cve_id", "unknown")
-    package = ctx.state.get("package", "unknown")
-    fixed = ctx.state.get("fixed_version", "unknown")
 
-    yield RequestInput(
-        interrupt_id=f"pr_approval_{cve_id}",
-        message=(
-            f"Remediation complete. Ready to open PR:\n"
-            f"- CVE: {cve_id}\n"
-            f"- Change: {package} -> {fixed}\n\n"
-            f"Approve or reject this pull request."
+    async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
+        output = str(ctx.session.state.get("remediation_output", "")).lower()
+        build_status = ctx.session.state.get("build_status", "")
+
+        is_success = build_status == "pass" or "build success" in output
+        is_failure = build_status == "fail" or (
+            any(kw in output for kw in ("build failure", "compilation error", "maven error"))
+            and "no errors" not in output
+            and "did not fail" not in output
+        )
+
+        if is_success:
+            ctx.session.state["build_passed"] = True
+            yield Event(
+                author=self.name,
+                actions=EventActions(escalate=True),
+            )
+        elif is_failure:
+            retry_count = ctx.session.state.get("retry_count", 0) + 1
+            ctx.session.state["retry_count"] = retry_count
+            ctx.session.state["build_passed"] = False
+            yield Event(author=self.name)
+        else:
+            # Ambiguous output — fail-closed: treat as failure, let retry loop continue
+            retry_count = ctx.session.state.get("retry_count", 0) + 1
+            ctx.session.state["retry_count"] = retry_count
+            ctx.session.state["build_passed"] = False
+            yield Event(author=self.name)
+
+
+def _create_pr_opener() -> LlmAgent:
+    """Agent that opens the remediation PR."""
+    return LlmAgent(
+        name="remediation_pr_opener",
+        model=MODEL,
+        instruction=(
+            "Open a pull request with the remediation changes. "
+            "Use the session state to get CVE details:\n"
+            "- Branch: rhtpa/remediate-{cve_id}-<timestamp>\n"
+            "- Title: Remediate {cve_id}: {package} -> {fixed_version}\n"
+            "- Stage files: pom.xml */pom.xml REMEDIATION.md\n"
+            "- Base branch: use SCM_BASE_BRANCH from state or default to '" + BASE_BRANCH + "'\n\n"
+            "If the build did not pass (check state), report the failure "
+            "instead of opening a PR."
         ),
+        description="Opens a remediation pull request.",
+        tools=[create_pull_request_tool],
+        output_key="pr_result",
     )
 
 
-def process_pr_decision(ctx: Context, node_input) -> Event:
-    """Process the human's approval/rejection and open the PR if approved."""
-    decision = str(node_input).lower() if node_input else ""
+def create_remediation_agent() -> SequentialAgent:
+    """Factory: builds the SequentialAgent + LoopAgent remediation pipeline.
 
-    if "reject" in decision or "no" in decision:
-        return Event(output={"success": False, "reason": "PR rejected by reviewer"})
+    Architecture: plan_agent -> retry_loop(checker -> retry_planner) -> pr_opener
 
-    cve_id = ctx.state.get("cve_id", "unknown")
-    package = ctx.state.get("package", "unknown")
-    fixed = ctx.state.get("fixed_version", "unknown")
-    justification = ctx.state.get("justification", "")
-    repo_url = ctx.state.get("repo_url", "")
-    workspace = ctx.state.get("workspace", "")
-
-    from app.tools.scm_tools import create_pull_request
-    result = create_pull_request(
-        repo_url=repo_url,
-        local_repo_path=workspace,
-        branch=f"rhtpa/remediate-{cve_id}-{int(time.time())}",
-        base="main",
-        title=f"Remediate {cve_id}: {package} -> {fixed}",
-        body=(f"Automated remediation.\n- CVE: {cve_id}\n"
-              f"- Dependency: {package} -> {fixed}\n"
-              f"- Rationale: {justification}"),
-        files_to_stage="pom.xml */pom.xml REMEDIATION.md",
-    )
-    return Event(output=result)
-
-
-def report_failure(node_input) -> Event:
-    """Report that remediation failed after max retries."""
-    return Event(output={"success": False, "reason": str(node_input)})
-
-
-def validate_fix(ctx: Context, node_input) -> Event:
-    """Run adversarial validation on the remediation fix.
-
-    Invoked after the PR is created. Checks if the PR was actually
-    created (not rejected), then produces a validation verdict.
-    The validation agent runs as a sub-agent inside this node.
+    The retry loop runs up to 3 times. On build success, BuildResultChecker
+    escalates to stop the loop. The PR opener only submits if build passed.
     """
-    result = node_input if isinstance(node_input, dict) else {}
+    retry_loop = LoopAgent(
+        name="remediation_retry_loop",
+        sub_agents=[
+            BuildResultChecker(name="build_result_checker"),
+            _create_plan_agent("remediation_retry_planner"),
+        ],
+        max_iterations=3,
+    )
 
-    # Skip validation if PR was rejected or not created
-    if not result.get("created") and not result.get("pr_url"):
-        return Event(output={**result, "validation": "skipped",
-                              "reason": "No PR created"})
-
-    # The actual validation runs via the validation SequentialAgent
-    # which is wired as a sub_agent on the coordinator. For now,
-    # annotate the result with a validation_pending flag so the
-    # coordinator knows to invoke fix_validation next.
-    ctx.state["remediation_complete"] = True
-    ctx.state["validation_needed"] = True
-    return Event(output={**result, "validation": "pending",
-                          "note": "Invoke fix_validation to grade this fix"})
-
-
-def create_remediation_agent() -> Workflow:
-    """Factory: builds the Workflow-based remediation agent."""
-    plan_agent = _create_plan_agent()
-
-    return Workflow(
+    return SequentialAgent(
         name="remediation",
         description=(
             "Remediates a Maven dependency vulnerability: reads pom.xml, "
-            "applies the fix via OpenCode, verifies with Maven, pauses for "
-            "human approval, opens a PR, then flags for validation."
+            "applies the fix via OpenCode, verifies with Maven (up to 3 "
+            "retries), and opens a pull request."
         ),
-        edges=[
-            ("START", read_project),
-            (read_project, plan_agent),
-            (plan_agent, check_build_result),
-            (check_build_result, {
-                "SUCCESS": request_pr_approval,
-                "RETRY": plan_agent,
-                "MAX_RETRIES": report_failure,
-            }),
-            (request_pr_approval, process_pr_decision),
-            (process_pr_decision, validate_fix),
+        sub_agents=[
+            _create_plan_agent("initial_remediation_planner"),
+            retry_loop,
+            _create_pr_opener(),
         ],
     )

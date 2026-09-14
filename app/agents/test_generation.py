@@ -12,34 +12,16 @@ the ADK "agent already has a parent" error on shared sub-agents.
 
 from __future__ import annotations
 
-import os
-import pathlib
 from typing import AsyncGenerator
 
 from google.adk.agents import BaseAgent, LlmAgent, LoopAgent, SequentialAgent
 from google.adk.agents.invocation_context import InvocationContext
 from google.adk.events import Event, EventActions
 from google.adk.skills import load_skill_from_dir
-from google.adk.tools.bash_tool import BashToolPolicy, ExecuteBashTool
 from google.adk.tools.skill_toolset import SkillToolset
 
+from app.config import MODEL, SKILLS_DIR, build_bash_tool
 from app.tools.scm_tools import create_pull_request_tool
-
-MODEL = os.environ.get("MODEL_NAME", "gemini-2.5-flash")
-SKILLS_DIR = pathlib.Path(__file__).resolve().parent.parent.parent / "skills"
-
-
-def _build_bash_tool(workspace: str) -> ExecuteBashTool:
-    return ExecuteBashTool(
-        workspace=workspace,
-        policy=BashToolPolicy(
-            allowed_command_prefixes=(
-                "opencode ", "mvn ", "cat ", "ls ", "head ", "grep ", "find ",
-            ),
-            timeout_seconds=300,
-            max_memory_bytes=1024 * 1024 * 1024,
-        ),
-    )
 
 
 def _create_test_writer(name: str) -> LlmAgent:
@@ -49,8 +31,7 @@ def _create_test_writer(name: str) -> LlmAgent:
         load_skill_from_dir(SKILLS_DIR / "scm-conventions"),
     ]
     skill_toolset = SkillToolset(skills=skills)
-    workspace = os.environ.get("WORKSPACE_PATH", "/workspace/source")
-    bash_tool = _build_bash_tool(workspace)
+    bash_tool = build_bash_tool()
 
     return LlmAgent(
         name=name,
@@ -69,8 +50,7 @@ def _create_test_writer(name: str) -> LlmAgent:
 
 def _create_test_evaluator() -> LlmAgent:
     """LlmAgent that evaluates whether tests pass."""
-    workspace = os.environ.get("WORKSPACE_PATH", "/workspace/source")
-    bash_tool = _build_bash_tool(workspace)
+    bash_tool = build_bash_tool()
 
     return LlmAgent(
         name="test_evaluator",
@@ -90,9 +70,7 @@ def _create_test_evaluator() -> LlmAgent:
 class TestEscalationChecker(BaseAgent):
     """Stops the LoopAgent when tests pass (like deep-search EscalationChecker)."""
 
-    async def _run_async_impl(
-        self, ctx: InvocationContext
-    ) -> AsyncGenerator[Event, None]:
+    async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
         evaluation = ctx.session.state.get("test_evaluation", "")
         if isinstance(evaluation, str) and "grade: pass" in evaluation.lower():
             yield Event(

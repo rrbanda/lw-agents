@@ -9,7 +9,6 @@ from __future__ import annotations
 import re
 from typing import Any
 
-
 CVE_PATTERN = re.compile(r"^CVE-\d{4}-\d{4,}$", re.I)
 MAVEN_COORD_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9._-]+:[a-zA-Z][a-zA-Z0-9._-]+$")
 VERSION_PATTERN = re.compile(r"\d")
@@ -66,12 +65,14 @@ def validate_remediation_request(
     return {"valid": len(errors) == 0, "errors": errors}
 
 
-async def pre_gate_callback(callback_context) -> None:
+async def pre_gate_callback(callback_context):
     """ADK before_agent_callback — validate request before agent runs.
 
-    Writes pre_gate_result to session state. Downstream nodes check this
-    to skip the agent call on invalid input.
+    Returns a Content object to halt the agent when validation fails,
+    achieving zero model spend on invalid input. Returns None to proceed.
     """
+    from google.genai import types as genai_types
+
     state = callback_context.state
 
     cve_id = state.get("cve_id", "")
@@ -81,10 +82,21 @@ async def pre_gate_callback(callback_context) -> None:
 
     if cve_id and package:
         result = validate_remediation_request(cve_id, package, current, fixed)
+    elif cve_id or package or current or fixed:
+        # Some but not all fields present — fail rather than skip
+        result = validate_remediation_request(cve_id, package, current, fixed)
     else:
         result = {"valid": True, "errors": []}
 
     state["pre_gate_result"] = result
     if not result["valid"]:
         state["pre_gate_denied"] = True
-        state["pre_gate_reason"] = "; ".join(result["errors"])
+        reason = "; ".join(result["errors"])
+        state["pre_gate_reason"] = reason
+        return genai_types.Content(
+            role="model",
+            parts=[genai_types.Part.from_text(
+                text=f"Pre-gate validation failed: {reason}"
+            )],
+        )
+    return None

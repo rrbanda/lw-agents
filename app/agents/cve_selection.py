@@ -7,13 +7,11 @@ Uses SkillToolset (ADK native) for skill loading and output_key for results
 
 from __future__ import annotations
 
-import os
-import pathlib
-
 from google.adk.agents import LlmAgent
 from google.adk.skills import load_skill_from_dir
 from google.adk.tools.skill_toolset import SkillToolset
 
+from app.config import MODEL, SKILLS_DIR
 from app.scoring.validate_selection import fail_closed_selection_callback
 from app.tools.cve_tools import (
     check_version_exists,
@@ -21,9 +19,6 @@ from app.tools.cve_tools import (
     lookup_cve_detail,
     parse_maven_purl,
 )
-
-MODEL = os.environ.get("MODEL_NAME", "gemini-2.5-flash")
-SKILLS_DIR = pathlib.Path(__file__).resolve().parent.parent.parent / "skills"
 
 
 def create_cve_selection_agent() -> LlmAgent:

@@ -94,10 +94,40 @@ spec:
 
         printf '%s' "${RESPONSE}" > "$(results.AGENT_RESPONSE.path)"
 
-        # Write empty defaults for structured fields
-        # (agent responses are natural language — downstream parsing is task-specific)
-        for r in SELECTED CVE_ID PACKAGE CURRENT_VERSION FIXED_VERSION JUSTIFICATION PR_URL; do
-          printf '' > "$(results.${r}.path)"
-        done
+        # Extract structured results from session state.
+        # The agent's after_agent_callback writes state["structured_result"]
+        # which the ADK API includes in the response JSON.
+        # Use python3 (available on ubi9) for robust JSON parsing.
+        python3 - "${RESPONSE}" <<'PYEOF'
+import json, sys
+
+try:
+    data = json.loads(sys.argv[1])
+except (json.JSONDecodeError, IndexError):
+    data = {}
+
+# ADK api_server returns session state under various paths depending
+# on the response shape. Try common locations.
+sr = {}
+for path in (
+    lambda d: d.get("structured_result", {}),
+    lambda d: d.get("session", {}).get("state", {}).get("structured_result", {}),
+    lambda d: d.get("state", {}).get("structured_result", {}),
+):
+    sr = path(data)
+    if sr:
+        break
+
+FIELDS = {
+    "SELECTED": "0", "CVE_ID": "", "PACKAGE": "",
+    "CURRENT_VERSION": "", "FIXED_VERSION": "",
+    "JUSTIFICATION": "", "PR_URL": "",
+}
+for field, default in FIELDS.items():
+    val = str(sr.get(field, default))
+    # Tekton results are written as files
+    with open(f"/tekton/results/{field}", "w") as f:
+        f.write(val)
+PYEOF
 
         echo "Agent call complete."

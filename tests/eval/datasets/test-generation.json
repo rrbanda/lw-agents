@@ -1,0 +1,129 @@
+{
+  "eval_cases": [
+    {
+      "eval_case_id": "generate-tests-for-version-bump",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Generate unit tests. Workspace path: /workspace/test-data/testgen-case1. The remediation was a jackson-databind version bump from 2.13.2 to 2.13.4.2 to fix CVE-2024-29025 (RCE via polymorphic deserialization). Repository URL: https://gitlab.example.com/org/app"
+          }
+        ]
+      },
+      "context": {
+        "description": "Standard version bump remediation. Agent should: load junit-test-generation skill, use opencode to generate JUnit 5 tests that verify the fix, run mvn test to validate, then open a PR.",
+        "cve_id": "CVE-2024-29025",
+        "remediation_type": "version_bump",
+        "language": "java",
+        "build_tool": "maven"
+      },
+      "expected_tool_use": [
+        {"tool_name": "ExecuteBashTool", "min_calls": 2, "note": "opencode to write tests + mvn to verify"},
+        {"tool_name": "create_pull_request", "min_calls": 1}
+      ],
+      "reference_answer_key_points": [
+        "generated JUnit 5 tests",
+        "tests verify the vulnerability is no longer exploitable",
+        "tests compile and pass",
+        "opened a PR with the tests"
+      ]
+    },
+    {
+      "eval_case_id": "generate-tests-with-compile-failure",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Generate unit tests. Workspace path: /workspace/test-data/testgen-case2. The remediation was a postgresql driver bump from 42.6.0 to 42.6.1 to fix CVE-2024-1597 (SQL injection). Repository URL: https://gitlab.example.com/org/app"
+          }
+        ]
+      },
+      "context": {
+        "description": "Tests will fail on first attempt due to missing test dependency. Agent should detect the compile error, fix imports or add dependency, then retry. Tests the inner refinement loop.",
+        "cve_id": "CVE-2024-1597",
+        "expected_retry_count": 1,
+        "remediation_type": "version_bump"
+      },
+      "expected_tool_use": [
+        {"tool_name": "ExecuteBashTool", "min_calls": 3, "note": "write + fail + fix + retest"}
+      ],
+      "reference_answer_key_points": [
+        "detected test compilation failure",
+        "fixed the issue and retried",
+        "tests pass after refinement loop"
+      ]
+    },
+    {
+      "eval_case_id": "generate-tests-for-config-change",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Generate unit tests. Workspace path: /workspace/test-data/testgen-case3. The remediation added a security configuration to disable XML external entity (XXE) processing to fix CVE-2024-12345. Repository URL: https://gitlab.example.com/org/app"
+          }
+        ]
+      },
+      "context": {
+        "description": "Non-trivial remediation that added configuration code rather than bumping a version. Tests must verify that XXE is actually disabled, not just that the config exists.",
+        "cve_id": "CVE-2024-12345",
+        "remediation_type": "config_change",
+        "config_change": "Disabled external entity processing in XML parser factory"
+      },
+      "expected_tool_use": [
+        {"tool_name": "ExecuteBashTool", "min_calls": 2}
+      ],
+      "reference_answer_key_points": [
+        "tests verify XXE is disabled",
+        "tests include both positive and negative cases",
+        "tests attempt to parse XML with external entity references"
+      ]
+    },
+    {
+      "eval_case_id": "generate-tests-max-retries-exhausted",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Generate unit tests. Workspace path: /workspace/test-data/testgen-case4. The remediation replaced a deprecated crypto library. Repository URL: https://gitlab.example.com/org/app"
+          }
+        ]
+      },
+      "context": {
+        "description": "Tests will persistently fail (library not on classpath). Agent should exhaust retries and gracefully report failure rather than hanging.",
+        "cve_id": "CVE-2024-55555",
+        "max_loop_iterations": 3,
+        "expected_outcome": "graceful_failure"
+      },
+      "reference_answer_key_points": [
+        "attempted test generation",
+        "detected persistent failures",
+        "reported failure after max retries",
+        "did not hang or loop indefinitely"
+      ]
+    },
+    {
+      "eval_case_id": "generate-tests-pr-includes-test-files-only",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Generate unit tests. Workspace path: /workspace/test-data/testgen-case5. The remediation bumped spring-boot-starter-web from 3.1.0 to 3.1.5. Repository URL: https://gitlab.example.com/org/app"
+          }
+        ]
+      },
+      "context": {
+        "description": "Verify the PR only contains test files — the agent should NOT modify production code when generating tests.",
+        "cve_id": "CVE-2024-77777",
+        "remediation_type": "version_bump"
+      },
+      "expected_tool_use": [
+        {"tool_name": "create_pull_request", "min_calls": 1}
+      ],
+      "reference_answer_key_points": [
+        "PR contains only test files",
+        "no production code modified",
+        "test files are in src/test directory"
+      ]
+    }
+  ]
+}

@@ -9,6 +9,19 @@ import re
 from pathlib import Path
 from typing import Any
 
+import httpx
+
+_http_client: httpx.Client | None = None
+
+
+def _get_http_client() -> httpx.Client:
+    """Return a module-level httpx.Client for connection pooling to Maven Central."""
+    global _http_client
+    if _http_client is None or _http_client.is_closed:
+        _http_client = httpx.Client(timeout=10.0, follow_redirects=True)
+    return _http_client
+
+
 def list_must_fix_cves(workspace_path: str) -> dict[str, Any]:
     """List all CVEs in the Conforma policy-gated must-fix set.
 
@@ -23,31 +36,51 @@ def list_must_fix_cves(workspace_path: str) -> dict[str, Any]:
     must_fix_path = Path(ws) / "rhtpa" / "must-fix-cves.json"
 
     if not must_fix_path.exists():
-        return {"status": "not_found", "count": 0, "cves": [],
-                "error": f"must-fix-cves.json not found at {must_fix_path}"}
+        return {
+            "status": "not_found",
+            "count": 0,
+            "cves": [],
+            "error": f"must-fix-cves.json not found at {must_fix_path}",
+        }
 
     try:
         raw = json.loads(must_fix_path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError) as e:
-        return {"status": "degraded", "count": 0, "cves": [],
-                "error": f"Failed to read must-fix-cves.json: {e}"}
+        return {
+            "status": "degraded",
+            "count": 0,
+            "cves": [],
+            "error": f"Failed to read must-fix-cves.json: {e}",
+        }
 
     if not isinstance(raw, list):
-        return {"status": "degraded", "count": 0, "cves": [],
-                "error": "must-fix-cves.json is not a JSON array"}
+        return {
+            "status": "degraded",
+            "count": 0,
+            "cves": [],
+            "error": "must-fix-cves.json is not a JSON array",
+        }
 
     results = []
     for item in raw:
         if isinstance(item, str):
-            results.append({"cve_id": item, "severity": "unknown",
-                            "affected_purls": [], "fixed_version_hints": []})
+            results.append(
+                {
+                    "cve_id": item,
+                    "severity": "unknown",
+                    "affected_purls": [],
+                    "fixed_version_hints": [],
+                }
+            )
         elif isinstance(item, dict):
-            results.append({
-                "cve_id": item.get("cve_id", ""),
-                "severity": item.get("severity", "unknown"),
-                "affected_purls": item.get("affected_purls", []),
-                "fixed_version_hints": item.get("fixed_version_hints", []),
-            })
+            results.append(
+                {
+                    "cve_id": item.get("cve_id", ""),
+                    "severity": item.get("severity", "unknown"),
+                    "affected_purls": item.get("affected_purls", []),
+                    "fixed_version_hints": item.get("fixed_version_hints", []),
+                }
+            )
     return {"status": "ok", "count": len(results), "cves": results}
 
 
@@ -66,27 +99,35 @@ def lookup_cve_detail(cve_id: str, workspace_path: str) -> dict[str, Any]:
     if not vuln_path.exists():
         return {"error": f"Vulnerability report not found at {vuln_path}"}
 
-    report = json.loads(vuln_path.read_text(encoding="utf-8"))
+    try:
+        report = json.loads(vuln_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as e:
+        return {"error": f"Failed to read vulnerability report: {e}"}
     if not isinstance(report, dict):
         return {"error": "Vulnerability report is not a valid JSON object"}
 
     cve_upper = cve_id.upper()
 
     finding = next(
-        (f for f in report.get("findings", [])
-         if isinstance(f, dict) and (f.get("cve_id") or "").upper() == cve_upper),
+        (
+            f
+            for f in report.get("findings", [])
+            if isinstance(f, dict) and (f.get("cve_id") or "").upper() == cve_upper
+        ),
         None,
     )
     detail = next(
-        (d for d in report.get("details", [])
-         if isinstance(d, dict)
-         and (d.get("identifier") or d.get("id") or "").upper() == cve_upper),
+        (
+            d
+            for d in report.get("details", [])
+            if isinstance(d, dict)
+            and (d.get("identifier") or d.get("id") or "").upper() == cve_upper
+        ),
         None,
     )
 
     if finding is None and detail is None:
-        return {"status": "not_found",
-                "error": f"CVE {cve_id} not found in vulnerability report"}
+        return {"status": "not_found", "error": f"CVE {cve_id} not found in vulnerability report"}
 
     result: dict[str, Any] = {"cve_id": cve_id}
     if finding:
@@ -96,9 +137,7 @@ def lookup_cve_detail(cve_id: str, workspace_path: str) -> dict[str, Any]:
     if detail:
         result["title"] = detail.get("title", "")
         result["description"] = detail.get("description", "")
-        result["advisory_text"] = (
-            f"{detail.get('title', '')} {detail.get('description', '')}"
-        )
+        result["advisory_text"] = f"{detail.get('title', '')} {detail.get('description', '')}"
     return result
 
 
@@ -143,19 +182,12 @@ def check_version_exists(
         artifact_id: Maven artifactId, e.g. jackson-databind.
         version: Version string to verify, e.g. 2.13.4.2.
     """
-    import httpx
-
-    maven_repo = os.environ.get(
-        "MAVEN_REPO_URL", "https://repo1.maven.org/maven2"
-    )
+    maven_repo = os.environ.get("MAVEN_REPO_URL", "https://repo1.maven.org/maven2")
     group_path = group_id.replace(".", "/")
-    url = (
-        f"{maven_repo}/{group_path}/{artifact_id}"
-        f"/{version}/{artifact_id}-{version}.pom"
-    )
+    url = f"{maven_repo}/{group_path}/{artifact_id}/{version}/{artifact_id}-{version}.pom"
 
     try:
-        resp = httpx.head(url, follow_redirects=True, timeout=10.0)
+        resp = _get_http_client().head(url)
         return {
             "group_id": group_id,
             "artifact_id": artifact_id,

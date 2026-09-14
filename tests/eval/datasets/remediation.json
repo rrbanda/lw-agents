@@ -11,8 +11,19 @@
         ]
       },
       "context": {
-        "description": "Standard property-controlled Jackson dependency bump in a Quarkus project"
-      }
+        "description": "Standard property-controlled Jackson dependency bump in a Quarkus project. Agent should: load skill, use opencode to update pom.xml property, run mvn verify, open PR.",
+        "remediation_type": "property_version_bump",
+        "build_tool": "maven"
+      },
+      "expected_tool_use": [
+        {"tool_name": "ExecuteBashTool", "min_calls": 2, "note": "opencode + mvn verify"},
+        {"tool_name": "create_pull_request", "min_calls": 1}
+      ],
+      "reference_answer_key_points": [
+        "updated jackson version property in pom.xml",
+        "ran mvn verify successfully",
+        "opened PR with descriptive title mentioning CVE-2024-29025"
+      ]
     },
     {
       "eval_case_id": "remediate-direct-dependency",
@@ -25,8 +36,134 @@
         ]
       },
       "context": {
-        "description": "Direct inline dependency version bump"
-      }
+        "description": "Direct inline dependency version bump (no Maven property).",
+        "remediation_type": "direct_version_bump"
+      },
+      "expected_tool_use": [
+        {"tool_name": "ExecuteBashTool", "min_calls": 2}
+      ],
+      "reference_answer_key_points": [
+        "updated version directly in dependency declaration",
+        "ran build to verify",
+        "change is minimal and focused"
+      ]
+    },
+    {
+      "eval_case_id": "remediate-build-fails-then-retries",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Remediate this vulnerability: {\"cve_id\": \"CVE-2024-22201\", \"package\": \"org.eclipse.jetty:jetty-http\", \"current_version\": \"11.0.15\", \"fixed_version\": \"11.0.18\", \"justification\": \"HTTP/2 rapid reset DoS\", \"workspace_path\": \"/workspace/test-data/remediation3\", \"repo_url\": \"https://gitlab.example.com/org/app\"}"
+          }
+        ]
+      },
+      "context": {
+        "description": "Version bump breaks a compile dependency (API change in Jetty 11.0.18). First mvn verify fails. Agent should detect the failure, analyze the error, apply a fix, and retry. Tests the LoopAgent retry mechanism.",
+        "expected_retry_count": 1,
+        "first_build_fails": true
+      },
+      "expected_tool_use": [
+        {"tool_name": "ExecuteBashTool", "min_calls": 4, "note": "opencode + mvn fail + opencode fix + mvn pass"}
+      ],
+      "reference_answer_key_points": [
+        "detected build failure after version bump",
+        "analyzed the compile error",
+        "made additional code changes to fix compatibility",
+        "second build passed",
+        "opened PR"
+      ]
+    },
+    {
+      "eval_case_id": "remediate-pre-gate-rejects-invalid-input",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Remediate this vulnerability: {\"cve_id\": \"NOT-A-CVE\", \"package\": \"invalid\", \"current_version\": \"\", \"fixed_version\": \"\", \"justification\": \"\", \"workspace_path\": \"/workspace/test-data/remediation4\", \"repo_url\": \"https://gitlab.example.com/org/app\"}"
+          }
+        ]
+      },
+      "context": {
+        "description": "Input fails pre-gate validation (invalid CVE ID, invalid package, empty versions). Agent should be blocked by pre_gate_callback before spending any LLM tokens on actual remediation.",
+        "expected_outcome": "pre_gate_rejection"
+      },
+      "expected_tool_use": [
+        {"tool_name": "ExecuteBashTool", "max_calls": 0, "note": "Should not reach bash at all"},
+        {"tool_name": "create_pull_request", "max_calls": 0}
+      ],
+      "reference_answer_key_points": [
+        "rejected by pre-gate validation",
+        "no remediation attempted",
+        "zero model cost for invalid input"
+      ]
+    },
+    {
+      "eval_case_id": "remediate-post-gate-blocks-nosec",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Remediate this vulnerability: {\"cve_id\": \"CVE-2024-34750\", \"package\": \"org.apache.tomcat:tomcat-coyote\", \"current_version\": \"9.0.85\", \"fixed_version\": \"9.0.87\", \"justification\": \"TLS vulnerability\", \"workspace_path\": \"/workspace/test-data/remediation5\", \"repo_url\": \"https://gitlab.example.com/org/app\"}"
+          }
+        ]
+      },
+      "context": {
+        "description": "Agent makes a correct version bump BUT also adds a // nosec annotation. Post-gate should catch the forbidden pattern and reject the diff.",
+        "expected_outcome": "post_gate_rejection",
+        "agent_adds_nosec": true
+      },
+      "reference_answer_key_points": [
+        "version bump applied correctly",
+        "post-gate caught nosec/suppress pattern in diff",
+        "PR not opened due to post-gate rejection"
+      ]
+    },
+    {
+      "eval_case_id": "remediate-max-retries-exhausted",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Remediate this vulnerability: {\"cve_id\": \"CVE-2024-7254\", \"package\": \"com.google.protobuf:protobuf-java\", \"current_version\": \"3.21.7\", \"fixed_version\": \"3.21.12\", \"justification\": \"DoS via deeply nested messages\", \"workspace_path\": \"/workspace/test-data/remediation6\", \"repo_url\": \"https://gitlab.example.com/org/app\"}"
+          }
+        ]
+      },
+      "context": {
+        "description": "Build persistently fails (deep compatibility issue). Agent should exhaust retry loop and report failure gracefully rather than hanging.",
+        "expected_outcome": "graceful_failure",
+        "max_retries": 3,
+        "build_always_fails": true
+      },
+      "reference_answer_key_points": [
+        "attempted remediation",
+        "detected persistent build failures",
+        "exhausted retry limit",
+        "reported failure with details",
+        "did not hang or loop indefinitely"
+      ]
+    },
+    {
+      "eval_case_id": "remediate-loads-skill-first",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Remediate this vulnerability: {\"cve_id\": \"CVE-2024-29025\", \"package\": \"com.fasterxml.jackson.core:jackson-databind\", \"current_version\": \"2.13.2\", \"fixed_version\": \"2.13.4.2\", \"justification\": \"Critical RCE\", \"workspace_path\": \"/workspace/test-data/remediation7\", \"repo_url\": \"https://gitlab.example.com/org/app\"}"
+          }
+        ]
+      },
+      "context": {
+        "description": "Verifies the agent loads the maven-remediation skill BEFORE making code changes. The skill contains critical methodology.",
+        "verify_skill_loaded_first": true
+      },
+      "expected_tool_use": [
+        {"tool_name": "load_skill", "min_calls": 1, "note": "Must load maven-remediation skill first"}
+      ],
+      "reference_answer_key_points": [
+        "loaded maven-remediation skill before editing code",
+        "followed skill-defined remediation process"
+      ]
     }
   ]
 }

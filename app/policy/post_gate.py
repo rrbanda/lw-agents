@@ -23,7 +23,7 @@ FORBIDDEN_PATTERNS = [
 
 MAX_DIFF_LINES = 100
 MAX_FILES_TOUCHED = 5
-ALLOWED_PATHSPECS = {"pom.xml", "REMEDIATION.md"}
+ALLOWED_BASENAMES = {"pom.xml", "REMEDIATION.md"}
 
 
 def validate_diff(diff_content: str, changed_files: list[str]) -> dict[str, Any]:
@@ -45,15 +45,13 @@ def validate_diff(diff_content: str, changed_files: list[str]) -> dict[str, Any]
 
     # Check file count
     if len(changed_files) > MAX_FILES_TOUCHED:
-        errors.append(
-            f"Too many files changed ({len(changed_files)} > {MAX_FILES_TOUCHED})"
-        )
+        errors.append(f"Too many files changed ({len(changed_files)} > {MAX_FILES_TOUCHED})")
 
     # Check allowed pathspecs (only pom.xml variants and REMEDIATION.md)
     for f in changed_files:
         basename = f.split("/")[-1] if "/" in f else f
-        if basename not in ALLOWED_PATHSPECS:
-            warnings.append(f"Unexpected file changed: {f} (expected only {ALLOWED_PATHSPECS})")
+        if basename not in ALLOWED_BASENAMES:
+            warnings.append(f"Unexpected file changed: {f} (expected only {ALLOWED_BASENAMES})")
 
     # Check diff size
     diff_lines = diff_content.count("\n")
@@ -82,8 +80,11 @@ async def post_gate_callback(callback_context) -> None:
     changed_files = state.get("changed_files", [])
 
     if not diff_content and not changed_files:
-        state["post_gate_result"] = {"valid": True, "skipped": True,
-                                      "reason": "No diff to validate"}
+        state["post_gate_result"] = {
+            "valid": True,
+            "skipped": True,
+            "reason": "No diff to validate",
+        }
         return
 
     result = validate_diff(diff_content, changed_files)

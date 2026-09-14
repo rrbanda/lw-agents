@@ -10,23 +10,19 @@ deterministic scoring function produces the final verdict.
 
 from __future__ import annotations
 
-import os
-import pathlib
+from typing import AsyncGenerator
 
 from google.adk.agents import BaseAgent, LlmAgent, SequentialAgent
 from google.adk.agents.invocation_context import InvocationContext
 from google.adk.events import Event
 from google.adk.skills import load_skill_from_dir
 from google.adk.tools.skill_toolset import SkillToolset
-from typing import AsyncGenerator
 
+from app.config import MODEL, SKILLS_DIR
 from app.tools.cve_tools import (
     lookup_cve_detail,
     parse_maven_purl,
 )
-
-MODEL = os.environ.get("MODEL_NAME", "gemini-2.5-flash")
-SKILLS_DIR = pathlib.Path(__file__).resolve().parent.parent.parent / "skills"
 
 # Gate weights (from VVAH scoring engine)
 GATE_WEIGHTS = {
@@ -92,39 +88,45 @@ class DeterministicScoring(BaseAgent):
     applies VVAH-style weighted scoring with conservative consensus.
     """
 
-    async def _run_async_impl(
-        self, ctx: InvocationContext
-    ) -> AsyncGenerator[Event, None]:
+    async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
         architect = ctx.session.state.get("architect_report", "")
         pentester = ctx.session.state.get("pentester_report", "")
 
-        # Parse gate statuses from persona reports
+        # Parse gate statuses from persona reports using regex to tolerate
+        # LLM formatting variation (e.g. "root_cause: pass", "root_cause : PASS",
+        # "**root_cause**: pass", "root_cause:pass")
+        import re
+
         gates = {}
         for gate_name in GATE_WEIGHTS:
             statuses = []
+            pattern = re.compile(
+                rf"\*{{0,2}}{re.escape(gate_name)}\*{{0,2}}\s*:\s*(pass|partial|fail)",
+                re.IGNORECASE,
+            )
             for report in [architect, pentester]:
-                report_lower = str(report).lower()
-                if f"{gate_name}: pass" in report_lower or f"{gate_name}:pass" in report_lower:
-                    statuses.append("pass")
-                elif f"{gate_name}: partial" in report_lower:
-                    statuses.append("partial")
-                elif f"{gate_name}: fail" in report_lower:
-                    statuses.append("fail")
+                report_str = str(report)
+                match = pattern.search(report_str)
+                if match:
+                    statuses.append(match.group(1).lower())
                 else:
                     statuses.append("inconclusive")
 
             # Conservative consensus (VVAH pattern)
+            severity_rank = {"fail": 0, "partial": 1, "inconclusive": 2, "pass": 3}
             if len(set(statuses)) == 1 and len(statuses) >= 2:
                 gates[gate_name] = {"status": statuses[0], "confidence": "HIGH"}
             else:
-                most_conservative = min(statuses, key=lambda s: {"fail": 0, "partial": 1, "inconclusive": 2, "pass": 3}.get(s, 2))
+                most_conservative = min(
+                    statuses,
+                    key=lambda s: severity_rank.get(s, 2),
+                )
                 gates[gate_name] = {"status": most_conservative, "confidence": "FLAGGED"}
 
         # Compute weighted score
         score_map = {"pass": 1.0, "partial": 0.5, "fail": 0.0, "inconclusive": 0.0}
         total_score = sum(
-            GATE_WEIGHTS[gate] * score_map.get(gates[gate]["status"], 0.0)
-            for gate in GATE_WEIGHTS
+            GATE_WEIGHTS[gate] * score_map.get(gates[gate]["status"], 0.0) for gate in GATE_WEIGHTS
         )
 
         # Decision thresholds

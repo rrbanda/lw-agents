@@ -1,0 +1,159 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: evalhub-eval-gate
+  labels:
+    app.kubernetes.io/part-of: maven-build-ci
+  annotations:
+    tekton.dev/tags: "ai, eval, safety, evalhub"
+spec:
+  description: >-
+    Quality gate that runs EvalHub benchmarks against the model endpoint
+    before deploying the agent service. Fails the pipeline if safety or
+    quality thresholds are not met.
+  params:
+    - name: EVALHUB_URL
+      type: string
+      description: EvalHub API route URL.
+      default: https://evalhub-redhat-ods-applications.apps.ocp.qn6c5.sandbox1388.opentlc.com
+    - name: EVALHUB_TENANT
+      type: string
+      description: EvalHub tenant namespace.
+      default: redhat-ods-applications
+    - name: EVAL_CONFIG
+      type: string
+      description: >-
+        Path to the EvalHub job config YAML inside the workspace,
+        e.g. tests/eval/evalhub-safety-baseline.yaml
+      default: tests/eval/evalhub-safety-baseline.yaml
+    - name: MODEL_URL
+      type: string
+      description: Override model URL in the config (optional).
+      default: ""
+    - name: MODEL_NAME
+      type: string
+      description: Override model name in the config (optional).
+      default: ""
+    - name: TIMEOUT
+      type: string
+      description: Max seconds to wait for the eval to complete.
+      default: "1800"
+  workspaces:
+    - name: source
+  results:
+    - name: JOB_ID
+      description: EvalHub job ID.
+    - name: STATUS
+      description: "Final job status: completed, failed, cancelled."
+    - name: PASS
+      description: "Whether all benchmarks passed thresholds: true or false."
+  steps:
+    - name: run-eval-gate
+      image: registry.access.redhat.com/ubi9/python-312:latest
+      env:
+        - name: EVALHUB_URL
+          value: $(params.EVALHUB_URL)
+        - name: EVALHUB_TENANT
+          value: $(params.EVALHUB_TENANT)
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        echo "=== EvalHub Eval Gate ==="
+
+        # Install the SDK
+        pip install -q "eval-hub-sdk[cli]" 2>/dev/null
+
+        # Configure
+        evalhub config set base_url "$(params.EVALHUB_URL)"
+        evalhub config set tenant "$(params.EVALHUB_TENANT)"
+
+        # Get a ServiceAccount token for auth
+        TOKEN_FILE="/var/run/secrets/kubernetes.io/serviceaccount/token"
+        if [ -f "$TOKEN_FILE" ]; then
+          evalhub config set token "$(cat $TOKEN_FILE)"
+        fi
+
+        # Build the eval config path
+        CONFIG="$(workspaces.source.path)/$(params.EVAL_CONFIG)"
+        if [ ! -f "$CONFIG" ]; then
+          echo "ERROR: Config file not found: $CONFIG" >&2
+          exit 1
+        fi
+
+        # Override model URL/name if provided
+        if [ -n "$(params.MODEL_URL)" ]; then
+          python3 -c "
+        import yaml, sys
+        with open('$CONFIG') as f:
+            data = yaml.safe_load(f)
+        data['model']['url'] = '$(params.MODEL_URL)'
+        if '$(params.MODEL_NAME)':
+            data['model']['name'] = '$(params.MODEL_NAME)'
+        with open('$CONFIG', 'w') as f:
+            yaml.dump(data, f)
+        "
+        fi
+
+        echo "Submitting eval job from: $(params.EVAL_CONFIG)"
+        OUTPUT=$(evalhub eval run --config "$CONFIG" --format json 2>&1)
+        JOB_ID=$(echo "$OUTPUT" | python3 -c "
+        import sys, json
+        try:
+            data = json.load(sys.stdin)
+            print(data.get('id', ''))
+        except:
+            # Fallback: parse 'Job submitted: <id>' text
+            import re
+            text = sys.stdin.read() if not data else ''
+            m = re.search(r'Job submitted:\s*(\S+)', '$OUTPUT')
+            print(m.group(1) if m else '')
+        ")
+
+        if [ -z "$JOB_ID" ]; then
+          # Try parsing from the text output
+          JOB_ID=$(echo "$OUTPUT" | grep -oP 'Job submitted:\s*\K\S+' || true)
+        fi
+
+        if [ -z "$JOB_ID" ]; then
+          echo "ERROR: Failed to submit eval job" >&2
+          echo "$OUTPUT"
+          exit 1
+        fi
+
+        echo "Job submitted: $JOB_ID"
+        printf '%s' "$JOB_ID" > "$(results.JOB_ID.path)"
+
+        # Wait for completion
+        echo "Waiting up to $(params.TIMEOUT)s for completion..."
+        evalhub eval status "$JOB_ID" --wait \
+          --timeout "$(params.TIMEOUT)" --poll-interval 10 \
+          --format json > /tmp/result.json 2>&1 || true
+
+        # Parse results
+        python3 <<'PYEOF'
+        import json, sys
+
+        try:
+            with open("/tmp/result.json") as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError):
+            data = {}
+
+        status = data.get("status", data.get("state", "unknown"))
+        passed = data.get("pass", data.get("result", "unknown"))
+
+        with open("$(results.STATUS.path)", "w") as f:
+            f.write(str(status))
+        with open("$(results.PASS.path)", "w") as f:
+            f.write(str(passed).lower())
+
+        print(f"Status: {status}")
+        print(f"Pass: {passed}")
+
+        if str(passed).lower() not in ("true", "pass", "passed"):
+            print("EVAL GATE FAILED — benchmarks did not meet thresholds")
+            sys.exit(1)
+        else:
+            print("EVAL GATE PASSED")
+        PYEOF

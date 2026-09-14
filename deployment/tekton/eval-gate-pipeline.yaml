@@ -1,0 +1,109 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: agent-with-eval-gates
+  labels:
+    app.kubernetes.io/part-of: maven-build-ci
+  annotations:
+    tekton.dev/tags: "ai, eval, pipeline, evalhub, agent-eval"
+spec:
+  description: >-
+    Full CI pipeline with two automated eval gates before the agent runs:
+      1. model-eval-gate  — EvalHub safety/security benchmarks (is the LLM safe?)
+      2. agent-eval-gate  — Agent-level evals with regression detection (do agents work?)
+      3. call-agent       — Actual agent execution (only if both gates pass)
+    No manual intervention required. Runs automatically on every code change.
+  params:
+    # --- Model eval params ---
+    - name: EVAL_CONFIG
+      type: string
+      description: EvalHub config YAML path in the workspace.
+      default: tests/eval/evalhub-safety-baseline.yaml
+    - name: EVALHUB_URL
+      type: string
+      default: https://evalhub-redhat-ods-applications.apps.ocp.qn6c5.sandbox1388.opentlc.com
+    - name: EVALHUB_TENANT
+      type: string
+      default: redhat-ods-applications
+    - name: EVAL_TIMEOUT
+      type: string
+      default: "1800"
+    # --- Agent eval params ---
+    - name: AGENT_ENDPOINT
+      type: string
+      default: http://ssc-agent.tssc-agents.svc:8080
+    - name: AGENT_EVAL_SETS
+      type: string
+      description: >-
+        Comma-separated agent eval sets. Empty = all.
+      default: ""
+    - name: MLFLOW_TRACKING_URI
+      type: string
+      default: https://mlflow-redhat-ods-applications.apps.ocp.qn6c5.sandbox1388.opentlc.com
+    - name: MLFLOW_WORKSPACE
+      type: string
+      default: autorag
+    - name: MLFLOW_TRACKING_TOKEN
+      type: string
+      default: ""
+    # --- Agent task params ---
+    - name: TASK_TYPE
+      type: string
+      description: "Agent task type: select-cve | analyze-cves | remediate | generate-tests"
+    - name: REQUEST_BODY
+      type: string
+      default: "{}"
+  workspaces:
+    - name: shared-workspace
+
+  tasks:
+    # ── Gate 1: Model safety & security ──────────────────────
+    - name: model-eval-gate
+      taskRef:
+        name: evalhub-eval-gate
+      params:
+        - name: EVALHUB_URL
+          value: $(params.EVALHUB_URL)
+        - name: EVALHUB_TENANT
+          value: $(params.EVALHUB_TENANT)
+        - name: EVAL_CONFIG
+          value: $(params.EVAL_CONFIG)
+        - name: TIMEOUT
+          value: $(params.EVAL_TIMEOUT)
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+
+    # ── Gate 2: Agent behaviour & regression ─────────────────
+    - name: agent-eval-gate
+      runAfter:
+        - model-eval-gate
+      taskRef:
+        name: agent-eval-gate
+      params:
+        - name: AGENT_ENDPOINT
+          value: $(params.AGENT_ENDPOINT)
+        - name: EVAL_SETS
+          value: $(params.AGENT_EVAL_SETS)
+        - name: MLFLOW_TRACKING_URI
+          value: $(params.MLFLOW_TRACKING_URI)
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+
+    # ── Actual agent execution (only after both gates pass) ──
+    - name: call-agent
+      runAfter:
+        - agent-eval-gate
+      taskRef:
+        name: call-ssc-agent
+      params:
+        - name: AGENT_ENDPOINT
+          value: $(params.AGENT_ENDPOINT)
+        - name: TASK_TYPE
+          value: $(params.TASK_TYPE)
+        - name: REQUEST_BODY
+          value: $(params.REQUEST_BODY)
+      workspaces:
+        - name: workspace
+          workspace: shared-workspace

@@ -1,0 +1,32 @@
+# Patch for agent Deployment to enable MLflow tracing.
+# Apply with: oc patch deployment lw-agents -n tssc-agents --patch-file deployment/overlays/tracing-env.yaml
+#
+# Or reference in a Kustomize overlay / Tekton PipelineRun params.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lw-agents
+  namespace: tssc-agents
+spec:
+  template:
+    spec:
+      containers:
+        - name: agent
+          env:
+            # --- MLflow Tracing ---
+            - name: MLFLOW_TRACKING_URI
+              value: https://mlflow-redhat-ods-applications.apps.ocp.qn6c5.sandbox1388.opentlc.com
+            - name: MLFLOW_EXPERIMENT_NAME
+              value: lw-agents
+            - name: MLFLOW_WORKSPACE
+              value: autorag
+            - name: MLFLOW_TRACKING_INSECURE_TLS
+              value: "true"
+            - name: MLFLOW_TRACKING_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: agent-secrets
+                  key: MLFLOW_TRACKING_TOKEN
+                  optional: true
+            - name: MLFLOW_HEALTH_CHECK_TIMEOUT
+              value: "10"

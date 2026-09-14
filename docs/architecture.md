@@ -1,5 +1,14 @@
 # Architecture
 
+## Technology Stack
+
+| Layer | What provides it | Role |
+|---|---|---|
+| **Agent harness** | [Google ADK 2.0](https://adk.dev/) | Core loop, tool dispatch, state, context management, plugins, MCP, skills |
+| **Agent platform** | [Red Hat OpenShift AI](https://www.redhat.com/en/technologies/cloud-computing/openshift/openshift-ai) | EvalHub, MLflow, Tekton pipelines, OpenShift deployment |
+| **Model serving** | Gemini API / [Red Hat MaaS](https://github.com/rrbanda/rh-maas-litellm) / vLLM | LLM inference |
+| **Agent application** | This repo (lw-agents) | CVE tools, remediation skills, policy gates, scoring, multi-persona validation |
+
 ## 1. System Context
 
 How the ADK agent service fits in the broader software supply chain.
@@ -17,7 +26,13 @@ flowchart TB
 
     subgraph adkAgent [ADK Agent Service]
         coordinator["Root Coordinator"]
-        specialists["Specialist Agents\n(selection / analysis /\nremediation / test-gen)"]
+        specialists["Specialist Agents\n(selection / analysis /\nremediation / test-gen /\nvalidation)"]
+    end
+
+    subgraph evalLayer [EvalHub Layer - RHOAI 3.5]
+        evalGate["evalhub-eval-gate\n(Tekton Task)"]
+        evalHub["EvalHub API\n(safety + security)"]
+        mlflow["MLflow\n(experiment tracking)"]
     end
 
     subgraph external [External Systems]
@@ -29,7 +44,10 @@ flowchart TB
     end
 
     clone --> build --> sbom --> policy
-    policy --> callAgent
+    policy --> evalGate
+    evalGate -->|"submit + wait"| evalHub
+    evalHub -->|"log results"| mlflow
+    evalGate -->|"PASS"| callAgent
     callAgent -->|"HTTP POST"| coordinator
     coordinator --> specialists
     specialists --> llm
@@ -76,17 +94,26 @@ flowchart TB
         tstPR["test_pr_opener\n(LlmAgent)"]
     end
 
-    subgraph safety [Runner Plugins]
-        safePlug["SafetyPlugin\n(LLM-as-judge)"]
+    subgraph valAgent [Fix Validation Agent]
+        val["fix_validation\n(SequentialAgent)"]
+        valArch["security_architect\n(LlmAgent)"]
+        valPen["penetration_tester\n(LlmAgent)"]
+        valScore["deterministic_scoring\n(BaseAgent)"]
     end
 
-    coord -->|"delegates"| sel & ana & rem & tst
+    subgraph plugins [Runner Plugins]
+        safePlug["SafetyPlugin\n(LLM-as-judge)"]
+        redactPlug["RedactionPlugin\n(secret masking)"]
+    end
+
+    coord -->|"delegates"| sel & ana & rem & tst & val
     sel --- selSkills & selTools
     ana --- anaSkills & anaTools
     rem --- remPlan
     remPlan --- remSkills & remBash
     tst --- tstWriter --> tstLoop --> tstPR
-    safePlug -.->|"wraps all"| coord
+    val --- valArch --> valPen --> valScore
+    plugins -.->|"wraps all"| coord
 ```
 
 ## 3. CVE Selection Agent Flow
@@ -171,7 +198,42 @@ flowchart LR
     writer --> loop --> prOpener
 ```
 
-## 6. Data Flow
+## 6. Fix Validation Pipeline
+
+Multi-persona adversarial review with deterministic consensus scoring.
+
+```mermaid
+flowchart LR
+    subgraph seq [SequentialAgent: fix_validation]
+        architect["security_architect\n(LlmAgent)\nload skill\nevaluate 4 gates"]
+        pentester["penetration_tester\n(LlmAgent)\nload skill\nfind bypasses"]
+        scoring["deterministic_scoring\n(BaseAgent)\nweighted consensus\nno LLM"]
+    end
+
+    architect --> pentester --> scoring
+
+    scoring -->|"score >= 0.80"| fixed[FIXED]
+    scoring -->|"score >= 0.50"| partial[PARTIALLY_FIXED]
+    scoring -->|"score < 0.50"| notFixed[NOT_FIXED]
+```
+
+Gate weights: root_cause (0.43), instance_coverage (0.25), no_new_vulnerabilities (0.19), security_best_practices (0.13). Conservative consensus: unanimous agreement = HIGH confidence; disagreement = most-conservative-wins with FLAGGED confidence. Critical gate cap: root_cause not PASS caps decision down one level.
+
+## 7. Policy Gates
+
+Pre-gate and post-gate validation sandwich around the remediation agent.
+
+```mermaid
+flowchart LR
+    request["Remediation\nRequest"] --> preGate{"pre_gate\nvalidate CVE ID\nMaven coords\nversions"}
+    preGate -->|"invalid"| denied["Guidance-only\nresponse\nzero model cost"]
+    preGate -->|"valid"| agent["Remediation\nAgent"]
+    agent --> postGate{"post_gate\nvalidate diff\nforbidden patterns\nfile count"}
+    postGate -->|"rejected"| blocked["Diff rejected\nnosec / suppress /\nverify=False"]
+    postGate -->|"passed"| pr["Open PR"]
+```
+
+## 8. Data Flow
 
 How data moves from RHTPA workspace files through agent tools to SCM.
 
@@ -189,10 +251,16 @@ flowchart LR
         parseTool["parse_maven_purl\nextracts coordinates"]
         checkTool["check_version_exists\nverifies via Maven Central"]
         bashTool["ExecuteBashTool\nopencode run / mvn"]
+        diffTool["diff_proof\nsnapshot + verify"]
     end
 
     subgraph agent [Agent Reasoning]
         reason["LLM Agent\nloads skill\ncalls tools\nreasons per-CVE"]
+    end
+
+    subgraph gates [Policy Gates]
+        preGate["pre_gate\nvalidate input"]
+        postGate["post_gate\nvalidate diff"]
     end
 
     subgraph outputs [Outputs]
@@ -204,21 +272,215 @@ flowchart LR
     vulnReport --> lookupTool --> reason
     reason --> parseTool
     reason --> checkTool
+    preGate --> reason
     reason --> bashTool
     pomXml --> bashTool
+    bashTool --> diffTool --> postGate
     reason --> issues
-    reason --> prs
+    postGate --> prs
 ```
 
-## 7. Deployment Architecture
+## 9. Automated Evaluation System
 
-How the ADK agent service is deployed on OpenShift alongside Tekton.
+Two-layer evaluation system — **fully automated**, no manual intervention needed. Runs on every code change and every 6 hours on a schedule.
+
+```mermaid
+flowchart TB
+    subgraph triggers [Triggers]
+        codePush["Code Push\n(git webhook)"]
+        modelUpdate["Model Update\n(OGX redeploy)"]
+        cron["CronJob\n(every 6 hours)"]
+    end
+
+    subgraph pipeline [CI Pipeline: agent-with-eval-gates]
+        gate1["Gate 1: model-eval-gate\n(Tekton Task)\nEvalHub safety + security"]
+        gate2["Gate 2: agent-eval-gate\n(Tekton Task)\n38 cases × 6 agents\nregression detection"]
+        agentTask["call-ssc-agent\n(Tekton Task)"]
+    end
+
+    subgraph evalhub [EvalHub - RHOAI 3.5]
+        api["EvalHub API"]
+        lmEval["lm_evaluation_harness\n(truthfulqa, toxigen,\nethics, bbq)"]
+        garak["Garak\n(OWASP Top 10, CWE)"]
+    end
+
+    subgraph agentEval [Agent Eval Runner]
+        runner["app.eval.agent_eval\n(38 eval cases)"]
+        baseline["baseline.json\n(regression reference)"]
+        scoring["Deterministic scoring\n+ LLM-as-judge metrics"]
+    end
+
+    subgraph tracking [Experiment Tracking]
+        mlflow["MLflow\n(all metrics + artifacts)"]
+    end
+
+    triggers --> pipeline
+    gate1 -->|"submit"| api
+    api --> lmEval & garak
+    gate1 -->|"PASS"| gate2
+    gate1 -->|"FAIL"| blocked1["Pipeline\nBlocked"]
+    gate2 --> runner
+    runner --> baseline
+    runner --> scoring
+    gate2 -->|"PASS"| agentTask
+    gate2 -->|"FAIL"| blocked2["Pipeline\nBlocked"]
+    runner -->|"log"| mlflow
+    api -->|"log"| mlflow
+```
+
+### Layer 1: Model-Level Eval (EvalHub)
+
+Verifies the underlying LLM is safe before any agent runs.
+
+| Benchmark | Provider | Threshold | What it catches |
+|-----------|----------|-----------|-----------------|
+| truthfulqa_mc1 | lm_evaluation_harness | 0.60 | Hallucination tendency |
+| toxigen | lm_evaluation_harness | 0.85 | Toxic output generation |
+| ethics_cm | lm_evaluation_harness | 0.75 | Ethical reasoning |
+| bbq | lm_evaluation_harness | 0.90 | Bias in ambiguous contexts |
+| owasp_llm_top10 | Garak | 0.10 | Prompt injection, jailbreaks |
+| cwe | Garak | 0.10 | Code weakness exploitation |
+
+### Layer 2: Agent-Level Eval (38 cases across 6 agents)
+
+Verifies each agent behaves correctly with regression detection.
+
+| Agent | Cases | Key metrics tested |
+|-------|-------|--------------------|
+| Coordinator | 8 | Correct routing, out-of-scope decline, full pipeline orchestration |
+| CVE Selection | 7 | Hallucination guard, structured output, skill-first, version verification |
+| CVE Analysis | 5 | Multi-CVE handling, issue creation, empty set, duplicate detection |
+| Remediation | 7 | Build retry loop, pre/post gate, max retries, skill-first |
+| Test Generation | 5 | Compile failure retry, test-only PRs, config change tests |
+| Fix Validation | 6 | Gate accuracy, nosec detection, root cause cap, persona consensus |
+
+### Automation guarantees
+
+- **Every code push** triggers the full pipeline via Tekton EventListener
+- **Every 6 hours** a CronJob runs evals even with no code changes (catches model drift)
+- **Model updates** trigger evals via the webhook EventListener
+- **Regression detection** compares each metric against `baseline.json` (tolerance: 10%)
+- **Floor enforcement** blocks deploy if any metric falls below its absolute minimum
+- **MLflow logging** tracks every eval run for trend analysis
+- **Zero manual steps** — `make deploy-eval-tasks` sets up everything on the cluster
+
+### Custom eval metrics (LLM-as-judge)
+
+| Metric | Applies to | What it measures |
+|--------|-----------|-----------------|
+| `cve_selection_accuracy` | Selection | Did the agent verify versions before deciding? |
+| `version_not_hallucinated` | Selection | Every reported version was checked via tool call? |
+| `correct_routing` | Coordinator | Delegated to the right sub-agent? |
+| `skill_loaded_first` | Selection, Analysis, Remediation | Loaded methodology skill before acting? |
+| `tool_use_completeness` | Selection, Analysis | Called all necessary tools? |
+| `remediation_build_passes` | Remediation, Test Gen | Build succeeds after changes? |
+| `validation_gate_accuracy` | Validation | Gates match expected results? |
+| `pr_hygiene` | Remediation, Test Gen | PR is focused, described, no anti-patterns? |
+
+## 10. MLflow Tracing
+
+Full-stack observability via OpenTelemetry + MLflow. Every LLM call, tool execution, and agent delegation is captured as a span and forwarded to RHOAI MLflow.
+
+### Span Architecture
+
+```mermaid
+flowchart TB
+    subgraph agent [ADK Agent Process]
+        subgraph otel [OpenTelemetry TracerProvider]
+            adkSpans["ADK Auto-Spans\n(agent runs, tool calls,\ndelegate events)"]
+            litellmSpans["LiteLLM Autolog Spans\n(LLM requests/responses,\ntoken counts, latencies)"]
+            customSpans["Custom Spans\n(wrap_func_with_mlflow_trace)"]
+        end
+
+        subgraph exporter [OTLP HTTP Exporter]
+            otlpExp["OTLPSpanExporter\nendpoint: /v1/traces\nheaders: experiment-id,\nworkspace, auth token"]
+        end
+    end
+
+    subgraph rhoai [RHOAI 3.5 - MLflow]
+        mlflowSvc["MLflow Service\n(redhat-ods-applications)"]
+        experiments["Experiment: lw-agents"]
+        traces["Trace Viewer\n(spans, latencies,\ntoken counts)"]
+    end
+
+    adkSpans --> otlpExp
+    litellmSpans --> otlpExp
+    customSpans --> otlpExp
+    otlpExp -->|"OTLP/HTTP POST"| mlflowSvc
+    mlflowSvc --> experiments --> traces
+```
+
+### Span Hierarchy (typical CVE selection run)
+
+```mermaid
+flowchart LR
+    root["🔵 ssc_coordinator\n(agent span)"] --> sel["🔵 cve_selection\n(agent span)"]
+    sel --> skill["🟢 load_skill\n(tool span)"]
+    sel --> list["🟢 list_must_fix_cves\n(tool span)"]
+    sel --> lookup["🟢 lookup_cve_detail\n(tool span)"]
+    sel --> parse["🟢 parse_maven_purl\n(tool span)"]
+    sel --> check["🟢 check_version_exists\n(tool span)"]
+    sel --> llm1["🟡 gemini-2.5-flash\n(LLM span)\ntokens: 1.2k→0.8k"]
+    sel --> llm2["🟡 gemini-2.5-flash\n(LLM span)\ntokens: 2.1k→1.5k"]
+```
+
+### Bootstrap Sequence
+
+```mermaid
+sequenceDiagram
+    participant Init as app/__init__.py
+    participant Tracing as app/tracing.py
+    participant MLflow as MLflow Server
+    participant OTel as TracerProvider
+    participant ADK as ADK Agent
+
+    Init->>Tracing: enable_tracing()
+    Tracing->>Tracing: Check MLFLOW_TRACKING_URI
+    alt URI not set
+        Tracing-->>Init: No-op (tracing disabled)
+    else URI set
+        Tracing->>MLflow: Health check (probe /v1/traces)
+        alt Unreachable
+            Tracing-->>Init: Warning logged, continue without tracing
+        else Healthy
+            Tracing->>MLflow: set_tracking_uri() + set_experiment("lw-agents")
+            Tracing->>Tracing: mlflow.litellm.autolog()
+            Tracing->>OTel: Configure TracerProvider + OTLPSpanExporter
+            Tracing-->>Init: Tracing enabled ✓
+        end
+    end
+    Init->>ADK: Import and build agents (spans now captured)
+```
+
+### Configuration
+
+| Env Var | Required | Default | Description |
+|---------|----------|---------|-------------|
+| `MLFLOW_TRACKING_URI` | Yes (to enable) | — | MLflow server URL |
+| `MLFLOW_EXPERIMENT_NAME` | No | `lw-agents` | Experiment name in MLflow |
+| `MLFLOW_WORKSPACE` | No | — | RHOAI workspace (maps to K8s namespace) |
+| `MLFLOW_TRACKING_TOKEN` | No | — | Bearer token for auth |
+| `MLFLOW_TRACKING_INSECURE_TLS` | No | `false` | Skip TLS verification |
+| `MLFLOW_HEALTH_CHECK_TIMEOUT` | No | `5` | Seconds to wait for MLflow |
+
+### Key Design Decisions
+
+1. **Opt-in**: Tracing only activates when `MLFLOW_TRACKING_URI` is set
+2. **Graceful degradation**: If MLflow is unreachable or deps are missing, agents start normally
+3. **Two-layer capture**: OTel (ADK spans) + LiteLLM autolog (LLM call spans) for full coverage
+4. **Bootstrap order**: Tracing initializes before any ADK imports to capture all spans
+5. **Zero code changes to agents**: Existing agents get full tracing without modification
+
+## 11. Deployment Architecture
+
+How the ADK agent service is deployed on OpenShift alongside Tekton and EvalHub.
 
 ```mermaid
 flowchart TB
     subgraph cluster [OpenShift Cluster]
         subgraph tektonNs [Namespace: tssc-app-ci]
-            pipelineRun["Tekton PipelineRun\n(agentic-cve-remediation)"]
+            pipelineRun["Tekton PipelineRun\n(agent-with-eval-gate)"]
+            evalTask["Task Pod: evalhub-eval-gate\n(submit + wait)"]
             taskPod["Task Pod: call-ssc-agent\n(curl -> agent service)"]
             buildPod["Task Pods: clone/build/scan\n(existing CI/CD)"]
         end
@@ -229,17 +491,26 @@ flowchart TB
             agentPod["Pod: ADK api_server\n+ root_agent + skills"]
         end
 
+        subgraph rhoaiNs [Namespace: redhat-ods-applications]
+            evalHubSvc["EvalHub Service\n(TrustyAI operator)"]
+            mlflowSvc["MLflow Service\n(experiment tracking\n+ OTLP traces)"]
+        end
+
         subgraph config [Configuration]
-            configMap["ConfigMap: agent-config\nMODEL_NAME\nWORKSPACE_PATH"]
-            secret["Secret: agent-secrets\nGEMINI_API_KEY\nSCM_TOKEN"]
+            configMap["ConfigMap: agent-config\nMODEL_NAME\nWORKSPACE_PATH\nSCM_BASE_BRANCH\nEVALHUB_URL"]
+            secret["Secret: agent-secrets\nGEMINI_API_KEY\nSCM_TOKEN\nEVALHUB_TOKEN"]
         end
     end
 
     pipelineRun --> buildPod
-    pipelineRun --> taskPod
+    pipelineRun --> evalTask
+    evalTask -->|"EvalHub API"| evalHubSvc
+    evalHubSvc -->|"log metrics"| mlflowSvc
+    evalTask -->|"PASS"| taskPod
     taskPod -->|"HTTP POST :8080"| agentSvc
     agentSvc --> agentPod
     agentDeploy --> agentPod
+    agentPod -->|"OTLP /v1/traces\n(OTel spans)"| mlflowSvc
     config --> agentPod
 ```
 
@@ -255,3 +526,8 @@ See [docs/adr/](adr/) for the full set:
 | [004](adr/004-tekton-calls-agent-via-api.md) | Tekton Calls Agent via API |
 | [005](adr/005-orchestration-pattern-selection.md) | Orchestration Pattern Selection |
 | [006](adr/006-safety-at-runner-level.md) | Safety at Runner Level |
+| [007](adr/007-policy-gates.md) | Policy Gates Before and After the Agent |
+| [008](adr/008-multi-persona-validation.md) | Multi-Persona Fix Validation |
+| [009](adr/009-output-redaction.md) | Output Redaction at Runner Level |
+| [010](adr/010-evalhub-integration.md) | EvalHub Integration for Safety and Quality Gates |
+| [011](adr/011-mlflow-tracing.md) | MLflow Tracing via OpenTelemetry |

@@ -1,8 +1,27 @@
+# Python
 __pycache__/
 *.py[cod]
 *.egg-info/
 dist/
-.env
 .venv/
-*.lock
+
+# Secrets -- MUST NOT be committed
+.env
+
+# Build artifacts
 artifacts/
+*.lock
+
+# IDE
+.vscode/
+.idea/
+
+# Testing
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
+Thumbs.db

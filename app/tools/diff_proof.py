@@ -26,8 +26,11 @@ def snapshot_workspace(repo_path: str) -> dict[str, str]:
 
     try:
         ls_output = subprocess.run(
-            ["git", "ls-files"], cwd=repo_path,
-            capture_output=True, text=True, timeout=10,
+            ["git", "ls-files"],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         if ls_output.returncode == 0:
             for rel_path in ls_output.stdout.strip().splitlines():
@@ -69,7 +72,10 @@ def verify_changes(repo_path: str, snapshot: dict[str, str]) -> dict[str, Any]:
     try:
         status = subprocess.run(
             ["git", "status", "--porcelain"],
-            cwd=repo_path, capture_output=True, text=True, timeout=10,
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         if status.returncode == 0:
             for line in status.stdout.strip().splitlines():
@@ -83,7 +89,10 @@ def verify_changes(repo_path: str, snapshot: dict[str, str]) -> dict[str, Any]:
     try:
         diff = subprocess.run(
             ["git", "diff", "--no-color"],
-            cwd=repo_path, capture_output=True, text=True, timeout=10,
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         if diff.returncode == 0:
             diff_content = diff.stdout
