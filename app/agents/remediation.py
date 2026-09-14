@@ -54,9 +54,9 @@ def _create_plan_agent(name: str = "remediation_planner") -> LlmAgent:
             "4. If build fails, report the error clearly with 'BUILD FAILURE' in output\n"
             "5. If build passes, run mvn -B -q verify for full tests\n"
             "6. If all passes, report 'BUILD SUCCESS'\n\n"
-            "CVE: {cve_id}, Package: {package}, "
-            "Current: {current_version}, Fixed: {fixed_version}\n"
-            "Justification: {justification}"
+            "The CVE details (cve_id, package, current_version, fixed_version, "
+            "justification) will be provided in the user's request or in session "
+            "state. Extract them from whichever source is available."
         ),
         description="Plans and applies a Maven dependency version bump using OpenCode.",
         tools=[skill_toolset, bash_tool],

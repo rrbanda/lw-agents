@@ -18,6 +18,7 @@ spec:
       containers:
         - name: agent
           image: quay.io/placeholder/lw-agents:latest
+          command: ["python", "-m", "google.adk.cli", "web", "--host", "0.0.0.0", "--port", "8080", "/sandbox"]
           ports:
             - containerPort: 8080
               protocol: TCP
@@ -30,19 +31,19 @@ spec:
           resources:
             requests:
               cpu: 500m
-              memory: 512Mi
+              memory: 1Gi
             limits:
-              cpu: "2"
-              memory: 2Gi
-          livenessProbe:
-            httpGet:
-              path: /list-apps
-              port: 8080
-            initialDelaySeconds: 10
-            periodSeconds: 30
+              cpu: "4"
+              memory: 4Gi
           readinessProbe:
             httpGet:
               path: /list-apps
               port: 8080
-            initialDelaySeconds: 5
+            initialDelaySeconds: 10
             periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /list-apps
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 30
