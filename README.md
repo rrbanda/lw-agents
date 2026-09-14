@@ -75,36 +75,62 @@ speed. This repository is the agent application that powers that engine.
 
 How a CVE goes from discovery to a validated pull request:
 
-```
-                                    lw-agents
-                        ┌──────────────────────────────┐
-RHTPA / Trustify        │                              │        GitLab / GitHub
-scans your app    ───►  │  1. SELECT  best CVE         │
-                        │  2. ANALYZE all CVEs → issues │  ───►  Issues created
-must-fix-cves.json ───► │  3. REMEDIATE → edit pom.xml │  ───►  PR opened
-                        │  4. TEST → generate JUnit    │  ───►  Tests PR opened
-                        │  5. VALIDATE → adversarial   │
-                        │     review (architect +       │
-                        │     pentester + scoring)      │
-                        └──────────────────────────────┘
-                                     │
-                              ┌──────┴──────┐
-                              │ Eval gates  │
-                              │ must pass   │
-                              │ before any  │
-                              │ agent runs  │
-                              └─────────────┘
+```mermaid
+flowchart LR
+    subgraph input [Discovery]
+        rhtpa["RHTPA / Trustify\nscans your app"]
+        mustfix["must-fix-cves.json\n+ vulnerabilities.json"]
+        rhtpa --> mustfix
+    end
+
+    subgraph agents [lw-agents Pipeline]
+        direction TB
+        select["1 SELECT\nPick best CVE\nvia cve-triage skill"]
+        analyze["2 ANALYZE\nAll CVEs → SCM issues"]
+        remediate["3 REMEDIATE\nEdit pom.xml → mvn build\n→ retry up to 3x"]
+        testgen["4 TEST\nGenerate JUnit tests\n→ iterate until passing"]
+        validate["5 VALIDATE\nArchitect + Pentester\n→ deterministic scoring"]
+        select --> remediate
+        select --> analyze
+        remediate --> testgen
+        remediate --> validate
+    end
+
+    subgraph gates [Quality Gates]
+        evalgate["EvalHub\nsafety + security\nbenchmarks"]
+        agenteval["Agent Evals\n38 cases\nregression check"]
+        evalgate --> agenteval
+    end
+
+    subgraph output [Delivery]
+        issues["SCM Issues\ncreated per\nfixable CVE"]
+        fixpr["Remediation PR\nwith verified build"]
+        testpr["Tests PR\nwith passing suite"]
+        verdict["Validation Verdict\nFIXED / PARTIAL\n/ NOT_FIXED"]
+        human["Human Reviewer\nreviews + merges"]
+        fixpr --> human
+        testpr --> human
+        verdict --> human
+    end
+
+    mustfix --> gates
+    gates -->|"PASS"| agents
+    analyze --> issues
+    remediate --> fixpr
+    testgen --> testpr
+    validate --> verdict
 ```
 
 **Step by step:**
 
 1. **RHTPA scans** your application and produces a vulnerability report with a policy-gated must-fix CVE list
-2. **Tekton pipeline** (or any HTTP client) calls the lw-agents service with the workspace path
+2. **Eval gates** run EvalHub safety/security benchmarks and 38 agent eval cases -- the pipeline only proceeds if both pass
 3. **CVE Selection agent** loads the `cve-triage` skill, explores each CVE via tools, verifies versions on Maven Central, and selects the best one to fix
-4. **Remediation agent** loads the `maven-remediation` skill, edits `pom.xml` via OpenCode, runs `mvn install` to verify, retries up to 3 times on failure, then opens a PR
-5. **Test Generation agent** writes JUnit tests, iterates until they pass, opens a separate tests-only PR
-6. **Fix Validation agent** runs two adversarial personas (security architect + penetration tester) that independently evaluate the fix against 4 weighted gates, producing a deterministic FIXED / PARTIALLY_FIXED / NOT_FIXED verdict
-7. **Human reviewer** sees the PR with the fix, the tests, and the validation verdict -- and merges
+4. **CVE Analysis agent** iterates all CVEs and creates SCM issues for every fixable vulnerability
+5. **Remediation agent** loads the `maven-remediation` skill, edits `pom.xml` via OpenCode, runs `mvn install` to verify, retries up to 3 times on failure, then opens a PR
+6. **Test Generation agent** writes JUnit tests, iterates until they pass, opens a separate tests-only PR
+7. **Fix Validation agent** runs two adversarial personas (security architect + penetration tester) that independently evaluate the fix against 4 weighted gates, producing a deterministic FIXED / PARTIALLY_FIXED / NOT_FIXED verdict
+8. **Human reviewer** sees the PR with the fix, the tests, and the validation verdict -- and merges
 
 ---
 
