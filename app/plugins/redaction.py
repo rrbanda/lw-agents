@@ -107,7 +107,15 @@ class RedactionPlugin(BasePlugin):
         super().__init__(name="redaction_plugin")
 
     async def after_tool_callback(
-        self, *, invocation_context, tool, args, tool_context, tool_response, **kwargs
+        self,
+        *,
+        callback_context=None,
+        invocation_context=None,
+        tool=None,
+        args=None,
+        tool_context=None,
+        tool_response=None,
+        **kwargs,
     ):
         if tool_response is None:
             return None
