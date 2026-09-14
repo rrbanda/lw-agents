@@ -84,5 +84,6 @@ ENV PORT=8080 \
     JAVA_HOME=/usr/lib/jvm/jre-17-openjdk \
     PATH="/opt/apache-maven-3.9.9/bin:/opt/app-root/bin:/usr/local/bin:${PATH}"
 
-# ADK agent server — OpenShell supervisor overrides CMD at runtime
-CMD ["python", "-m", "google.adk.cli", "api_server", "--port", "8080", "app"]
+# ADK web serves both the playground UI + API — single entry point for everything
+# OpenShell supervisor overrides CMD at runtime
+CMD ["python", "-m", "google.adk.cli", "web", "--host", "0.0.0.0", "--port", "8080", "/sandbox"]
