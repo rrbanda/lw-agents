@@ -36,7 +36,6 @@ RUN dnf install -y --nodocs \
 RUN curl -fsSL "https://repo1.maven.org/maven2/org/apache/maven/apache-maven/${MAVEN_VERSION}/apache-maven-${MAVEN_VERSION}-bin.tar.gz" \
     -o /tmp/maven.tar.gz \
     && tar -xzf /tmp/maven.tar.gz -C /opt \
-    && ln -s "/opt/apache-maven-${MAVEN_VERSION}/bin/mvn" /usr/local/bin/mvn \
     && rm /tmp/maven.tar.gz
 
 # OpenCode — coding agent called via ExecuteBashTool as a subprocess
@@ -83,7 +82,7 @@ EXPOSE 8080
 ENV PORT=8080 \
     PYTHONPATH=/sandbox \
     JAVA_HOME=/usr/lib/jvm/jre-17-openjdk \
-    PATH="/opt/app-root/bin:/usr/local/bin:${PATH}"
+    PATH="/opt/apache-maven-3.9.9/bin:/opt/app-root/bin:/usr/local/bin:${PATH}"
 
 # ADK agent server — OpenShell supervisor overrides CMD at runtime
 CMD ["python", "-m", "google.adk.cli", "api_server", "--port", "8080", "app"]
