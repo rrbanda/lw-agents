@@ -15,6 +15,25 @@ CI/CD pipelines call via HTTP API:
 | **Remediation** | `Workflow` graph | Reads pom.xml, applies fix via OpenCode, verifies Maven build, opens PR (with retry loop) |
 | **Test Generation** | `SequentialAgent` + `LoopAgent` | Generates JUnit tests via OpenCode, iterates until they pass, opens PR |
 
+## Why a Service, Not a Pipeline Step?
+
+AI agents in CI/CD can run two ways:
+
+| | Agent-in-the-Pod | Agent-as-a-Service |
+|---|---|---|
+| **How it works** | Agent runs inside the CI runner (like GitHub Copilot Coding Agent) | Agent runs as a long-lived service; CI tasks call it via HTTP |
+| **Used by** | GitHub Copilot, SWE-agent, OpenHands | This project |
+| **Infra complexity** | Lower — no extra service | Higher — deploy + manage the service |
+| **Testing** | Must run inside pipeline | `make dev` + `make eval` locally |
+
+We chose the **service pattern** because:
+- **Eval-driven development** — `agents-cli eval` runs against the live service; no pipeline needed to test agent behavior
+- **Skill hot-reload** — update a SKILL.md, agent picks it up without rebuilding a container image
+- **Multi-pipeline reuse** — one service handles all four Tekton pipelines (selection, analysis, remediation, test-gen)
+- **Observability** — continuous traces from a long-lived service vs scattered logs from ephemeral pods
+
+See [ADR-004](docs/adr/004-tekton-calls-agent-via-api.md) for the full decision record including trade-offs.
+
 ## Quick Start
 
 ```bash
