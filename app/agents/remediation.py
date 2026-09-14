@@ -1,23 +1,25 @@
 """Remediation Agent — ADK 2.0 Workflow graph that reads the pom.xml,
 plans the edit, applies it via OpenCode (ExecuteBashTool), verifies via
-Maven build, and opens a PR.
+Maven build, and opens a PR with HITL approval.
 
 Uses the Workflow API (graph with conditional routing) from the
-ambient-expense-agent pattern, not SequentialAgent.
+ambient-expense-agent pattern. PR creation pauses for human approval
+via RequestInput (same HITL pattern as ambient-expense).
 """
 
 from __future__ import annotations
 
+import json
 import os
 import pathlib
+import time
 
 from google.adk import Context, Event, Workflow
 from google.adk.agents import LlmAgent
+from google.adk.events import RequestInput
 from google.adk.skills import load_skill_from_dir
 from google.adk.tools.bash_tool import BashToolPolicy, ExecuteBashTool
 from google.adk.tools.skill_toolset import SkillToolset
-
-from app.tools.scm_tools import create_pull_request
 
 MODEL = os.environ.get("MODEL_NAME", "gemini-2.5-flash")
 SKILLS_DIR = pathlib.Path(__file__).resolve().parent.parent.parent / "skills"
@@ -36,11 +38,24 @@ def _build_bash_tool(workspace: str) -> ExecuteBashTool:
     )
 
 
-def read_project(node_input: str, ctx: Context) -> Event:
-    """Parse the remediation request and stash params in state."""
-    import json
+def read_project(node_input, ctx: Context) -> Event:
+    """Parse the remediation request and stash params in state.
+
+    Note: START node sends types.Content when no input_schema is set.
+    We extract the text and try to parse JSON from it.
+    """
+    text = ""
+    if hasattr(node_input, "parts"):
+        for part in node_input.parts or []:
+            if hasattr(part, "text") and part.text:
+                text += part.text
+    elif isinstance(node_input, str):
+        text = node_input
+    else:
+        text = str(node_input)
+
     try:
-        params = json.loads(node_input) if isinstance(node_input, str) else {}
+        params = json.loads(text) if text.strip().startswith("{") else {}
     except (json.JSONDecodeError, TypeError):
         params = {}
 
@@ -82,12 +97,13 @@ def _create_plan_agent() -> LlmAgent:
             "Current: {current_version}, Fixed: {fixed_version}\n"
             "Justification: {justification}"
         ),
+        description="Plans and applies a Maven dependency version bump using OpenCode.",
         tools=[skill_toolset, bash_tool],
         output_key="remediation_output",
     )
 
 
-def check_build_result(ctx: Context, node_input: str) -> Event:
+def check_build_result(ctx: Context, node_input) -> Event:
     """Route based on whether the remediation agent reported success or failure."""
     output = str(node_input).lower() if node_input else ""
     if "error" in output or "fail" in output or "exception" in output:
@@ -98,9 +114,35 @@ def check_build_result(ctx: Context, node_input: str) -> Event:
     return Event(route="SUCCESS", output=output)
 
 
-def open_remediation_pr(ctx: Context, node_input: str) -> Event:
-    """Open a PR with the remediation changes."""
-    import time
+def request_pr_approval(ctx: Context, node_input) -> None:
+    """Pause for human approval before opening the PR (HITL pattern from ambient-expense).
+
+    Yields RequestInput to pause the workflow. The human reviews the
+    proposed changes and approves/rejects. The workflow resumes via the
+    frontend or API with the decision.
+    """
+    cve_id = ctx.state.get("cve_id", "unknown")
+    package = ctx.state.get("package", "unknown")
+    fixed = ctx.state.get("fixed_version", "unknown")
+
+    yield RequestInput(
+        interrupt_id=f"pr_approval_{cve_id}",
+        message=(
+            f"Remediation complete. Ready to open PR:\n"
+            f"- CVE: {cve_id}\n"
+            f"- Change: {package} -> {fixed}\n\n"
+            f"Approve or reject this pull request."
+        ),
+    )
+
+
+def process_pr_decision(ctx: Context, node_input) -> Event:
+    """Process the human's approval/rejection and open the PR if approved."""
+    decision = str(node_input).lower() if node_input else ""
+
+    if "reject" in decision or "no" in decision:
+        return Event(output={"success": False, "reason": "PR rejected by reviewer"})
+
     cve_id = ctx.state.get("cve_id", "unknown")
     package = ctx.state.get("package", "unknown")
     fixed = ctx.state.get("fixed_version", "unknown")
@@ -108,6 +150,7 @@ def open_remediation_pr(ctx: Context, node_input: str) -> Event:
     repo_url = ctx.state.get("repo_url", "")
     workspace = ctx.state.get("workspace", "")
 
+    from app.tools.scm_tools import create_pull_request
     result = create_pull_request(
         repo_url=repo_url,
         local_repo_path=workspace,
@@ -122,7 +165,7 @@ def open_remediation_pr(ctx: Context, node_input: str) -> Event:
     return Event(output=result)
 
 
-def report_failure(node_input: str) -> Event:
+def report_failure(node_input) -> Event:
     """Report that remediation failed after max retries."""
     return Event(output={"success": False, "reason": str(node_input)})
 
@@ -135,16 +178,18 @@ def create_remediation_agent() -> Workflow:
         name="remediation",
         description=(
             "Remediates a Maven dependency vulnerability: reads pom.xml, "
-            "applies the fix via OpenCode, verifies with Maven, opens a PR."
+            "applies the fix via OpenCode, verifies with Maven, pauses for "
+            "human approval, then opens a PR."
         ),
         edges=[
             ("START", read_project),
             (read_project, plan_agent),
             (plan_agent, check_build_result),
             (check_build_result, {
-                "SUCCESS": open_remediation_pr,
+                "SUCCESS": request_pr_approval,
                 "RETRY": plan_agent,
                 "MAX_RETRIES": report_failure,
             }),
+            (request_pr_approval, process_pr_decision),
         ],
     )

@@ -43,10 +43,14 @@ spec:
       description: URL of the created PR/MR (for remediate/generate-tests).
   steps:
     - name: call-agent
-      image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+      # ubi9 (not ubi-minimal) includes curl, jq-like tools, and python3
+      image: registry.access.redhat.com/ubi9/ubi:latest
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
+
+        # Install curl if not present (ubi9 ships it, but be defensive)
+        command -v curl >/dev/null 2>&1 || dnf install -y -q curl
 
         ENDPOINT="$(params.AGENT_ENDPOINT)"
         TASK_TYPE="$(params.TASK_TYPE)"
@@ -73,21 +77,27 @@ spec:
             ;;
         esac
 
-        # Call the ADK agent API (standard ADK /run endpoint)
-        RESPONSE=$(curl -sf -X POST "${ENDPOINT}/apps/app/users/tekton/sessions/run" \
+        # Call the ADK agent API
+        # ADK api_server exposes /run on /apps/{app_name}/users/{user_id}/sessions/{session_id}/run
+        # For stateless calls, create a session first or use the /run shorthand
+        RESPONSE=$(curl -sf -X POST "${ENDPOINT}/run" \
           -H "Content-Type: application/json" \
           -d "{\"app_name\": \"app\", \"user_id\": \"tekton\", \"new_message\": {\"role\": \"user\", \"parts\": [{\"text\": \"${PROMPT}\"}]}}" \
-          --max-time 600)
+          --max-time 600) || {
+            echo "ERROR: Agent call failed" >&2
+            # Write empty defaults on failure
+            for r in AGENT_RESPONSE SELECTED CVE_ID PACKAGE CURRENT_VERSION FIXED_VERSION JUSTIFICATION PR_URL; do
+              printf '' > "$(results.${r}.path)"
+            done
+            exit 1
+          }
 
-        echo "${RESPONSE}" > "$(results.AGENT_RESPONSE.path)"
+        printf '%s' "${RESPONSE}" > "$(results.AGENT_RESPONSE.path)"
 
-        # Extract standard fields (best-effort — agent response is natural language)
-        echo "${RESPONSE}" | python3 -c "
-        import sys, json, re
-        resp = sys.stdin.read()
-        # Write empty defaults
-        for r in ['SELECTED','CVE_ID','PACKAGE','CURRENT_VERSION','FIXED_VERSION','JUSTIFICATION','PR_URL']:
-            open(f'$(results.{r}.path)', 'w').write('')
-        " 2>/dev/null || true
+        # Write empty defaults for structured fields
+        # (agent responses are natural language — downstream parsing is task-specific)
+        for r in SELECTED CVE_ID PACKAGE CURRENT_VERSION FIXED_VERSION JUSTIFICATION PR_URL; do
+          printf '' > "$(results.${r}.path)"
+        done
 
         echo "Agent call complete."

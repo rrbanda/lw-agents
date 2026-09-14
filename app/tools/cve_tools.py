@@ -9,10 +9,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from google.adk.tools import ToolContext
-
-
-def list_must_fix_cves(workspace_path: str, tool_context: ToolContext) -> list[dict[str, Any]]:
+def list_must_fix_cves(workspace_path: str) -> list[dict[str, Any]]:
     """List all CVEs in the Conforma policy-gated must-fix set.
 
     Returns a compact list with cve_id, severity, affected_purls, and
