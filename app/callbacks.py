@@ -15,9 +15,13 @@ from typing import Any
 def _extract_json_object(text: str) -> dict[str, Any] | None:
     """Extract the first valid JSON object from text, supporting nested braces.
 
-    Finds the first '{' and tries json.loads on progressively longer slices
-    up to each matching '}'. Returns the parsed dict, or None.
+    Handles markdown code fences (```json ... ```), nested objects, and
+    text before/after the JSON. Returns the parsed dict, or None.
     """
+    # Strip markdown code fences if present
+    text = re.sub(r"```(?:json)?\s*", "", text)
+    text = re.sub(r"```\s*$", "", text, flags=re.MULTILINE)
+
     start = text.find("{")
     if start == -1:
         return None
@@ -34,8 +38,13 @@ def _extract_json_object(text: str) -> dict[str, Any] | None:
                     if isinstance(parsed, dict):
                         return parsed
                 except json.JSONDecodeError:
-                    pass
-                break
+                    # Try next { after this failed block
+                    next_start = text.find("{", i + 1)
+                    if next_start == -1:
+                        return None
+                    start = next_start
+                    depth = 0
+                    continue
     return None
 
 
