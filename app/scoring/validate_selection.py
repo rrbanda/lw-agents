@@ -100,23 +100,43 @@ def validate_selection(result: dict[str, Any]) -> dict[str, Any]:
 async def fail_closed_selection_callback(callback_context) -> None:
     """ADK after_agent_callback for the CVE selection agent.
 
-    Replaces the regex-based extraction with fail-closed validation.
-    Every error path sets SELECTED=0.
+    Parses the agent's output (JSON, YAML-like key:value, or NL) into
+    a structured result. Every error path sets SELECTED=0.
     """
     state = callback_context.state
     raw = state.get("selection_result", "")
 
-    # Try to parse structured result from the agent output
     parsed: dict[str, Any] = {}
     if isinstance(raw, str):
         from app.callbacks import _extract_json_object
 
-        parsed = _extract_json_object(raw) or parsed
+        # Try 1: JSON object
+        parsed = _extract_json_object(raw) or {}
 
-        # Fallback: regex extraction
+        # Try 2: YAML-like "key: value" lines (common agent output format)
         if not parsed:
+            for line in raw.splitlines():
+                line = line.strip()
+                if ":" in line:
+                    key, _, value = line.partition(":")
+                    key = key.strip().lower().replace(" ", "_")
+                    value = value.strip()
+                    if key in (
+                        "selected",
+                        "cve_id",
+                        "package",
+                        "current_version",
+                        "fixed_version",
+                        "justification",
+                    ):
+                        parsed[key] = value
+
+        # Try 3: regex fallback for CVE ID and selected flag
+        if not parsed.get("cve_id"):
             cve_match = re.search(r"CVE-\d{4}-\d+", raw, re.I)
-            parsed["cve_id"] = cve_match.group(0) if cve_match else ""
+            if cve_match:
+                parsed["cve_id"] = cve_match.group(0)
+        if "selected" not in parsed:
             parsed["selected"] = "1" if "selected: true" in raw.lower() else "0"
 
     validated = validate_selection(parsed)
