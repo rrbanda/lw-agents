@@ -33,7 +33,9 @@ class EvalHubClient:
         self.token = token or os.environ.get("EVALHUB_TOKEN", "")
         if verify_ssl is None:
             verify_ssl = os.environ.get("EVALHUB_SSL_VERIFY", "true").lower() not in (
-                "false", "0", "no",
+                "false",
+                "0",
+                "no",
             )
         self._client = httpx.Client(
             base_url=self.base_url,

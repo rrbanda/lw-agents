@@ -95,8 +95,6 @@ async def pre_gate_callback(callback_context):
         state["pre_gate_reason"] = reason
         return genai_types.Content(
             role="model",
-            parts=[genai_types.Part.from_text(
-                text=f"Pre-gate validation failed: {reason}"
-            )],
+            parts=[genai_types.Part.from_text(text=f"Pre-gate validation failed: {reason}")],
         )
     return None

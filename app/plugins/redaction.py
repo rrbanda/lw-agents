@@ -84,8 +84,10 @@ def redact_dict(data: dict[str, Any]) -> dict[str, Any]:
             result[key] = redact_dict(value)
         elif isinstance(value, list):
             result[key] = [
-                redact_dict(v) if isinstance(v, dict)
-                else redact_text(v) if isinstance(v, str)
+                redact_dict(v)
+                if isinstance(v, dict)
+                else redact_text(v)
+                if isinstance(v, str)
                 else v
                 for v in value
             ]
