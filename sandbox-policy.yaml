@@ -1,9 +1,14 @@
-# Network policy for the lw-agents OpenCode sandbox.
+# Network policy for the lw-agents ADK service sandbox.
 #
-# Default-deny: only the endpoints listed below are reachable.
-# Apply with: openshell policy set <sandbox-name> --policy sandbox-policy.yaml --wait
+# Controls what the ADK agent service can reach:
+# - LLM endpoint (MaaS or Gemini API) for inference
+# - SCM (GitLab/GitHub) for issue/PR creation
+# - Maven Central for version verification
+# - MLflow for tracing
 #
-# Follows the same pattern as agent-ops/demos/opencode-vertex-tracing.
+# Apply with: openshell policy set lw-agents --policy sandbox-policy.yaml --wait
+#
+# The OpenCode sandbox has its own policy: sandbox-policy-opencode.yaml
 
 version: 1
 
@@ -16,31 +21,17 @@ filesystem_policy:
     - /var/log
     - /dev/urandom
     - /opt/openshell
-    - /opt/apache-maven-3.9.9
+    - /opt/app-root
   read_write:
-    - /sandbox
     - /tmp
     - /dev/null
-    - /root
-    - /run
-    - /home
+    - /workspace
 
 landlock:
   compatibility: best_effort
 
 network_policies:
-  # Maven Central — dependency downloads and version verification
-  maven_central:
-    name: Maven Central
-    endpoints:
-      - host: repo1.maven.org
-        port: 443
-        tls: skip
-        access: full
-    binaries:
-      - path: /**
-
-  # Red Hat MaaS — model serving (OpenCode LLM inference)
+  # Red Hat MaaS — model serving for LLM inference
   # Update host to match your cluster's MaaS route
   maas_inference:
     name: Red Hat MaaS
@@ -52,8 +43,29 @@ network_policies:
     binaries:
       - path: /**
 
+  # Google Gemini API — alternative LLM inference
+  gemini_api:
+    name: Google Gemini API
+    endpoints:
+      - host: generativelanguage.googleapis.com
+        port: 443
+        tls: skip
+        access: full
+    binaries:
+      - path: /**
+
+  # Maven Central — version verification (check_version_exists)
+  maven_central:
+    name: Maven Central
+    endpoints:
+      - host: repo1.maven.org
+        port: 443
+        tls: skip
+        access: full
+    binaries:
+      - path: /**
+
   # MLflow tracking server — trace export
-  # Update host to match your cluster's MLflow route
   mlflow_tracking:
     name: MLflow tracking server
     endpoints:
@@ -64,8 +76,7 @@ network_policies:
     binaries:
       - path: /**
 
-  # GitLab — issue creation and PR/MR opening
-  # Update host to match your GitLab instance
+  # GitLab — issue creation and MR opening
   gitlab:
     name: GitLab SCM
     endpoints:
@@ -76,7 +87,7 @@ network_policies:
     binaries:
       - path: /**
 
-  # GitHub — issue creation and PR opening (if using GitHub)
+  # GitHub — issue creation and PR opening
   github:
     name: GitHub SCM
     endpoints:
@@ -91,22 +102,7 @@ network_policies:
     binaries:
       - path: /**
 
-  # PyPI — for future Python ecosystem support
-  pypi_registry:
-    name: PyPI packages
-    endpoints:
-      - host: pypi.org
-        port: 443
-        tls: skip
-        access: full
-      - host: files.pythonhosted.org
-        port: 443
-        tls: skip
-        access: full
-    binaries:
-      - path: /**
-
-  # OpenShell gateway — internal sandbox management
+  # OpenShell gateway
   openshell_gateway:
     name: OpenShell gateway
     endpoints:

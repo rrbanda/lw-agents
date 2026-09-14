@@ -1,0 +1,92 @@
+# Network policy for the OpenCode coding sandbox.
+#
+# Controls what OpenCode can reach when executing code changes:
+# - Maven Central for dependency downloads and builds
+# - MaaS/Gemini for OpenCode's own LLM inference
+# - PyPI for future Python ecosystem support
+#
+# This sandbox does NOT have SCM access (the service sandbox handles PRs/issues).
+#
+# Apply with: openshell policy set lw-opencode --policy sandbox-policy-opencode.yaml --wait
+
+version: 1
+
+filesystem_policy:
+  include_workdir: true
+  read_only:
+    - /usr
+    - /lib
+    - /etc
+    - /var/log
+    - /dev/urandom
+    - /opt/openshell
+    - /opt/apache-maven-3.9.9
+  read_write:
+    - /sandbox
+    - /tmp
+    - /dev/null
+    - /workspace
+
+landlock:
+  compatibility: best_effort
+
+network_policies:
+  # Maven Central — dependency downloads and build verification
+  maven_central:
+    name: Maven Central
+    endpoints:
+      - host: repo1.maven.org
+        port: 443
+        tls: skip
+        access: full
+    binaries:
+      - path: /**
+
+  # Red Hat MaaS — model serving for OpenCode LLM inference
+  maas_inference:
+    name: Red Hat MaaS
+    endpoints:
+      - host: maas.apps.ocp.example.com
+        port: 443
+        tls: skip
+        access: full
+    binaries:
+      - path: /**
+
+  # PyPI — for future Python ecosystem support
+  pypi_registry:
+    name: PyPI packages
+    endpoints:
+      - host: pypi.org
+        port: 443
+        tls: skip
+        access: full
+      - host: files.pythonhosted.org
+        port: 443
+        tls: skip
+        access: full
+    binaries:
+      - path: /**
+
+  # OpenShell gateway
+  openshell_gateway:
+    name: OpenShell gateway
+    endpoints:
+      - host: openshell.openshell.svc.cluster.local
+        port: 8080
+        protocol: rest
+        enforcement: enforce
+        access: full
+    binaries:
+      - path: /opt/openshell/bin/openshell-sandbox
+
+  # Cluster DNS
+  cluster_dns:
+    name: Cluster DNS
+    endpoints:
+      - host: "172.30.0.10"
+        port: 53
+      - host: "172.30.0.10"
+        port: 5353
+    binaries:
+      - path: /**
