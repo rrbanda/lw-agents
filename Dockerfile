@@ -29,7 +29,7 @@ RUN dnf install -y --nodocs iproute nftables && dnf clean all && rm -rf /var/cac
 COPY --from=ghcr.io/astral-sh/uv@sha256:fc93e9ecd7218e9ec8fba117af89348eef8fd2463c50c13347478769aaedd0ce /uv /usr/local/bin/uv
 
 # Install dependencies from lockfile (reproducible builds)
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml uv.lock README.md ./
 COPY app/ ./app/
 ENV UV_PROJECT_ENVIRONMENT=/opt/app-root
 RUN uv sync --frozen --no-dev
