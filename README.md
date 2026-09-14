@@ -60,6 +60,54 @@ speed. This repository is the agent application that powers that engine.
 
 ---
 
+## Who Is This For?
+
+| Persona | How they use lw-agents |
+|---|---|
+| **Lightwell remediation engineer** | Develops and improves the agent skills, tools, and evaluation datasets that power automated CVE remediation |
+| **Security / AppSec engineer** | Integrates lw-agents into CI/CD pipelines so vulnerability fixes are applied automatically when RHTPA scans surface must-fix CVEs |
+| **Platform engineer** | Deploys the agent service on OpenShift AI alongside EvalHub, MLflow, and Tekton for production-grade remediation at scale |
+| **Contributor / researcher** | Extends the agent with new ecosystem support, skills, or validation personas |
+
+---
+
+## User Journey
+
+How a CVE goes from discovery to a validated pull request:
+
+```
+                                    lw-agents
+                        ┌──────────────────────────────┐
+RHTPA / Trustify        │                              │        GitLab / GitHub
+scans your app    ───►  │  1. SELECT  best CVE         │
+                        │  2. ANALYZE all CVEs → issues │  ───►  Issues created
+must-fix-cves.json ───► │  3. REMEDIATE → edit pom.xml │  ───►  PR opened
+                        │  4. TEST → generate JUnit    │  ───►  Tests PR opened
+                        │  5. VALIDATE → adversarial   │
+                        │     review (architect +       │
+                        │     pentester + scoring)      │
+                        └──────────────────────────────┘
+                                     │
+                              ┌──────┴──────┐
+                              │ Eval gates  │
+                              │ must pass   │
+                              │ before any  │
+                              │ agent runs  │
+                              └─────────────┘
+```
+
+**Step by step:**
+
+1. **RHTPA scans** your application and produces a vulnerability report with a policy-gated must-fix CVE list
+2. **Tekton pipeline** (or any HTTP client) calls the lw-agents service with the workspace path
+3. **CVE Selection agent** loads the `cve-triage` skill, explores each CVE via tools, verifies versions on Maven Central, and selects the best one to fix
+4. **Remediation agent** loads the `maven-remediation` skill, edits `pom.xml` via OpenCode, runs `mvn install` to verify, retries up to 3 times on failure, then opens a PR
+5. **Test Generation agent** writes JUnit tests, iterates until they pass, opens a separate tests-only PR
+6. **Fix Validation agent** runs two adversarial personas (security architect + penetration tester) that independently evaluate the fix against 4 weighted gates, producing a deterministic FIXED / PARTIALLY_FIXED / NOT_FIXED verdict
+7. **Human reviewer** sees the PR with the fix, the tests, and the validation verdict -- and merges
+
+---
+
 ## Key Features
 
 - **Skills-first architecture** -- agent behavior lives in SKILL.md files loaded on demand via ADK's `SkillToolset`, not hardcoded in Python
