@@ -1,0 +1,20 @@
+[
+  {
+    "cve_id": "CVE-2024-29025",
+    "severity": "critical",
+    "affected_purls": ["pkg:maven/io.netty/netty-codec-http@4.1.100.Final"],
+    "fixed_version_hints": ["4.1.108.Final"]
+  },
+  {
+    "cve_id": "CVE-2024-22201",
+    "severity": "high",
+    "affected_purls": ["pkg:maven/org.eclipse.jetty/jetty-server@11.0.18"],
+    "fixed_version_hints": []
+  },
+  {
+    "cve_id": "CVE-2024-1597",
+    "severity": "medium",
+    "affected_purls": ["pkg:maven/org.postgresql/postgresql@42.6.0"],
+    "fixed_version_hints": ["42.6.1", "42.7.2"]
+  }
+]

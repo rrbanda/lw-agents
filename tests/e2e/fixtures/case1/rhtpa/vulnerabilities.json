@@ -1,0 +1,19 @@
+{
+  "findings": [
+    {
+      "cve_id": "CVE-2024-29025",
+      "severity": "critical",
+      "affected_purls": [
+        "pkg:maven/io.netty/netty-codec-http@4.1.100.Final"
+      ],
+      "fixed_version_hints": ["4.1.108.Final", "4.1.109.Final"]
+    }
+  ],
+  "details": [
+    {
+      "identifier": "CVE-2024-29025",
+      "title": "Netty HttpPostRequestDecoder can OOM",
+      "description": "Netty before 4.1.108.Final allows an out-of-memory condition via HttpPostRequestDecoder. The fix is available in versions 4.1.108.Final and later. Users should upgrade to at least 4.1.108.Final to resolve this vulnerability."
+    }
+  ]
+}

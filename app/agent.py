@@ -21,6 +21,7 @@ from app.agents.cve_analysis import create_cve_analysis_agent
 from app.agents.cve_selection import create_cve_selection_agent
 from app.agents.remediation import create_remediation_agent
 from app.agents.test_generation import create_test_generation_agent
+from app.callbacks import extract_structured_results
 from app.plugins.safety import SafetyPlugin
 
 MODEL = os.environ.get("MODEL_NAME", "gemini-2.5-flash")
@@ -41,6 +42,7 @@ def _build_app() -> App:
             "request context (workspace path, CVE details, etc.) to the specialist."
         ),
         description="Routes software supply chain security tasks to specialist agents.",
+        after_agent_callback=extract_structured_results,
         sub_agents=[
             create_cve_selection_agent(),
             create_cve_analysis_agent(),

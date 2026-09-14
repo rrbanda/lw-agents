@@ -1,0 +1,10 @@
+[
+  {
+    "cve_id": "CVE-2024-29025",
+    "severity": "critical",
+    "affected_purls": [
+      "pkg:maven/io.netty/netty-codec-http@4.1.100.Final"
+    ],
+    "fixed_version_hints": ["4.1.108.Final", "4.1.109.Final"]
+  }
+]
