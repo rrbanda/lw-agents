@@ -7,6 +7,11 @@ before it reaches the model or is persisted to session state.
 Simplified from the full recipe: only checks user messages and model output
 (no tool-call/tool-output hooks). Extend by adding before_tool_callback and
 after_tool_callback as in the original recipe.
+
+Bug fixes applied based on ADK 2.8.0 API verification:
+- InMemoryRunner does not accept session_service kwarg; use runner.session_service
+- BasePlugin callbacks use invocation_context/user_message, not callback_context/new_message
+- before_run_callback returns Content (not LlmResponse) to halt
 """
 
 from __future__ import annotations
@@ -17,7 +22,6 @@ from google.adk.agents import LlmAgent
 from google.adk.models.llm_response import LlmResponse
 from google.adk.plugins.base_plugin import BasePlugin
 from google.adk.runners import InMemoryRunner
-from google.adk.sessions import InMemorySessionService
 from google.genai import types as genai_types
 
 JUDGE_MODEL = os.environ.get("SAFETY_JUDGE_MODEL", "gemini-2.5-flash")
@@ -47,11 +51,11 @@ _judge_agent = LlmAgent(
     model=JUDGE_MODEL,
     instruction=JUDGE_INSTRUCTION,
 )
-_judge_session_service = InMemorySessionService()
+
+# InMemoryRunner creates its own session service; do NOT pass session_service=
 _judge_runner = InMemoryRunner(
     agent=_judge_agent,
     app_name="safety_judge_app",
-    session_service=_judge_session_service,
 )
 
 
@@ -60,7 +64,8 @@ async def _classify(text: str) -> bool:
     if not text or not text.strip():
         return False
 
-    session = await _judge_session_service.create_session(
+    # Use the runner's built-in session service
+    session = await _judge_runner.session_service.create_session(
         app_name="safety_judge_app", user_id="judge"
     )
     response_text = ""
@@ -81,19 +86,26 @@ async def _classify(text: str) -> bool:
 
 
 class SafetyPlugin(BasePlugin):
-    """Runner-level safety guardrail using an LLM judge."""
+    """Runner-level safety guardrail using an LLM judge.
+
+    Callback parameter names match BasePlugin's contract (ADK 2.8.0):
+    - on_user_message_callback: invocation_context, user_message
+    - before_run_callback: invocation_context (returns Content to halt)
+    - after_model_callback: invocation_context, llm_response (returns LlmResponse)
+    """
 
     async def on_user_message_callback(
-        self, *, callback_context, new_message, **kwargs
+        self, *, invocation_context, user_message, **kwargs
     ):
         text = ""
-        if new_message and new_message.parts:
+        if user_message and user_message.parts:
             text = " ".join(
-                p.text for p in new_message.parts if hasattr(p, "text") and p.text
+                p.text for p in user_message.parts
+                if hasattr(p, "text") and p.text
             )
 
         if await _classify(text):
-            callback_context.state["is_user_prompt_safe"] = False
+            invocation_context.session.state["is_user_prompt_safe"] = False
             return genai_types.Content(
                 role="user",
                 parts=[genai_types.Part.from_text(
@@ -102,22 +114,21 @@ class SafetyPlugin(BasePlugin):
             )
         return None
 
-    async def before_run_callback(self, *, callback_context, **kwargs):
-        if not callback_context.state.get("is_user_prompt_safe", True):
-            callback_context.state["is_user_prompt_safe"] = True
-            return LlmResponse(
-                content=genai_types.Content(
-                    role="model",
-                    parts=[genai_types.Part.from_text(
-                        text="I cannot process this request as it was flagged "
-                             "by the safety filter."
-                    )],
-                ),
+    async def before_run_callback(self, *, invocation_context, **kwargs):
+        if not invocation_context.session.state.get("is_user_prompt_safe", True):
+            invocation_context.session.state["is_user_prompt_safe"] = True
+            # Return Content (not LlmResponse) to halt the run
+            return genai_types.Content(
+                role="model",
+                parts=[genai_types.Part.from_text(
+                    text="I cannot process this request as it was flagged "
+                         "by the safety filter."
+                )],
             )
         return None
 
     async def after_model_callback(
-        self, *, callback_context, llm_response, **kwargs
+        self, *, invocation_context, llm_response, **kwargs
     ):
         if llm_response and llm_response.content and llm_response.content.parts:
             text = " ".join(

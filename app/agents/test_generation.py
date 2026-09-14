@@ -18,7 +18,7 @@ from google.adk.skills import load_skill_from_dir
 from google.adk.tools.bash_tool import BashToolPolicy, ExecuteBashTool
 from google.adk.tools.skill_toolset import SkillToolset
 
-from app.tools.scm_tools import create_pull_request
+from app.tools.scm_tools import create_pull_request_tool
 
 MODEL = os.environ.get("MODEL_NAME", "gemini-2.5-flash")
 SKILLS_DIR = pathlib.Path(__file__).resolve().parent.parent.parent / "skills"
@@ -107,7 +107,7 @@ def _create_pr_opener() -> LlmAgent:
             "title 'Add AI-generated unit tests', and stage only src/test files. "
             "Use the repo_url and workspace from session state."
         ),
-        tools=[create_pull_request],
+        tools=[create_pull_request_tool],
         output_key="pr_result",
     )
 

@@ -15,14 +15,6 @@ CI/CD pipelines call via HTTP API:
 | **Remediation** | `Workflow` graph | Reads pom.xml, applies fix via OpenCode, verifies Maven build, opens PR (with retry loop) |
 | **Test Generation** | `SequentialAgent` + `LoopAgent` | Generates JUnit tests via OpenCode, iterates until they pass, opens PR |
 
-Key ADK patterns used (from [adk-samples](https://github.com/google/adk-samples)):
-- `SkillToolset` + `load_skill_from_dir` — skills loaded on demand during reasoning
-- `ExecuteBashTool` with `BashToolPolicy` — runs OpenCode and Maven with restricted commands
-- `Workflow` with `Event(route=...)` — conditional routing (build pass/fail)
-- `LoopAgent` + `BaseAgent` escalation — generate-test-fix loop
-- `BasePlugin` safety at Runner — LLM-as-judge guards all agents
-- `App` with `ResumabilityConfig` — HITL pause/resume on PR creation
-
 ## Quick Start
 
 ```bash
