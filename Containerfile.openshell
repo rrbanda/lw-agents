@@ -41,10 +41,9 @@ RUN curl -fsSL "https://repo1.maven.org/maven2/org/apache/maven/apache-maven/${M
     && rm /tmp/maven.tar.gz
 
 # OpenCode — open-source coding agent (headless mode for ExecuteBashTool)
-# The installer places the binary in ~/.local/bin; we move it to /usr/local/bin
+# The installer puts the binary in ~/.local/bin; add to PATH explicitly
+ENV PATH="/root/.local/bin:${PATH}"
 RUN curl -fsSL https://opencode.ai/install | bash \
-    && find /root -name opencode -type f 2>/dev/null | head -1 | xargs -I{} cp {} /usr/local/bin/opencode \
-    && chmod +x /usr/local/bin/opencode \
     && opencode --version
 
 # glab (GitLab CLI) for opening MRs and issues
