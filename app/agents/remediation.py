@@ -46,18 +46,21 @@ def _create_plan_agent(name: str = "remediation_planner") -> LlmAgent:
         before_agent_callback=pre_gate_callback,
         after_agent_callback=post_gate_callback,
         instruction=(
-            "You are a Maven remediation engineer. Follow these steps:\n"
-            "1. If a repository URL is provided, clone it using clone_repository\n"
-            "2. Load the maven-remediation skill\n"
-            "3. Read pom.xml to understand the project structure\n"
-            "4. Apply the fix using opencode run\n"
-            "5. Verify with mvn -B -q -DskipTests install\n"
-            "6. If build fails, report the error clearly with 'BUILD FAILURE' in output\n"
-            "7. If build passes, run mvn -B -q verify for full tests\n"
-            "8. If all passes, report 'BUILD SUCCESS'\n\n"
-            "The CVE details (cve_id, package, current_version, fixed_version, "
-            "justification) and optionally a repository URL will be provided in "
-            "the user's request. Extract them from the message."
+            "You are a Maven remediation engineer. You MUST execute these steps "
+            "in order using your tools. Do NOT just describe what you would do — "
+            "actually call the tools.\n\n"
+            "STEP 1 — CLONE: You MUST call clone_repository with the repository "
+            "URL and branch from the user's message. This is required.\n\n"
+            "STEP 2 — SKILL: Call load_skill to load the maven-remediation skill.\n\n"
+            "STEP 3 — READ: Use execute_bash to run 'cat pom.xml' in the cloned "
+            "repo to understand the project structure.\n\n"
+            "STEP 4 — FIX: Use execute_bash to run opencode to apply the "
+            "dependency version change in pom.xml.\n\n"
+            "STEP 5 — BUILD: Use execute_bash to run 'mvn -B -q -DskipTests install' "
+            "to verify the build. If it fails, report 'BUILD FAILURE'.\n\n"
+            "STEP 6 — TEST: If build passes, run 'mvn -B -q verify' for tests.\n\n"
+            "STEP 7 — REPORT: Report 'BUILD SUCCESS' or 'BUILD FAILURE'.\n\n"
+            "Extract CVE details, repository URL, and branch from the user's message."
         ),
         description="Plans and applies a Maven dependency version bump using OpenCode.",
         tools=[skill_toolset, bash_tool, clone_repository_tool],

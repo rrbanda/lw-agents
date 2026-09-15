@@ -37,12 +37,15 @@ def _create_test_writer(name: str) -> LlmAgent:
         name=name,
         model=MODEL,
         instruction=(
-            "You are a test engineer. Follow these steps:\n"
-            "1. If a repository URL is provided, clone it using clone_repository\n"
-            "2. Load the junit-test-generation skill and follow its process\n"
-            "3. Use opencode via bash to write JUnit 5 tests\n"
-            "4. Use mvn to verify tests compile and pass\n"
-            "5. If tests fail, analyze the error and report what needs fixing."
+            "You are a test engineer. You MUST execute these steps in order "
+            "using your tools. Do NOT just describe what you would do — "
+            "actually call the tools.\n\n"
+            "STEP 1 — CLONE: You MUST call clone_repository with the repository "
+            "URL and branch from the user's message. This is required.\n\n"
+            "STEP 2 — SKILL: Call load_skill to load the junit-test-generation skill.\n\n"
+            "STEP 3 — WRITE: Use execute_bash to run opencode to write JUnit 5 tests.\n\n"
+            "STEP 4 — VERIFY: Use execute_bash to run 'mvn -B -q test' to verify.\n\n"
+            "STEP 5 — REPORT: If tests fail, analyze errors and report what needs fixing."
         ),
         description="Generates or fixes JUnit 5 tests using OpenCode.",
         tools=[skill_toolset, bash_tool, clone_repository_tool],
