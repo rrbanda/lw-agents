@@ -205,13 +205,18 @@ async def extract_structured_results(callback_context) -> None:
         # Check if there's actually a diff (post_gate wasn't skipped)
         has_diff = post_gate and not post_gate.get("skipped", False)
 
-        # Check if PR was created
+        # Check if PR was created or attempted
         pr_text = str(state.get("pr_result", "")).lower()
-        pr_created = "created" in pr_text or "merge_request" in pr_text or "pull" in pr_text
+        pr_created = (
+            "created" in pr_text
+            or "merge_request" in pr_text
+            or "pull" in pr_text
+            or "open a pull request" in pr_text
+        )
 
         if build_succeeded and (has_diff or pr_created):
             structured["CHANGED"] = "1"
-        elif build_succeeded and not has_diff:
+        elif build_succeeded and not has_diff and not pr_created:
             # Build passed but no diff — BOM dependency or no actual change
             structured["CHANGED"] = "0"
             if "no diff" in str(post_gate).lower() or "skipped" in str(post_gate).lower():
