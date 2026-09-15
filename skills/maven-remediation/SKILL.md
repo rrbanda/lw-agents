@@ -25,10 +25,19 @@ Run `bash("cat pom.xml")` or use read tools to understand:
 
 ### Step 2 — Plan the edit
 
+Determine how the version is managed and plan the correct edit:
+
 - If a **property** controls the version (e.g. `<jackson.version>`),
   edit the property value, not the dependency element.
 - If in **dependencyManagement**, edit it there.
 - If a **direct dependency** with inline version, edit that.
+- If the dependency is **BOM-managed** (e.g. Spring Boot parent BOM manages
+  it automatically), you need to ADD a version override property to the
+  `<properties>` section. For example, if `spring-security-web` is managed
+  by the Spring Boot BOM, add `<spring-security.version>5.7.12</spring-security.version>`
+  to `<properties>`. Do NOT add the dependency directly — override via property.
+- If the dependency does NOT appear in pom.xml at all (transitive only),
+  add a `<dependencyManagement>` entry or property override.
 - In multi-module projects, identify which pom.xml(s) to change.
 
 ### Step 3 — Apply the fix

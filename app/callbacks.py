@@ -11,6 +11,34 @@ import json
 import re
 from typing import Any
 
+# Default structured_result fields — set early so even if the pipeline
+# errors partway through, Tekton always gets a valid response.
+_STRUCTURED_RESULT_DEFAULTS = {
+    "SELECTED": "0",
+    "CVE_ID": "",
+    "PACKAGE": "",
+    "CURRENT_VERSION": "",
+    "FIXED_VERSION": "",
+    "JUSTIFICATION": "",
+    "PR_URL": "",
+    "COUNT": "0",
+    "TESTS_ADDED": "0",
+    "ISSUES_CREATED": "0",
+    "CHANGED": "0",
+}
+
+
+async def init_structured_result(callback_context) -> None:
+    """Set structured_result defaults BEFORE the agent runs.
+
+    This is the coordinator's before_agent_callback. It ensures
+    structured_result is always in session state, even if a sub-agent
+    crashes or the pipeline errors partway through.
+    """
+    state = callback_context.state
+    if not state.get("structured_result"):
+        state["structured_result"] = dict(_STRUCTURED_RESULT_DEFAULTS)
+
 
 def _extract_json_object(text: str) -> dict[str, Any] | None:
     """Extract the first valid JSON object from text, supporting nested braces.
