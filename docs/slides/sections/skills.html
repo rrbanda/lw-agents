@@ -1,0 +1,95 @@
+<section id="s8" class="slide" data-accent="var(--d2-tools)">
+  <div class="rh-bar-t"></div>
+  <div class="rh-bar-b"></div>
+  <div class="rh-privacy">Confidential: Red Hat associate and NDA partner use only. No further distribution.</div>
+  <div class="rh-section-footer"><span class="rh-fn">8</span><span class="rh-fl"><img class="rh-logo-img" alt="Red Hat"></span></div>
+
+  <p class="section-label">Skills-First Architecture</p>
+  <h2>Skills as Agent Playbooks</h2>
+
+  <p>ADR-002 established a skills-first architecture. Agent behavior lives in SKILL.md files, not in Python instruction strings. The LLM loads the skill before acting — this ensures consistent methodology regardless of the model.</p>
+
+  <h3>How Skills Work</h3>
+
+  <div class="flow-diagram">
+    <div class="flow-node" style="border-color: var(--d1-isolation)">Agent Starts</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node" style="border-color: var(--d2-tools)">load_skill("cve-triage")</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node" style="border-color: var(--d3-routing)">Full Methodology Loaded</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node" style="border-color: var(--d5-loop)">Agent Follows Playbook</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node" style="border-color: var(--green)">Structured Output</div>
+  </div>
+
+  <h3>Seven Skills</h3>
+
+  <div class="grid-3">
+
+    <div class="card" style="border-top: 3px solid var(--d1-isolation)">
+      <h4>cve-triage</h4>
+      <p>CVE selection methodology. Explores must-fix CVEs one-by-one via tools, verifies fixed versions on Maven Central, and scores candidates by severity, release-line compatibility, and blast radius. Selects the single best CVE to remediate.</p>
+    </div>
+
+    <div class="card" style="border-top: 3px solid var(--d2-tools)">
+      <h4>cve-analysis</h4>
+      <p>Full must-fix set analysis. Iterates every CVE, evaluates fixability by verifying concrete fixed versions exist, classifies each as fixable or not, and outputs a JSON decisions array for the Tekton pipeline.</p>
+    </div>
+
+    <div class="card" style="border-top: 3px solid var(--d3-routing)">
+      <h4>maven-remediation</h4>
+      <p>Maven POM remediation procedure. Guides the agent through reading pom.xml structure, planning the edit (property overrides, BOM management, transitive dependencies), applying via OpenCode, build verification, and PR creation.</p>
+    </div>
+
+    <div class="card" style="border-top: 3px solid var(--d4-identity)">
+      <h4>junit-test-generation</h4>
+      <p>JUnit 5 test scaffolding and refinement. Analyzes project structure, identifies coverage gaps in service and business-logic classes, generates tests with Mockito, and iterates until <code>mvn test</code> passes.</p>
+    </div>
+
+    <div class="card" style="border-top: 3px solid var(--d5-loop)">
+      <h4>scm-conventions</h4>
+      <p>Git and SCM conventions shared across all agents. Defines branch naming patterns, commit message formats, selective git staging rules, PR body templates, issue body templates, and label standards.</p>
+    </div>
+
+    <div class="card" style="border-top: 3px solid var(--d3-routing)">
+      <h4>validation-architect</h4>
+      <p>Security architect review gates. Adversarial evaluation of fix design, data flow paths, and security controls against four weighted gates: root cause, instance coverage, no new vulnerabilities, and best practices.</p>
+    </div>
+
+    <div class="card" style="border-top: 3px solid var(--d4-identity)">
+      <h4>validation-pentester</h4>
+      <p>Penetration tester adversarial review. Attempts to bypass fixes using encoding variants, null bytes, type confusion, race conditions, error path bypasses, and default value divergence. Reports per gate from an attacker's perspective.</p>
+    </div>
+
+  </div>
+
+  <h3>Why Skills, Not Instructions?</h3>
+
+  <div class="comparison-grid">
+    <div class="comparison-col">
+      <h4>Instruction Strings</h4>
+      <ul>
+        <li>Embedded in Python code</li>
+        <li>Coupled to agent implementation</li>
+        <li>Hard to update without redeployment</li>
+        <li>Limited context window — all loaded at once</li>
+        <li>Not independently testable</li>
+      </ul>
+    </div>
+    <div class="comparison-col" style="border-color: var(--green)">
+      <h4>SKILL.md Files</h4>
+      <ul>
+        <li>Separate markdown files in <code>skills/</code></li>
+        <li>Version-controlled, independently updatable</li>
+        <li>Loaded on demand via <code>load_skill</code></li>
+        <li>Progressive disclosure — full methodology with examples</li>
+        <li>Testable — evals verify the agent follows skill steps</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="insight-box">
+    <p>Skills are the single most important design decision in this system. They encode expert methodology that the LLM follows step-by-step. When you want to change agent behavior, you edit a markdown file — not Python code.</p>
+  </div>
+</section>

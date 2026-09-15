@@ -1,0 +1,79 @@
+<section id="s5" class="slide" data-accent="var(--rh-red)">
+  <div class="rh-bar-t"></div>
+  <div class="rh-bar-b"></div>
+  <div class="rh-privacy">Confidential: Red Hat associate and NDA partner use only. No further distribution.</div>
+  <div class="rh-section-footer"><span class="rh-fn">5</span><span class="rh-fl"><img class="rh-logo-img" alt="Red Hat"></span></div>
+
+  <p class="section-label">The Technical Challenge</p>
+  <h2>Why CVE Remediation Needs Agents</h2>
+
+  <p>Enterprise Java and Python applications pin dependency versions for stability. When AI-powered scanners surface critical CVEs in these pinned dependencies, teams face a multi-step remediation workflow that doesn't scale manually.</p>
+
+  <h3>The Manual Remediation Workflow</h3>
+
+  <div class="flow-diagram">
+    <div class="flow-node" style="border-color: var(--rh-red)">Triage CVE</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node" style="border-color: var(--d1-isolation)">Parse PURL</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node" style="border-color: var(--d2-tools)">Check Maven Central</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node" style="border-color: var(--d3-routing)">Backport Fix</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node" style="border-color: var(--d4-identity)">Build Verify</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node" style="border-color: var(--d5-loop)">Write Tests</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node" style="border-color: var(--d2-tools)">Security Review</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node" style="border-color: var(--green)">Open PR</div>
+  </div>
+
+  <h3>Why This Breaks at Scale</h3>
+
+  <div class="grid-2">
+    <div class="card" style="border-top: 3px solid var(--rh-red)">
+      <h4>Volume</h4>
+      <p>Hundreds of CVEs across thousands of packages. Each requires individual triage, version verification, and fix validation.</p>
+    </div>
+    <div class="card" style="border-top: 3px solid var(--d1-isolation)">
+      <h4>Complexity</h4>
+      <p>Maven POM edits require understanding transitive dependencies. A single version bump can cascade failures across BOM-managed modules.</p>
+    </div>
+    <div class="card" style="border-top: 3px solid var(--d3-routing)">
+      <h4>Verification</h4>
+      <p>Every fix needs <code>mvn verify</code> to pass. Failed builds need iterative debugging — sometimes 3+ attempts before the dependency graph resolves cleanly.</p>
+    </div>
+    <div class="card" style="border-top: 3px solid var(--d5-loop)">
+      <h4>Trust</h4>
+      <p>How do you know the AI-generated fix is safe? No <code>nosec</code> comments, no <code>verify=False</code>, no suppressed warnings? Every diff needs adversarial review.</p>
+    </div>
+  </div>
+
+  <h3>What an Agent Can Do</h3>
+
+  <div class="comparison-grid">
+    <div class="comparison-col">
+      <h4>Manual</h4>
+      <ul>
+        <li>Weeks per CVE</li>
+        <li>One at a time</li>
+        <li>Inconsistent quality</li>
+        <li>No audit trail</li>
+      </ul>
+    </div>
+    <div class="comparison-col" style="border-color: var(--green)">
+      <h4>Agent-Assisted</h4>
+      <ul>
+        <li>Minutes per CVE</li>
+        <li>Parallel processing</li>
+        <li>Skill-guided methodology</li>
+        <li>Full tracing via MLflow</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="insight-box">
+    <p>The agent doesn't replace the developer — it handles the repetitive, error-prone steps (version lookup, POM editing, build verification, test scaffolding) while humans review the final PR.</p>
+  </div>
+</section>

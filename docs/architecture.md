@@ -51,8 +51,8 @@ flowchart TB
     callAgent -->|"HTTP POST"| coordinator
     coordinator --> specialists
     specialists --> llm
-    specialists -->|"ExecuteBashTool"| opencode
-    specialists -->|"ExecuteBashTool"| maven
+    specialists -->|"execute_bash\n(build_bash_tool)"| opencode
+    specialists -->|"execute_bash\n(build_bash_tool)"| maven
     specialists -->|"FunctionTool"| scm
     specialists -->|"FunctionTool"| rhtpa
     callAgent --> openPR
@@ -69,7 +69,7 @@ flowchart TB
     end
 
     subgraph selectAgent [CVE Selection Agent]
-        sel["cve_selection\n(LlmAgent)"]
+        sel["cve_selection\n(LlmAgent)\nafter: fail_closed_selection_callback"]
         selSkills["SkillToolset\ncve-triage\nscm-conventions"]
         selTools["FunctionTools\nlist_must_fix_cves\nlookup_cve_detail\nparse_maven_purl\ncheck_version_exists"]
     end
@@ -77,14 +77,21 @@ flowchart TB
     subgraph analysisAgent [CVE Analysis Agent]
         ana["cve_analysis\n(LlmAgent)"]
         anaSkills["SkillToolset\ncve-analysis\nscm-conventions"]
-        anaTools["FunctionTools\nlist_must_fix_cves\nlookup_cve_detail\nparse_maven_purl\ncheck_version_exists\ncreate_scm_issue"]
+        anaTools["FunctionTools\nlist_must_fix_cves\nlookup_cve_detail\nparse_maven_purl\ncheck_version_exists"]
     end
 
     subgraph remAgent [Remediation Agent]
-        rem["remediation\n(Workflow graph)"]
-        remPlan["remediation_planner\n(LlmAgent node)"]
+        rem["remediation\n(SequentialAgent)"]
+        remInitPlan["initial_remediation_planner\n(LlmAgent)\npre/post_gate_callback"]
+        subgraph remRetryLoop [LoopAgent: remediation_retry_loop, max=3]
+            remChecker["build_result_checker\n(BaseAgent)"]
+            remRetryPlan["remediation_retry_planner\n(LlmAgent)\npre/post_gate_callback"]
+        end
+        remPR["remediation_pr_opener\n(LlmAgent)"]
         remSkills["SkillToolset\nmaven-remediation\nscm-conventions"]
-        remBash["ExecuteBashTool\nopencode / mvn"]
+        remBash["execute_bash\n(build_bash_tool)"]
+        remClone["clone_repository_tool"]
+        remPRTool["create_pull_request_tool"]
     end
 
     subgraph testAgent [Test Generation Agent]
@@ -92,6 +99,10 @@ flowchart TB
         tstWriter["initial_test_writer\n(LlmAgent)"]
         tstLoop["test_refinement_loop\n(LoopAgent)"]
         tstPR["test_pr_opener\n(LlmAgent)"]
+        tstSkills["SkillToolset\njunit-test-generation\nscm-conventions"]
+        tstBash["execute_bash\n(build_bash_tool)"]
+        tstClone["clone_repository_tool"]
+        tstPRTool["create_pull_request_tool"]
     end
 
     subgraph valAgent [Fix Validation Agent]
@@ -99,6 +110,9 @@ flowchart TB
         valArch["security_architect\n(LlmAgent)"]
         valPen["penetration_tester\n(LlmAgent)"]
         valScore["deterministic_scoring\n(BaseAgent)"]
+        valArchSkill["SkillToolset\nvalidation-architect"]
+        valPenSkill["SkillToolset\nvalidation-pentester"]
+        valTools["FunctionTools\nlookup_cve_detail\nparse_maven_purl"]
     end
 
     subgraph plugins [Runner Plugins]
@@ -109,10 +123,16 @@ flowchart TB
     coord -->|"delegates"| sel & ana & rem & tst & val
     sel --- selSkills & selTools
     ana --- anaSkills & anaTools
-    rem --- remPlan
-    remPlan --- remSkills & remBash
+    rem --- remInitPlan --> remRetryLoop --> remPR
+    remInitPlan --- remSkills & remBash & remClone
+    remChecker --> remRetryPlan
+    remPR --- remPRTool
     tst --- tstWriter --> tstLoop --> tstPR
+    tstWriter --- tstSkills & tstBash & tstClone
+    tstPR --- tstPRTool
     val --- valArch --> valPen --> valScore
+    valArch --- valArchSkill & valTools
+    valPen --- valPenSkill
     plugins -.->|"wraps all"| coord
 ```
 
@@ -157,22 +177,24 @@ sequenceDiagram
     Coord-->>User: Decision summary
 ```
 
-## 4. Remediation Workflow Graph
+## 4. Remediation Pipeline (SequentialAgent + LoopAgent)
 
-The Workflow edges, conditional routing, retry loop, and HITL pause.
+The SequentialAgent pipeline with inner LoopAgent for build-retry logic.
 
 ```mermaid
 flowchart LR
-    START((START)) --> readProject[read_project\nparse request\nstash state]
-    readProject --> planAgent["remediation_planner\n(LlmAgent)\nload skill + bash\nopencode + mvn"]
-    planAgent --> checkBuild{check_build_result}
+    START((START)) --> initPlan["initial_remediation_planner\n(LlmAgent)\nload skill + bash + clone\npre/post_gate_callback"]
 
-    checkBuild -->|"SUCCESS"| requestApproval["request_pr_approval\n(RequestInput HITL)\npause for human"]
-    checkBuild -->|"RETRY"| planAgent
-    checkBuild -->|"MAX_RETRIES"| reportFail[report_failure]
+    initPlan --> retryLoop
 
-    requestApproval -->|"human approves"| processPR["process_pr_decision\ncreate_pull_request"]
-    requestApproval -->|"human rejects"| rejected[PR rejected]
+    subgraph retryLoop [LoopAgent: remediation_retry_loop, max=3]
+        checker["build_result_checker\n(BaseAgent)\nescalate on success"]
+        retryPlan["remediation_retry_planner\n(LlmAgent)\npre/post_gate_callback"]
+        checker --> retryPlan
+        retryPlan -.->|"next iteration"| checker
+    end
+
+    retryLoop --> prOpener["remediation_pr_opener\n(LlmAgent)\ncreate_pull_request"]
 ```
 
 ## 5. Test Generation Pipeline
@@ -217,7 +239,7 @@ flowchart LR
     scoring -->|"score < 0.50"| notFixed[NOT_FIXED]
 ```
 
-Gate weights: root_cause (0.43), instance_coverage (0.25), no_new_vulnerabilities (0.19), security_best_practices (0.13). Conservative consensus: unanimous agreement = HIGH confidence; disagreement = most-conservative-wins with FLAGGED confidence. Critical gate cap: root_cause not PASS caps decision down one level.
+Gate weights: root_cause (0.43), instance_coverage (0.2467), no_new_vulnerabilities (0.1867), security_best_practices (0.1366). Skill instructions use rounded approximations (0.25/0.19/0.13) for LLM readability. Conservative consensus: unanimous agreement = HIGH confidence; disagreement = most-conservative-wins with FLAGGED confidence. Critical gate cap: root_cause not PASS caps decision down one level.
 
 ## 7. Policy Gates
 
@@ -232,6 +254,8 @@ flowchart LR
     postGate -->|"rejected"| blocked["Diff rejected\nnosec / suppress /\nverify=False"]
     postGate -->|"passed"| pr["Open PR"]
 ```
+
+Post-gate enforcement levels: forbidden patterns (nosec, SuppressWarnings, verify=False, etc.) and file count exceeding `MAX_FILES_TOUCHED=5` are **hard rejections** that block the PR. Diff size exceeding `MAX_DIFF_LINES=100` produces a **warning only** (logged but does not reject) — large diffs are flagged for careful review rather than outright blocked.
 
 ## 8. Data Flow
 
@@ -250,8 +274,8 @@ flowchart LR
         lookupTool["lookup_cve_detail\nreads vuln report per-CVE"]
         parseTool["parse_maven_purl\nextracts coordinates"]
         checkTool["check_version_exists\nverifies via Maven Central"]
-        bashTool["ExecuteBashTool\nopencode run / mvn"]
-        diffTool["diff_proof\nsnapshot + verify"]
+        bashTool["execute_bash\n(build_bash_tool)\nopencode run / mvn"]
+        diffTool["diff_proof\nsnapshot + verify\n⚠ planned, not yet wired"]
     end
 
     subgraph agent [Agent Reasoning]
@@ -275,7 +299,8 @@ flowchart LR
     preGate --> reason
     reason --> bashTool
     pomXml --> bashTool
-    bashTool --> diffTool --> postGate
+    bashTool --> postGate
+    diffTool -.-|"planned,\nnot yet wired"| postGate
     reason --> issues
     postGate --> prs
 ```
@@ -340,6 +365,7 @@ Verifies the underlying LLM is safe before any agent runs.
 | bbq | lm_evaluation_harness | 0.90 | Bias in ambiguous contexts |
 | owasp_llm_top10 | Garak | 0.10 | Prompt injection, jailbreaks |
 | cwe | Garak | 0.10 | Code weakness exploitation |
+| quality | Garak | 0.10 | Code quality patterns |
 
 ### Layer 2: Agent-Level Eval (38 cases across 6 agents)
 

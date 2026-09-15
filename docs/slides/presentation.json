@@ -1,0 +1,42 @@
+{
+  "title": "Securing Open Source at Machine Speed",
+  "subtitle": "AI-Accelerated CVE Remediation with Lightwell and Google ADK on Red Hat OpenShift",
+  "sections": [
+    { "id": "hero",                "file": "sections/hero.html",                "navLabel": "Opening" },
+    { "id": "overview",            "file": "sections/overview.html",            "navLabel": "Roadmap" },
+    { "id": "lightwell-landscape", "file": "sections/lightwell-landscape.html", "navLabel": "Why Lightwell" },
+    { "id": "lightwell-lens",      "file": "sections/lightwell-lens.html",      "navLabel": "Lightwell Lens" },
+    { "id": "lightwell-agents",    "file": "sections/lightwell-agents.html",    "navLabel": "The AI Engine" },
+    { "id": "problem",             "file": "sections/problem.html",             "navLabel": "The Challenge" },
+    { "id": "architecture",        "file": "sections/architecture.html",        "navLabel": "System Context" },
+    { "id": "agents",              "file": "sections/agents.html",              "navLabel": "Agent Hierarchy" },
+    { "id": "skills",              "file": "sections/skills.html",              "navLabel": "Skills-First" },
+    { "id": "remediation",         "file": "sections/remediation.html",         "navLabel": "Remediation" },
+    { "id": "testing",             "file": "sections/testing.html",             "navLabel": "Test Generation" },
+    { "id": "validation",          "file": "sections/validation.html",          "navLabel": "Validation" },
+    { "id": "gates",               "file": "sections/gates.html",              "navLabel": "Safety & Gates" },
+    { "id": "evaluation",          "file": "sections/evaluation.html",          "navLabel": "Eval System" },
+    { "id": "observability",       "file": "sections/observability.html",       "navLabel": "Observability" },
+    { "id": "deployment",          "file": "sections/deployment.html",          "navLabel": "Deployment" }
+  ],
+  "agenda": [
+    { "num": "01", "title": "Why Lightwell",       "desc": "The Mythos moment and TTE collapse",                     "target": "lightwell-landscape", "accent": "var(--red)" },
+    { "num": "02", "title": "Lens & Engine",        "desc": "Coverage assessment and the AI remediation engine",      "target": "lightwell-lens",      "accent": "var(--d1-isolation)" },
+    { "num": "03", "title": "System Architecture",  "desc": "Coordinator, 5 specialists, Tekton, EvalHub",           "target": "architecture",        "accent": "var(--d2-tools)" },
+    { "num": "04", "title": "Agent Deep Dive",      "desc": "Skills-first, remediation loops, multi-persona validation", "target": "agents",           "accent": "var(--d3-routing)" },
+    { "num": "05", "title": "Trust & Safety",        "desc": "Policy gates, safety plugins, fail-closed scoring",     "target": "gates",               "accent": "var(--d4-identity)" },
+    { "num": "06", "title": "Eval & Deployment",    "desc": "38 eval cases, MLflow tracing, OpenShift + Tekton",      "target": "evaluation",          "accent": "var(--d5-loop)" },
+    { "num": "07", "title": "Observability",         "desc": "OTel spans, MLflow experiments, full-stack tracing",    "target": "observability",       "accent": "var(--green)" }
+  ],
+  "presenterGroups": [
+    ["lightwell-landscape", "lightwell-lens", "lightwell-agents"],
+    ["problem", "architecture"],
+    ["agents", "skills"],
+    ["remediation", "testing", "validation"],
+    ["gates", "evaluation", "observability", "deployment"]
+  ],
+  "footer": {
+    "title": "Securing Open Source at Machine Speed — AI-Accelerated CVE Remediation",
+    "text": "Built on open source. Google ADK · OpenTelemetry · MLflow · Tekton · Kustomize · Red Hat OpenShift AI · EvalHub"
+  }
+}

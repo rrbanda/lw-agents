@@ -1,0 +1,153 @@
+  <div class="rh-bar-t"></div>
+  <div class="rh-bar-b"></div>
+  <div class="rh-privacy">Confidential: Red Hat associate and NDA partner use only. No further distribution.</div>
+  <div class="rh-section-footer"><span class="rh-fn">11</span><span class="rh-fl"><img class="rh-logo-img" alt="Red Hat"></span></div>
+
+  <span class="section-label" style="background:var(--green)">Multi-Persona Validation</span>
+  <h2>Adversarial Review with Deterministic Scoring</h2>
+
+  <p>
+    Fix validation uses a <strong>multi-persona pattern</strong>: two LLM personas
+    (security architect + penetration tester) provide independent assessments,
+    then a <strong>deterministic scorer</strong> (no LLM) calculates the final verdict.
+    All personas are read-only &mdash; no write tools, no bash.
+  </p>
+
+  <!-- Validation Pipeline -->
+  <h3>Validation Pipeline</h3>
+
+  <div class="flow-diagram">
+    <div class="flow-node" style="border-color:var(--d1-isolation)">
+      <strong>security_architect</strong>
+      <br><small>LlmAgent</small>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--d4-identity)">
+      <strong>penetration_tester</strong>
+      <br><small>LlmAgent</small>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--d3-routing)">
+      <strong>deterministic_scoring</strong>
+      <br><small>BaseAgent &middot; NO LLM</small>
+    </div>
+  </div>
+
+  <!-- Two Personas -->
+  <h3>Two Personas</h3>
+
+  <div class="grid-2">
+    <div class="card" style="border-top:3px solid var(--d1-isolation)">
+      <h4>&#128737; Security Architect</h4>
+      <p>
+        Loads the <strong>validation-architect</strong> skill. Evaluates fix design,
+        data flow paths, and security controls. Thinks about systemic risk,
+        root cause coverage, and best practices.
+      </p>
+      <div class="component-pills">
+        <span class="component-pill" style="background:var(--d2-tools)">SkillToolset</span>
+        <span class="component-pill" style="background:var(--d2-tools)">lookup_cve_detail</span>
+        <span class="component-pill" style="background:var(--d2-tools)">parse_maven_purl</span>
+      </div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--d4-identity)">
+      <h4>&#128270; Penetration Tester</h4>
+      <p>
+        Loads the <strong>validation-pentester</strong> skill. Adversarial mindset &mdash;
+        actively tries to find bypasses, incomplete fixes, and ways the vulnerability
+        could still be exploited after the patch.
+      </p>
+      <div class="component-pills">
+        <span class="component-pill" style="background:var(--d2-tools)">SkillToolset</span>
+        <span class="component-pill" style="background:var(--d2-tools)">lookup_cve_detail</span>
+        <span class="component-pill" style="background:var(--d2-tools)">parse_maven_purl</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Four Security Gates -->
+  <h3>Four Security Gates</h3>
+
+  <div class="grid-2">
+    <div class="card" style="border-top:3px solid var(--rh-red)">
+      <h4>root_cause</h4>
+      <div class="stat-card" style="padding:0.5rem 1rem;margin:0.5rem 0">
+        <span class="stat-number" data-target="43" style="font-size:1.6rem">0</span>
+        <span class="stat-label">% weight (0.43)</span>
+      </div>
+      <p>Does the fix address the actual vulnerability root cause?</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--d1-isolation)">
+      <h4>instance_coverage</h4>
+      <div class="stat-card" style="padding:0.5rem 1rem;margin:0.5rem 0">
+        <span class="stat-number" data-target="25" style="font-size:1.6rem">0</span>
+        <span class="stat-label">% weight (0.2467)</span>
+      </div>
+      <p>Are all affected instances covered by the fix?</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--d5-loop)">
+      <h4>no_new_vulnerabilities</h4>
+      <div class="stat-card" style="padding:0.5rem 1rem;margin:0.5rem 0">
+        <span class="stat-number" data-target="19" style="font-size:1.6rem">0</span>
+        <span class="stat-label">% weight (0.1867)</span>
+      </div>
+      <p>Does the fix introduce new security issues?</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--d2-tools)">
+      <h4>security_best_practices</h4>
+      <div class="stat-card" style="padding:0.5rem 1rem;margin:0.5rem 0">
+        <span class="stat-number" data-target="14" style="font-size:1.6rem">0</span>
+        <span class="stat-label">% weight (0.1366)</span>
+      </div>
+      <p>Does the fix follow security coding standards?</p>
+    </div>
+  </div>
+
+  <!-- Deterministic Consensus -->
+  <h3>Deterministic Consensus</h3>
+
+  <div class="card" style="border-top:3px solid var(--d3-routing)">
+    <h4>&#129518; DeterministicScoring &mdash; BaseAgent, NO LLM</h4>
+    <p>
+      The <code>DeterministicScoring</code> agent uses <strong>no LLM</strong>. Pure weighted math.
+    </p>
+    <p><strong>Conservative consensus:</strong></p>
+    <ul>
+      <li>Both personas agree &rarr; <strong>HIGH</strong> confidence</li>
+      <li>Disagreement &rarr; most-conservative-wins with <strong>FLAGGED</strong> confidence</li>
+    </ul>
+    <p>
+      <strong>Severity ranking:</strong> fail &lt; partial &lt; inconclusive &lt; pass.
+      On disagreement, the minimum (most severe) status is chosen.
+    </p>
+    <p>
+      <strong>Critical gate cap:</strong> If <code>root_cause</code> is not PASS,
+      the decision is capped down one level (FIXED &rarr; PARTIALLY_FIXED).
+    </p>
+  </div>
+
+  <!-- Decision Thresholds -->
+  <h3>Decision Thresholds</h3>
+
+  <div class="grid-3">
+    <div class="card" style="border-top:3px solid var(--green);text-align:center">
+      <h4 style="color:var(--green)">&ge; 0.80</h4>
+      <p style="font-size:1.3rem;font-weight:700;color:var(--green)">FIXED</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--d5-loop);text-align:center">
+      <h4 style="color:var(--d5-loop)">&ge; 0.50</h4>
+      <p style="font-size:1.3rem;font-weight:700;color:var(--d5-loop)">PARTIALLY_FIXED</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--d4-identity);text-align:center">
+      <h4 style="color:var(--d4-identity)">&lt; 0.50</h4>
+      <p style="font-size:1.3rem;font-weight:700;color:var(--d4-identity)">NOT_FIXED</p>
+    </div>
+  </div>
+
+  <!-- Insight -->
+  <div class="insight-box">
+    <strong>Why deterministic scoring?</strong> The final pass/fail decision is deliberately
+    <em>not</em> an LLM. Pure math &mdash; no hallucination, no prompt sensitivity, no model drift.
+    The LLMs provide the analysis; the math provides the verdict. A bad fix is more costly
+    than a delayed fix, so the system is designed to fail conservative.
+  </div>

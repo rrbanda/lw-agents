@@ -1,0 +1,187 @@
+  <div class="rh-bar-t"></div>
+  <div class="rh-bar-b"></div>
+  <div class="rh-privacy">Confidential: Red Hat associate and NDA partner use only. No further distribution.</div>
+  <div class="rh-section-footer"><span class="rh-fn">14</span><span class="rh-fl"><img class="rh-logo-img" alt="Red Hat"></span></div>
+
+  <span class="section-label" style="background:var(--d2-tools)">Observability</span>
+  <h2>Full-Stack Tracing with MLflow</h2>
+
+  <p>
+    Every LLM call, tool execution, and agent delegation is captured as an OpenTelemetry span
+    and forwarded to MLflow on Red&nbsp;Hat OpenShift&nbsp;AI. Token counts, latencies, and
+    full request/response payloads are recorded for every run.
+  </p>
+
+  <!-- Span Architecture -->
+  <h3>Span Architecture</h3>
+
+  <div class="flow-diagram">
+    <div class="flow-node" style="border-color:var(--d3-routing)">
+      <strong>ADK Auto-Spans</strong><br>
+      <small>Agent runs, tool calls, state transitions</small>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--d1-isolation)">
+      <strong>OTel TracerProvider</strong><br>
+      <small>SimpleSpanProcessor</small>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--d2-tools)">
+      <strong>OTLP HTTP Exporter</strong><br>
+      <small>/v1/traces endpoint</small>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--rh-red)">
+      <strong>MLflow Service</strong><br>
+      <small>RHOAI 3.5</small>
+    </div>
+  </div>
+
+  <div class="flow-diagram" style="margin-top:1rem">
+    <div class="flow-node" style="border-color:var(--d5-loop)">
+      <strong>LiteLLM Autolog</strong><br>
+      <small>Token counts, latencies, model name</small>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--rh-red)">
+      <strong>MLflow CHAT_MODEL Spans</strong><br>
+      <small>mlflow.litellm.autolog()</small>
+    </div>
+  </div>
+
+  <!-- What Gets Traced -->
+  <h3>What Gets Traced</h3>
+
+  <div class="grid-3">
+
+    <div class="card" style="border-top:3px solid var(--d3-routing)">
+      <h4>&#128101; Agent Spans</h4>
+      <p>Every agent run, delegation event, and state transition. ADK natively emits OTel spans for the full agent lifecycle.</p>
+    </div>
+
+    <div class="card" style="border-top:3px solid var(--d2-tools)">
+      <h4>&#9881; Tool Spans</h4>
+      <p>Every tool call with inputs, outputs, and duration. Custom tools can be wrapped with <code>wrap_func_with_mlflow_trace()</code> for additional coverage.</p>
+    </div>
+
+    <div class="card" style="border-top:3px solid var(--d5-loop)">
+      <h4>&#129302; LLM Spans</h4>
+      <p>Every inference request with model name, token counts (input + output), latency, and full response. Captured via <code>mlflow.litellm.autolog()</code>.</p>
+    </div>
+
+  </div>
+
+  <!-- Bootstrap Sequence -->
+  <h3>Bootstrap Sequence</h3>
+
+  <div class="card" style="border-top:3px solid var(--d1-isolation)">
+    <p>The init order in <code>app/__init__.py</code> ensures the TracerProvider is set <em>before</em> ADK starts emitting spans:</p>
+
+    <div class="flow-diagram" style="margin-top:1rem">
+      <div class="flow-node" style="border-color:var(--d1-isolation)">
+        <strong>load_dotenv()</strong>
+      </div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-node" style="border-color:var(--d2-tools)">
+        <strong>enable_tracing()</strong>
+      </div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-node" style="border-color:var(--d3-routing)">
+        <strong>Check MLFLOW_TRACKING_URI</strong>
+      </div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-node" style="border-color:var(--d5-loop)">
+        <strong>Health Probe</strong><br>
+        <small>/health &amp; /v1/traces</small>
+      </div>
+    </div>
+
+    <div class="flow-diagram" style="margin-top:0.5rem">
+      <div class="flow-node" style="border-color:var(--d4-identity)">
+        <strong>Configure TracerProvider</strong><br>
+        <small>+ OTLP Exporter</small>
+      </div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-node" style="border-color:var(--d5-loop)">
+        <strong>mlflow.litellm.autolog()</strong>
+      </div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-node" style="border-color:var(--green)">
+        <strong>Import Agents</strong><br>
+        <small>Spans now captured</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Design Decisions -->
+  <h3>Design Decisions</h3>
+
+  <div class="grid-2">
+
+    <div class="card" style="border-top:3px solid var(--d1-isolation)">
+      <h4>&#9989; Opt-In Activation</h4>
+      <p>Tracing only activates when <code>MLFLOW_TRACKING_URI</code> is set. Without it, agents start normally with zero tracing overhead.</p>
+    </div>
+
+    <div class="card" style="border-top:3px solid var(--green)">
+      <h4>&#128154; Graceful Degradation</h4>
+      <p>If MLflow is unreachable after a 5-second health probe, agents start normally without tracing. A warning is logged but nothing breaks.</p>
+    </div>
+
+    <div class="card" style="border-top:3px solid var(--d3-routing)">
+      <h4>&#128209; Two-Layer Capture</h4>
+      <p>Layer 1: OTel TracerProvider captures ADK agent/tool spans. Layer 2: <code>mlflow.litellm.autolog()</code> captures LLM call spans with token counts.</p>
+    </div>
+
+    <div class="card" style="border-top:3px solid var(--d2-tools)">
+      <h4>&#128268; Zero Agent Changes</h4>
+      <p>Existing agents get full tracing without any code modifications. The TracerProvider is set globally before any ADK imports occur.</p>
+    </div>
+
+  </div>
+
+  <!-- Configuration -->
+  <h3>Configuration</h3>
+
+  <div class="card" style="border-top:3px solid var(--d5-loop)">
+    <p>Key environment variables controlling tracing behavior:</p>
+
+    <table style="width:100%; border-collapse:collapse; margin-top:1rem; font-size:0.95rem">
+      <thead>
+        <tr style="text-align:left; border-bottom:2px solid var(--d5-loop)">
+          <th style="padding:0.4rem 0.6rem">Variable</th>
+          <th style="padding:0.4rem 0.6rem">Purpose</th>
+          <th style="padding:0.4rem 0.6rem">Default</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #ddd">
+          <td style="padding:0.4rem 0.6rem"><code>MLFLOW_TRACKING_URI</code></td>
+          <td style="padding:0.4rem 0.6rem">Required to enable tracing. Points to the MLflow service.</td>
+          <td style="padding:0.4rem 0.6rem"><em>unset (tracing disabled)</em></td>
+        </tr>
+        <tr style="border-bottom:1px solid #ddd">
+          <td style="padding:0.4rem 0.6rem"><code>MLFLOW_EXPERIMENT_NAME</code></td>
+          <td style="padding:0.4rem 0.6rem">MLflow experiment for organizing runs.</td>
+          <td style="padding:0.4rem 0.6rem"><code>lw-agents</code></td>
+        </tr>
+        <tr style="border-bottom:1px solid #ddd">
+          <td style="padding:0.4rem 0.6rem"><code>MLFLOW_WORKSPACE</code></td>
+          <td style="padding:0.4rem 0.6rem">RHOAI workspace scope. Sent as <code>X-MLflow-Workspace</code> header.</td>
+          <td style="padding:0.4rem 0.6rem"><em>unset</em></td>
+        </tr>
+        <tr>
+          <td style="padding:0.4rem 0.6rem"><code>MLFLOW_TRACKING_TOKEN</code></td>
+          <td style="padding:0.4rem 0.6rem">Bearer token for RHOAI MLflow auth.</td>
+          <td style="padding:0.4rem 0.6rem"><em>unset</em></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Insight -->
+  <div class="insight-box">
+    <strong>Tracing is the debugging superpower.</strong> When a remediation fails on attempt&nbsp;3,
+    you can trace back through every LLM call, every tool invocation, every state change
+    to understand exactly what went wrong.
+  </div>

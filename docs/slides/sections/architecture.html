@@ -1,0 +1,75 @@
+<section id="s6" class="slide" data-accent="var(--d1-isolation)">
+  <div class="rh-bar-t"></div>
+  <div class="rh-bar-b"></div>
+  <div class="rh-privacy">Confidential: Red Hat associate and NDA partner use only. No further distribution.</div>
+  <div class="rh-section-footer"><span class="rh-fn">6</span><span class="rh-fl"><img class="rh-logo-img" alt="Red Hat"></span></div>
+
+  <p class="section-label">System Context</p>
+  <h2>Where the Agent Service Fits</h2>
+
+  <p>The ADK agent service is one component in a Tekton CI/CD pipeline. It receives work from a thin HTTP caller task and interacts with external systems for vulnerability data, version verification, and source control.</p>
+
+  <h3>End-to-End Pipeline</h3>
+
+  <div class="flow-diagram">
+    <div class="flow-node" style="border-color: var(--d1-isolation)">Clone Repo</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node" style="border-color: var(--d1-isolation)">Build / Package</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node" style="border-color: var(--d2-tools)">SBOM Scan</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node" style="border-color: var(--d3-routing)">Conforma Policy</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node" style="border-color: var(--d5-loop)">EvalHub Gate</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node" style="border-color: var(--rh-red)">Agent Service</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node" style="border-color: var(--green)">Open PR</div>
+  </div>
+
+  <h3>Four Integration Points</h3>
+
+  <div class="grid-2">
+    <div class="card" style="border-top: 3px solid var(--d1-isolation)">
+      <h4>Tekton CI/CD Pipeline</h4>
+      <p>Pipeline orchestrates the full build. <code>call-ssc-agent</code> is a thin Tekton Task that POSTs to the agent's HTTP API. Agent returns structured results (<code>SELECTED</code>, <code>CVE_ID</code>, <code>PR_URL</code>) mapped to Tekton result fields.</p>
+    </div>
+    <div class="card" style="border-top: 3px solid var(--d2-tools)">
+      <h4>EvalHub on RHOAI 3.5</h4>
+      <p>Two eval gates run <strong>before</strong> the agent: model-level safety (truthfulqa, toxigen, ethics, bbq, OWASP Top 10, CWE) and agent-level regression (38 test cases). Both must PASS for the agent task to execute.</p>
+    </div>
+    <div class="card" style="border-top: 3px solid var(--d3-routing)">
+      <h4>External Systems</h4>
+      <p>RHTPA / Trustify for vulnerability reports. GitLab / GitHub for issues and PRs. Maven Central for version verification. LLM providers (Gemini / OpenAI-compatible) for inference.</p>
+    </div>
+    <div class="card" style="border-top: 3px solid var(--rh-red)">
+      <h4>ADK Agent Service</h4>
+      <p>Long-lived service on port 8080. Root coordinator delegates to 5 specialists. Plugins (SafetyPlugin + RedactionPlugin) wrap all agents. Resumable sessions via ADK <code>ResumabilityConfig</code>.</p>
+    </div>
+  </div>
+
+  <h3>Task Types</h3>
+
+  <div class="grid-2">
+    <div class="decision-card" style="border-left: 4px solid var(--d1-isolation)">
+      <h4>select-cve</h4>
+      <p>Pick the single best CVE to remediate. Routes to <code>cve_selection</code> specialist.</p>
+    </div>
+    <div class="decision-card" style="border-left: 4px solid var(--d2-tools)">
+      <h4>analyze-cves</h4>
+      <p>Analyze all CVEs in the must-fix set. Routes to <code>cve_analysis</code> specialist.</p>
+    </div>
+    <div class="decision-card" style="border-left: 4px solid var(--d3-routing)">
+      <h4>remediate</h4>
+      <p>Apply a dependency fix, verify build, open PR. Routes to <code>remediation</code> specialist.</p>
+    </div>
+    <div class="decision-card" style="border-left: 4px solid var(--d4-identity)">
+      <h4>generate-tests</h4>
+      <p>Generate JUnit 5 tests, iterate until passing, open PR. Routes to <code>test_generation</code> specialist.</p>
+    </div>
+  </div>
+
+  <div class="insight-box">
+    <p>The agent service is stateless between requests but stateful within a session. ADK's <code>ResumabilityConfig</code> enables session resumption if the Tekton task needs to retry.</p>
+  </div>
+</section>

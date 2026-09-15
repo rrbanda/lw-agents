@@ -1,0 +1,162 @@
+  <div class="rh-bar-t"></div>
+  <div class="rh-bar-b"></div>
+  <div class="rh-privacy">Confidential: Red Hat associate and NDA partner use only. No further distribution.</div>
+  <div class="rh-section-footer"><span class="rh-fn">9</span><span class="rh-fl"><img class="rh-logo-img" alt="Red Hat"></span></div>
+
+  <span class="section-label" style="background:var(--d3-routing)">Remediation Pipeline</span>
+  <h2>From CVE to Pull Request</h2>
+
+  <p>
+    The remediation agent is a <strong>SequentialAgent</strong> that orchestrates three phases:
+    initial planning, iterative build verification, and PR creation.
+    Each phase is a distinct sub-agent wired together by ADK&rsquo;s sequential execution model.
+  </p>
+
+  <!-- Pipeline Architecture -->
+  <h3>Pipeline Architecture</h3>
+
+  <div class="flow-diagram">
+    <div class="flow-node" style="border-color:var(--d1-isolation)">
+      <strong>initial_remediation_planner</strong>
+      <br><small>LlmAgent</small>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--d5-loop)">
+      <strong>remediation_retry_loop</strong>
+      <br><small>LoopAgent &middot; max&nbsp;3</small>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--green)">
+      <strong>remediation_pr_opener</strong>
+      <br><small>LlmAgent</small>
+    </div>
+  </div>
+
+  <!-- Phase 1 -->
+  <h3>Phase 1: Initial Planning</h3>
+
+  <div class="card" style="border-top:3px solid var(--d1-isolation)">
+    <h4>&#128736; initial_remediation_planner</h4>
+    <p>
+      The planner loads the <strong>maven-remediation</strong> and <strong>scm-conventions</strong>
+      skills via <code>SkillToolset</code>, clones the repository, analyzes the CVE,
+      edits <code>pom.xml</code> using OpenCode (via <code>execute_bash</code>),
+      and runs <code>mvn&nbsp;verify</code> to check the build.
+    </p>
+    <p><strong>Tools:</strong></p>
+    <div class="component-pills">
+      <span class="component-pill" style="background:var(--d2-tools)">SkillToolset</span>
+      <span class="component-pill" style="background:var(--d2-tools)">execute_bash (build_bash_tool)</span>
+      <span class="component-pill" style="background:var(--d2-tools)">clone_repository</span>
+    </div>
+    <p style="margin-top:1rem"><strong>Gates:</strong></p>
+    <div class="component-pills">
+      <span class="component-pill" style="background:var(--d4-identity)">before_agent_callback &rarr; pre_gate_callback</span>
+      <span class="component-pill" style="background:var(--d4-identity)">after_agent_callback &rarr; post_gate_callback</span>
+    </div>
+    <p style="margin-top:0.75rem">
+      The <strong>pre-gate</strong> validates the CVE&nbsp;ID, Maven coordinates, and versions
+      <em>before</em> the LLM spends any tokens. Invalid requests get a guidance-only response
+      at zero model cost.
+    </p>
+  </div>
+
+  <!-- Phase 2 -->
+  <h3>Phase 2: Build Retry Loop</h3>
+
+  <div class="card" style="border-top:3px solid var(--d5-loop)">
+    <h4>&#128260; remediation_retry_loop &middot; LoopAgent (max_iterations=3)</h4>
+    <p>
+      If the initial build fails, the <strong>LoopAgent</strong> retries up to 3 times.
+      Inside the loop, <strong>BuildResultChecker</strong> (a <code>BaseAgent</code>)
+      inspects the build output. On success it <em>escalates</em> to exit the loop.
+      On failure, the <strong>remediation_retry_planner</strong> gets another attempt
+      with the error context from the previous run.
+    </p>
+  </div>
+
+  <div class="flow-diagram" style="margin-top:1rem">
+    <div class="flow-node" style="border-color:var(--d5-loop)">
+      <strong>Build Output</strong>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--d3-routing)">
+      <strong>BuildResultChecker</strong>
+      <br><small>BaseAgent</small>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--green)">
+      <strong>PASS?</strong>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--green)">
+      <strong>Yes: Escalate</strong>
+      <br><small>Exit loop &rarr; PR</small>
+    </div>
+  </div>
+  <div class="flow-diagram" style="margin-top:0.5rem">
+    <div class="flow-node" style="border-color:transparent"></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node" style="border-color:transparent"></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node" style="border-color:var(--d4-identity)">
+      <strong>FAIL?</strong>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--d5-loop)">
+      <strong>No: Retry Planner</strong>
+      <br><small>Up to 3 attempts</small>
+    </div>
+  </div>
+
+  <!-- Phase 3 -->
+  <h3>Phase 3: PR Creation</h3>
+
+  <div class="card" style="border-top:3px solid var(--green)">
+    <h4>&#128230; remediation_pr_opener</h4>
+    <p>
+      Stages changed files (<code>pom.xml</code>, <code>REMEDIATION.md</code>), commits,
+      pushes to a branch named <code>rhtpa/remediate-&lt;cve_id&gt;-&lt;timestamp&gt;</code>,
+      and opens a pull request via <strong>create_pull_request</strong> tool
+      (uses <code>glab</code>/<code>gh</code>&nbsp;CLI). The base branch is configurable
+      via <code>SCM_BASE_BRANCH</code> env var.
+    </p>
+  </div>
+
+  <!-- execute_bash -->
+  <h3>What execute_bash Actually Does</h3>
+
+  <div class="card" style="border-top:3px solid var(--rh-red)">
+    <h4>&#9888; NOT ADK&rsquo;s built-in ExecuteBashTool</h4>
+    <p>
+      This is a <strong>custom FunctionTool</strong> built by <code>build_bash_tool()</code>
+      in <code>app/config.py</code>. ADK&rsquo;s ExecuteBashTool requires user confirmation
+      for every command &mdash; unusable in CI/CD. The custom tool uses policy-based
+      safety instead:
+    </p>
+    <p><strong>Allowed command prefixes:</strong></p>
+    <div class="component-pills">
+      <span class="component-pill" style="background:var(--d2-tools)">opencode</span>
+      <span class="component-pill" style="background:var(--d2-tools)">mvn</span>
+      <span class="component-pill" style="background:var(--d2-tools)">git</span>
+      <span class="component-pill" style="background:var(--d2-tools)">cd</span>
+      <span class="component-pill" style="background:var(--d2-tools)">sed</span>
+      <span class="component-pill" style="background:var(--d2-tools)">cat</span>
+      <span class="component-pill" style="background:var(--d2-tools)">ls</span>
+      <span class="component-pill" style="background:var(--d2-tools)">head</span>
+      <span class="component-pill" style="background:var(--d2-tools)">grep</span>
+      <span class="component-pill" style="background:var(--d2-tools)">find</span>
+    </div>
+    <p style="margin-top:0.75rem">
+      Timeout: <strong>300&nbsp;seconds</strong>. Memory limit: <strong>1&nbsp;GB</strong>.
+      This is how the agent runs OpenCode for code edits and Maven for build verification.
+    </p>
+  </div>
+
+  <!-- Insight -->
+  <div class="insight-box">
+    <strong>Why the retry loop matters:</strong> First-attempt build success rate for Maven
+    dependency changes is not 100%. Transitive dependency conflicts, BOM-managed version overrides,
+    and module compatibility issues all cause initial build failures. The LoopAgent gives the agent
+    3&nbsp;chances to get it right, with full error context from each failed attempt.
+  </div>

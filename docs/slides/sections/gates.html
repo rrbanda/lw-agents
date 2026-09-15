@@ -1,0 +1,191 @@
+  <div class="rh-bar-t"></div>
+  <div class="rh-bar-b"></div>
+  <div class="rh-privacy">Confidential: Red Hat associate and NDA partner use only. No further distribution.</div>
+  <div class="rh-section-footer"><span class="rh-fn">12</span><span class="rh-fl"><img class="rh-logo-img" alt="Red Hat"></span></div>
+
+  <span class="section-label" style="background:var(--d4-identity)">Trust &amp; Safety</span>
+  <h2>Five Layers of Protection</h2>
+
+  <p>
+    The system wraps agents in five independent safety layers. Each layer catches
+    different failure modes. A failure at any layer blocks the operation.
+  </p>
+
+  <!-- The Safety Sandwich -->
+  <h3>The Safety Sandwich</h3>
+
+  <div class="flow-diagram">
+    <div class="flow-node" style="border-color:var(--d4-identity)">
+      <strong>SafetyPlugin</strong>
+      <br><small>LLM-as-judge</small>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--d3-routing)">
+      <strong>RedactionPlugin</strong>
+      <br><small>Regex masking</small>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--d5-loop)">
+      <strong>Pre-Gate</strong>
+      <br><small>Input validation</small>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--d1-isolation)">
+      <strong>Agent Execution</strong>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--green)">
+      <strong>Post-Gate</strong>
+      <br><small>Diff validation</small>
+    </div>
+  </div>
+
+  <!-- Layer 1 -->
+  <h3>Layer 1: SafetyPlugin</h3>
+
+  <div class="card" style="border-top:3px solid var(--d4-identity)">
+    <h4>&#128737; LLM-as-Judge Content Filter</h4>
+    <p>
+      A <code>BasePlugin</code> wired at the Runner level &mdash; wraps <strong>all</strong> agents
+      and sub-agents. Uses a dedicated judge LLM to classify content as SAFE or UNSAFE.
+    </p>
+    <p><strong>Three hook points:</strong></p>
+    <ul>
+      <li><code>on_user_message_callback</code> &mdash; screens incoming user messages</li>
+      <li><code>before_run_callback</code> &mdash; blocks the run if user message was flagged</li>
+      <li><code>after_model_callback</code> &mdash; screens model output before it&rsquo;s returned</li>
+    </ul>
+    <p>
+      <strong>Blocks:</strong> jailbreak attempts, malicious code generation requests,
+      data exfiltration attempts, infrastructure harm.
+      <strong>Allows:</strong> legitimate security remediation, CVE analysis, dependency fixes.
+    </p>
+    <p>
+      <strong>Fails open on errors:</strong> if the judge LLM is unreachable, content is allowed
+      through (logged as a warning). A crashed safety filter must not block legitimate work.
+    </p>
+  </div>
+
+  <!-- Layer 2 -->
+  <h3>Layer 2: RedactionPlugin</h3>
+
+  <div class="card" style="border-top:3px solid var(--d3-routing)">
+    <h4>&#128274; Secret Masking on Tool Results</h4>
+    <p>
+      A <code>BasePlugin</code> with an <code>after_tool_callback</code> that applies
+      regex-based secret masking to tool responses <em>before</em> they reach the model context.
+      The LLM never sees raw credentials.
+    </p>
+    <p><strong>Shape-based patterns detected:</strong></p>
+    <div class="component-pills">
+      <span class="component-pill" style="background:var(--d3-routing)">GitHub tokens (ghp_, gho_, ghu_, ghs_, ghr_)</span>
+      <span class="component-pill" style="background:var(--d3-routing)">GitLab tokens (glpat-)</span>
+      <span class="component-pill" style="background:var(--d3-routing)">API keys (sk-)</span>
+      <span class="component-pill" style="background:var(--d3-routing)">Bearer tokens</span>
+      <span class="component-pill" style="background:var(--d3-routing)">PEM private keys</span>
+      <span class="component-pill" style="background:var(--d3-routing)">JWTs</span>
+      <span class="component-pill" style="background:var(--d3-routing)">Basic auth</span>
+      <span class="component-pill" style="background:var(--d3-routing)">Hex secrets (40+ chars)</span>
+    </div>
+    <p style="margin-top:0.75rem">
+      <strong>Key-name masking:</strong> dictionary values with credential-related keys
+      (<code>token</code>, <code>secret</code>, <code>password</code>, <code>api_key</code>,
+      <code>access_token</code>, <code>refresh_token</code>, <code>client_secret</code>, etc.)
+      are replaced with <code>[REDACTED]</code>.
+    </p>
+  </div>
+
+  <!-- Layer 3 -->
+  <h3>Layer 3: Pre-Gate</h3>
+
+  <div class="card" style="border-top:3px solid var(--d5-loop)">
+    <h4>&#128679; Input Validation Before Tokens</h4>
+    <p>
+      Validates remediation requests <strong>before</strong> the agent spends any LLM tokens.
+      Implemented as <code>before_agent_callback</code> on the remediation planner.
+    </p>
+    <p><strong>Validation checks:</strong></p>
+    <ul>
+      <li>CVE&nbsp;ID matches <code>CVE-YYYY-NNNN+</code> pattern (regex: <code>^CVE-\d{4}-\d{4,}$</code>)</li>
+      <li>Package matches <code>groupId:artifactId</code> Maven coordinate format</li>
+      <li>Current and fixed versions both contain digits</li>
+      <li>Current &ne; fixed version (catches copy-paste errors)</li>
+    </ul>
+    <p>
+      Invalid requests receive a guidance-only <code>Content</code> response returned directly
+      from the callback &mdash; the agent never runs, achieving <strong>zero model cost</strong>
+      on bad input.
+    </p>
+  </div>
+
+  <!-- Layer 4 -->
+  <h3>Layer 4: Post-Gate</h3>
+
+  <div class="card" style="border-top:3px solid var(--green)">
+    <h4>&#128269; Diff Validation After Execution</h4>
+    <p>
+      Validates the git diff <strong>after</strong> the agent runs.
+      Implemented as <code>after_agent_callback</code> on the remediation planner.
+    </p>
+    <p><strong>Hard rejections &mdash; 7 forbidden patterns:</strong></p>
+    <div class="comparison-grid" style="margin:1rem 0">
+      <div class="comparison-col">
+        <code>#nosec</code><br><small>Suppresses security linter</small>
+      </div>
+      <div class="comparison-col">
+        <code>//noqa</code><br><small>Suppresses linter</small>
+      </div>
+      <div class="comparison-col">
+        <code>@SuppressWarnings</code><br><small>Suppresses warnings</small>
+      </div>
+      <div class="comparison-col">
+        <code>verify=False</code><br><small>Disables TLS verification</small>
+      </div>
+      <div class="comparison-col">
+        <code>rejectUnauthorized:false</code><br><small>Disables TLS rejection</small>
+      </div>
+      <div class="comparison-col">
+        <code>except:&nbsp;pass</code><br><small>Bare except-pass (swallows errors)</small>
+      </div>
+      <div class="comparison-col">
+        <code>@PermitAll</code><br><small>Removes authentication</small>
+      </div>
+    </div>
+    <p>
+      <strong>Hard limit:</strong> MAX_FILES_TOUCHED = <strong>5</strong> (rejection).
+      <strong>Warning:</strong> MAX_DIFF_LINES = <strong>100</strong> (warning only, not rejection).
+    </p>
+  </div>
+
+  <!-- Layer 5 -->
+  <h3>Layer 5: Fail-Closed Selection</h3>
+
+  <div class="card" style="border-top:3px solid var(--rh-red)">
+    <h4>&#128683; Ambiguity Means No</h4>
+    <p>
+      The CVE selection callback in <code>app/scoring/validate_selection.py</code>.
+      If <strong>any</strong> validation fails, the selection result is forced to
+      <code>SELECTED=0</code>. The system fails closed.
+    </p>
+    <p><strong>Checked conditions:</strong></p>
+    <ul>
+      <li>Missing or invalid CVE&nbsp;ID</li>
+      <li>Invalid Maven coordinates (must match <code>groupId:artifactId</code>)</li>
+      <li>Versions without digits</li>
+      <li>Identical current and fixed versions</li>
+      <li>Empty justification</li>
+      <li>Placeholder values (<code>string</code>, <code>null</code>, <code>none</code>, <code>n/a</code>)</li>
+    </ul>
+    <p>
+      Every error path sets <code>SELECTED=0</code> with empty fields and a validation
+      failure message. There is no &ldquo;maybe&rdquo; state.
+    </p>
+  </div>
+
+  <!-- Insight -->
+  <div class="insight-box">
+    <strong>Defense in depth:</strong> Five independent layers means no single failure
+    compromises the pipeline. A prompt injection that bypasses the SafetyPlugin still
+    hits the pre-gate. A hallucinated fix that passes the pre-gate still hits the post-gate.
+    The fail-closed selection ensures that even ambiguous agent output defaults to &ldquo;no.&rdquo;
+  </div>

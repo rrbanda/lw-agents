@@ -92,7 +92,7 @@ agent-eval-set:  ## Run a specific eval set: make agent-eval-set SET=cve-selecti
 # --- Deploy all eval infrastructure to the cluster ---
 
 deploy-eval-tasks:  ## Apply Tekton tasks, pipeline, triggers, and CronJob
-	oc apply -f deployment/tekton/evalhub-eval-gate-task.yaml
+	oc apply -f deployment/tekton/eval-gate-task.yaml
 	oc apply -f deployment/tekton/agent-eval-task.yaml
 	oc apply -f deployment/tekton/eval-gate-pipeline.yaml
 	oc apply -f deployment/tekton/scheduled-eval-trigger.yaml

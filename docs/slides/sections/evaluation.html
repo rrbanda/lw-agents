@@ -1,0 +1,229 @@
+  <div class="rh-bar-t"></div>
+  <div class="rh-bar-b"></div>
+  <div class="rh-privacy">Confidential: Red Hat associate and NDA partner use only. No further distribution.</div>
+  <div class="rh-section-footer"><span class="rh-fn">13</span><span class="rh-fl"><img class="rh-logo-img" alt="Red Hat"></span></div>
+
+  <span class="section-label" style="background:var(--d5-loop)">Automated Evaluation</span>
+  <h2>Two-Layer Eval System</h2>
+
+  <p>
+    Every code push and every 6&nbsp;hours, the full eval pipeline runs automatically.
+    Two independent layers must <strong>PASS</strong> before the agent service processes real work.
+  </p>
+
+  <!-- Layer 1: Model Safety -->
+  <h3>Layer 1: Model Safety (EvalHub)</h3>
+
+  <div class="card" style="border-top:3px solid var(--d4-identity)">
+    <p>Verifies the underlying LLM is safe before any agent runs. Submitted via <code>evalhub eval run</code> and gated by the <code>evalhub-eval-gate</code> Tekton Task.</p>
+
+    <table style="width:100%; border-collapse:collapse; margin-top:1rem; font-size:0.95rem">
+      <thead>
+        <tr style="text-align:left; border-bottom:2px solid var(--rh-red)">
+          <th style="padding:0.4rem 0.6rem">Benchmark</th>
+          <th style="padding:0.4rem 0.6rem">Provider</th>
+          <th style="padding:0.4rem 0.6rem">Threshold</th>
+          <th style="padding:0.4rem 0.6rem">Direction</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #ddd">
+          <td style="padding:0.4rem 0.6rem"><code>truthfulqa_mc1</code></td>
+          <td style="padding:0.4rem 0.6rem">lm_evaluation_harness</td>
+          <td style="padding:0.4rem 0.6rem">0.60</td>
+          <td style="padding:0.4rem 0.6rem">Higher is better</td>
+        </tr>
+        <tr style="border-bottom:1px solid #ddd">
+          <td style="padding:0.4rem 0.6rem"><code>toxigen</code></td>
+          <td style="padding:0.4rem 0.6rem">lm_evaluation_harness</td>
+          <td style="padding:0.4rem 0.6rem">0.85</td>
+          <td style="padding:0.4rem 0.6rem">Higher is better</td>
+        </tr>
+        <tr style="border-bottom:1px solid #ddd">
+          <td style="padding:0.4rem 0.6rem"><code>ethics_cm</code></td>
+          <td style="padding:0.4rem 0.6rem">lm_evaluation_harness</td>
+          <td style="padding:0.4rem 0.6rem">0.75</td>
+          <td style="padding:0.4rem 0.6rem">Higher is better</td>
+        </tr>
+        <tr style="border-bottom:1px solid #ddd">
+          <td style="padding:0.4rem 0.6rem"><code>bbq</code></td>
+          <td style="padding:0.4rem 0.6rem">lm_evaluation_harness</td>
+          <td style="padding:0.4rem 0.6rem">0.90</td>
+          <td style="padding:0.4rem 0.6rem">Higher is better</td>
+        </tr>
+        <tr style="border-bottom:1px solid #ddd">
+          <td style="padding:0.4rem 0.6rem"><code>owasp_llm_top10</code></td>
+          <td style="padding:0.4rem 0.6rem">Garak</td>
+          <td style="padding:0.4rem 0.6rem">0.10</td>
+          <td style="padding:0.4rem 0.6rem">Lower is better</td>
+        </tr>
+        <tr style="border-bottom:1px solid #ddd">
+          <td style="padding:0.4rem 0.6rem"><code>cwe</code></td>
+          <td style="padding:0.4rem 0.6rem">Garak</td>
+          <td style="padding:0.4rem 0.6rem">0.10</td>
+          <td style="padding:0.4rem 0.6rem">Lower is better</td>
+        </tr>
+        <tr>
+          <td style="padding:0.4rem 0.6rem"><code>quality</code></td>
+          <td style="padding:0.4rem 0.6rem">Garak</td>
+          <td style="padding:0.4rem 0.6rem">0.10</td>
+          <td style="padding:0.4rem 0.6rem">Lower is better</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Layer 2: Agent Behavior -->
+  <h3>Layer 2: Agent Behavior (38 Cases)</h3>
+
+  <div class="card" style="border-top:3px solid var(--d3-routing)">
+    <p>Verifies each agent behaves correctly. Run via <code>app.eval.agent_eval</code> with regression detection against <code>baseline.json</code>.</p>
+
+    <table style="width:100%; border-collapse:collapse; margin-top:1rem; font-size:0.95rem">
+      <thead>
+        <tr style="text-align:left; border-bottom:2px solid var(--d3-routing)">
+          <th style="padding:0.4rem 0.6rem">Agent</th>
+          <th style="padding:0.4rem 0.6rem">Cases</th>
+          <th style="padding:0.4rem 0.6rem">Key Metrics Tested</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #ddd">
+          <td style="padding:0.4rem 0.6rem"><strong>Coordinator</strong></td>
+          <td style="padding:0.4rem 0.6rem">8</td>
+          <td style="padding:0.4rem 0.6rem">Correct routing, out-of-scope decline, full pipeline orchestration</td>
+        </tr>
+        <tr style="border-bottom:1px solid #ddd">
+          <td style="padding:0.4rem 0.6rem"><strong>CVE Selection</strong></td>
+          <td style="padding:0.4rem 0.6rem">7</td>
+          <td style="padding:0.4rem 0.6rem">Hallucination guard, structured output, skill-first, version verification</td>
+        </tr>
+        <tr style="border-bottom:1px solid #ddd">
+          <td style="padding:0.4rem 0.6rem"><strong>CVE Analysis</strong></td>
+          <td style="padding:0.4rem 0.6rem">5</td>
+          <td style="padding:0.4rem 0.6rem">Multi-CVE handling, empty set, duplicate detection</td>
+        </tr>
+        <tr style="border-bottom:1px solid #ddd">
+          <td style="padding:0.4rem 0.6rem"><strong>Remediation</strong></td>
+          <td style="padding:0.4rem 0.6rem">7</td>
+          <td style="padding:0.4rem 0.6rem">Build retry loop, pre/post gate, max retries, skill-first</td>
+        </tr>
+        <tr style="border-bottom:1px solid #ddd">
+          <td style="padding:0.4rem 0.6rem"><strong>Test Generation</strong></td>
+          <td style="padding:0.4rem 0.6rem">5</td>
+          <td style="padding:0.4rem 0.6rem">Compile failure retry, test-only PRs, config change tests</td>
+        </tr>
+        <tr>
+          <td style="padding:0.4rem 0.6rem"><strong>Fix Validation</strong></td>
+          <td style="padding:0.4rem 0.6rem">6</td>
+          <td style="padding:0.4rem 0.6rem">Gate accuracy, nosec detection, root cause cap, persona consensus</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Custom LLM-as-Judge Metrics -->
+  <h3>Custom LLM-as-Judge Metrics</h3>
+
+  <div class="grid-2">
+
+    <div class="card" style="border-top:3px solid var(--d1-isolation)">
+      <h4><code>cve_selection_accuracy</code></h4>
+      <p>Did the agent use <code>lookup_cve_detail</code> and <code>check_version_exists</code> before deciding? Is the selected CVE in the must-fix set?</p>
+    </div>
+
+    <div class="card" style="border-top:3px solid var(--d1-isolation)">
+      <h4><code>version_not_hallucinated</code></h4>
+      <p>Every version in the response was verified via <code>check_version_exists</code> before being reported. Unverified versions score&nbsp;0.</p>
+    </div>
+
+    <div class="card" style="border-top:3px solid var(--d3-routing)">
+      <h4><code>correct_routing</code></h4>
+      <p>Coordinator delegated to the correct specialist sub-agent. Wrong delegation, direct answers, or hallucinated agents score&nbsp;0.</p>
+    </div>
+
+    <div class="card" style="border-top:3px solid var(--d2-tools)">
+      <h4><code>skill_loaded_first</code></h4>
+      <p>Agent called <code>load_skill</code> via SkillToolset <em>before</em> making any substantive tool calls or decisions.</p>
+    </div>
+
+    <div class="card" style="border-top:3px solid var(--d2-tools)">
+      <h4><code>tool_use_completeness</code></h4>
+      <p>All expected tools called with minimum counts. Partial credit (0.5) if most were called; 0 if critical tools missed.</p>
+    </div>
+
+    <div class="card" style="border-top:3px solid var(--d5-loop)">
+      <h4><code>remediation_build_passes</code></h4>
+      <p>Build command executed and result was SUCCESS. Retries count &mdash; eventual success after retry still scores&nbsp;1.</p>
+    </div>
+
+    <div class="card" style="border-top:3px solid var(--green)">
+      <h4><code>validation_gate_accuracy</code></h4>
+      <p>All 4 gates (root_cause, instance_coverage, no_new_vulnerabilities, security_best_practices) match expected results. Scored 0&ndash;1 proportionally.</p>
+    </div>
+
+    <div class="card" style="border-top:3px solid var(--d4-identity)">
+      <h4><code>pr_hygiene</code></h4>
+      <p>PR title mentions CVE ID, description explains changes, diff is minimal, no anti-patterns (<code>nosec</code>, <code>SuppressWarnings</code>, <code>verify=false</code>).</p>
+    </div>
+
+  </div>
+
+  <!-- Automation Guarantees -->
+  <h3>Automation Guarantees</h3>
+
+  <div class="grid-2">
+
+    <div class="card" style="border-top:3px solid var(--rh-red)">
+      <h4>&#9889; Code Push Trigger</h4>
+      <p>Every code push triggers the full pipeline via Tekton <code>EventListener</code> (<code>agent-eval-listener</code>). No manual intervention required.</p>
+    </div>
+
+    <div class="card" style="border-top:3px solid var(--d5-loop)">
+      <h4>&#128339; CronJob Every 6 Hours</h4>
+      <p>The <code>scheduled-agent-eval</code> CronJob (<code>0 */6 * * *</code>) runs evals even with no code changes &mdash; catches model drift and infrastructure shifts.</p>
+    </div>
+
+    <div class="card" style="border-top:3px solid var(--d3-routing)">
+      <h4>&#128202; Regression Detection</h4>
+      <p>Each metric is compared against <code>baseline.json</code> with a 10% tolerance. Any regression beyond the threshold fails the pipeline.</p>
+    </div>
+
+    <div class="card" style="border-top:3px solid var(--d4-identity)">
+      <h4>&#128683; Floor Enforcement</h4>
+      <p>Absolute minimum thresholds per metric. Even if no regression, a metric below its floor blocks deployment. No exceptions.</p>
+    </div>
+
+  </div>
+
+  <!-- Stat cards -->
+  <div class="grid-2" style="margin-top:2rem">
+
+    <div class="stat-card">
+      <span class="stat-number" data-target="38">0</span>
+      <span class="stat-label">Eval Cases</span>
+    </div>
+
+    <div class="stat-card">
+      <span class="stat-number" data-target="7">0</span>
+      <span class="stat-label">EvalHub Benchmarks</span>
+    </div>
+
+    <div class="stat-card">
+      <span class="stat-number" data-target="8">0</span>
+      <span class="stat-label">Custom Metrics</span>
+    </div>
+
+    <div class="stat-card">
+      <span class="stat-number" data-target="6">0</span>
+      <span class="stat-label" style="font-size:0.85rem">Hour Continuous Eval Cycle</span>
+    </div>
+
+  </div>
+
+  <!-- Insight -->
+  <div class="insight-box">
+    <strong>Zero manual steps.</strong> The eval pipeline is fully automated.
+    When a model update causes regression, the pipeline catches it before the agent ever processes real CVEs.
+    <code>make deploy-eval-tasks</code> sets up everything on the cluster.
+  </div>

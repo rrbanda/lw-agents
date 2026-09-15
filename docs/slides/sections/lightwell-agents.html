@@ -1,0 +1,130 @@
+  <div class="rh-bar-t"></div>
+  <div class="rh-bar-b"></div>
+  <div class="rh-privacy">Confidential: Red Hat associate and NDA partner use only. No further distribution.</div>
+  <div class="rh-section-footer"><span class="rh-fn">4</span><span class="rh-fl"><img class="rh-logo-img" alt="Red Hat"></span></div>
+
+  <span class="section-label" style="background:var(--d3-routing)">The Remediation Engine</span>
+  <h2>The AI Engine Behind Lightwell</h2>
+
+  <p>
+    Lightwell Network delivers the packages. <strong>This system creates them.</strong>
+    A multi-agent pipeline powered by Google ADK&nbsp;2.0, running on Red&nbsp;Hat OpenShift,
+    transforms raw scanner findings into validated, non-breaking patches at machine speed.
+  </p>
+
+  <!-- Pipeline flow -->
+  <h3>From Scanner Findings to Validated Patches</h3>
+
+  <div class="flow-diagram">
+    <div class="flow-node" style="border-color:var(--rh-red)">
+      <strong>Scanner Findings</strong>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--d1-isolation)">
+      <strong>CVE Selection</strong>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--d2-tools)">
+      <strong>Analysis</strong>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--d3-routing)">
+      <strong>Remediation</strong>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--d5-loop)">
+      <strong>Test Generation</strong>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--green)">
+      <strong>Validation</strong>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--d4-identity)">
+      <strong>Pull Request</strong>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--amber)">
+      <strong>Human Review</strong>
+    </div>
+  </div>
+
+  <!-- What makes this possible -->
+  <h3>What Makes This Possible</h3>
+
+  <div class="grid-3">
+
+    <div class="card" style="border-top:3px solid var(--d1-isolation)">
+      <h4>&#9881; Google ADK&nbsp;2.0</h4>
+      <p>Agent harness providing the core loop, tool dispatch, state management, skills, and plugins. The orchestration backbone for every agent in the pipeline.</p>
+    </div>
+
+    <div class="card" style="border-top:3px solid var(--d3-routing)">
+      <h4>&#128101; 5 Specialist Agents</h4>
+      <p>Coordinator delegates to selection, analysis, remediation, test-gen, and validation agents &mdash; each with domain-specific skills and tools.</p>
+    </div>
+
+    <div class="card" style="border-top:3px solid var(--d5-loop)">
+      <h4>&#128214; Skills-as-Playbooks</h4>
+      <p>7 SKILL.md files encode expert methodology. Agents load the playbook <em>before</em> acting, not after &mdash; ensuring consistent, auditable behavior.</p>
+    </div>
+
+  </div>
+
+  <!-- Enterprise trust -->
+  <h3>Enterprise Trust at Machine Speed</h3>
+
+  <div class="grid-2">
+
+    <div class="card" style="border-top:3px solid var(--d4-identity)">
+      <h4>&#128679; Policy Gates</h4>
+      <p>Pre-gate validates inputs before spending tokens. Post-gate rejects forbidden patterns in diffs. No unsafe code leaves the pipeline.</p>
+    </div>
+
+    <div class="card" style="border-top:3px solid var(--d2-tools)">
+      <h4>&#128737; Safety Plugins</h4>
+      <p>LLM-as-judge safety screening plus secret redaction on every tool response. Defense in depth at the model layer.</p>
+    </div>
+
+    <div class="card" style="border-top:3px solid var(--green)">
+      <h4>&#9989; Fail-Closed Scoring</h4>
+      <p>Deterministic validation &mdash; no LLM involved in the final pass/fail decision. If the tests don&rsquo;t pass, the patch doesn&rsquo;t ship.</p>
+    </div>
+
+    <div class="card" style="border-top:3px solid var(--d5-loop)">
+      <h4>&#128200; Two-Layer Eval</h4>
+      <p>Model safety (EvalHub) plus 38 agent behavior cases run on every code push. Continuous regression testing across the full stack.</p>
+    </div>
+
+  </div>
+
+  <!-- Stat cards -->
+  <div class="grid-2" style="margin-top:2rem">
+
+    <div class="stat-card">
+      <span class="stat-number" data-target="5">0</span>
+      <span class="stat-label">Specialist Agents</span>
+    </div>
+
+    <div class="stat-card">
+      <span class="stat-number" data-target="7">0</span>
+      <span class="stat-label">Skills Playbooks</span>
+    </div>
+
+    <div class="stat-card">
+      <span class="stat-number" data-target="38">0</span>
+      <span class="stat-label">Eval Cases</span>
+    </div>
+
+    <div class="stat-card">
+      <span class="stat-number" data-target="3">0</span>
+      <span class="stat-label">Retry Loops</span>
+    </div>
+
+  </div>
+
+  <!-- Insight -->
+  <div class="insight-box">
+    <strong>Key principle:</strong> Every pull request goes through human review before merge.
+    The agents accelerate engineering &mdash; they don&rsquo;t replace engineering judgment.
+  </div>

@@ -1,0 +1,135 @@
+<section id="s7" class="slide" data-accent="var(--d3-routing)">
+  <div class="rh-bar-t"></div>
+  <div class="rh-bar-b"></div>
+  <div class="rh-privacy">Confidential: Red Hat associate and NDA partner use only. No further distribution.</div>
+  <div class="rh-section-footer"><span class="rh-fn">7</span><span class="rh-fl"><img class="rh-logo-img" alt="Red Hat"></span></div>
+
+  <p class="section-label">Agent Hierarchy</p>
+  <h2>Coordinator and Five Specialists</h2>
+
+  <p>The root agent is a delegator — it never attempts tasks itself. Based on the request type, it routes to the appropriate specialist.</p>
+
+  <h3>Root Coordinator</h3>
+
+  <div class="card" style="border-top: 3px solid var(--rh-red)">
+    <h4>ssc_coordinator <span style="opacity:.6">(LlmAgent)</span></h4>
+    <p><strong>Role:</strong> Delegates by task type. Never attempts work itself.</p>
+    <div class="component-pills">
+      <span class="component-pill" style="background: var(--rh-red); color: #fff">SafetyPlugin</span>
+      <span class="component-pill" style="background: var(--d4-identity); color: #fff">RedactionPlugin</span>
+    </div>
+    <p><strong>Callbacks:</strong> <code>init_structured_result</code> (before), <code>extract_structured_results</code> (after)</p>
+    <p><strong>Sub-agents:</strong> cve_selection, cve_analysis, remediation, test_generation, fix_validation</p>
+  </div>
+
+  <h3>Five Specialists</h3>
+
+  <div class="grid-2">
+
+    <!-- CVE Selection -->
+    <div class="card" style="border-top: 3px solid var(--d1-isolation)">
+      <h4>CVE Selection <span style="opacity:.6">(LlmAgent)</span></h4>
+      <p>Selects the single best CVE to remediate from a policy-gated must-fix set by exploring each CVE incrementally via tools.</p>
+      <div class="component-pills">
+        <span class="component-pill" style="border-color: var(--d1-isolation)">cve-triage</span>
+        <span class="component-pill" style="border-color: var(--d1-isolation)">scm-conventions</span>
+      </div>
+      <p><strong>Tools:</strong></p>
+      <ul>
+        <li><code>list_must_fix_cves</code></li>
+        <li><code>lookup_cve_detail</code></li>
+        <li><code>parse_maven_purl</code></li>
+        <li><code>check_version_exists</code></li>
+      </ul>
+      <p><strong>Callback:</strong> <code>fail_closed_selection_callback</code> (after)</p>
+      <p><strong>Output:</strong> <code>selection_result</code></p>
+    </div>
+
+    <!-- CVE Analysis -->
+    <div class="card" style="border-top: 3px solid var(--d2-tools)">
+      <h4>CVE Analysis <span style="opacity:.6">(LlmAgent)</span></h4>
+      <p>Analyzes every CVE in the must-fix set, evaluates fixability via tools, and returns a JSON decisions array.</p>
+      <div class="component-pills">
+        <span class="component-pill" style="border-color: var(--d2-tools)">cve-analysis</span>
+        <span class="component-pill" style="border-color: var(--d2-tools)">scm-conventions</span>
+      </div>
+      <p><strong>Tools:</strong></p>
+      <ul>
+        <li><code>list_must_fix_cves</code></li>
+        <li><code>lookup_cve_detail</code></li>
+        <li><code>parse_maven_purl</code></li>
+        <li><code>check_version_exists</code></li>
+      </ul>
+      <p><strong>Output:</strong> <code>analysis_result</code></p>
+    </div>
+
+    <!-- Remediation -->
+    <div class="card" style="border-top: 3px solid var(--d3-routing)">
+      <h4>Remediation <span style="opacity:.6">(SequentialAgent)</span></h4>
+      <p>Plans and applies a Maven dependency version bump, verifies with Maven build (up to 3 retries), and opens a PR.</p>
+
+      <div class="flow-diagram" style="font-size: .85em; margin: .75em 0;">
+        <div class="flow-node" style="border-color: var(--d3-routing)">initial_remediation_planner</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="border-color: var(--d5-loop)">remediation_retry_loop<br><small>LoopAgent · max 3</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="border-color: var(--green)">remediation_pr_opener</div>
+      </div>
+
+      <div class="component-pills">
+        <span class="component-pill" style="border-color: var(--d3-routing)">maven-remediation</span>
+        <span class="component-pill" style="border-color: var(--d3-routing)">scm-conventions</span>
+      </div>
+      <p><strong>Tools:</strong> <code>execute_bash</code> (build_bash_tool), <code>clone_repository</code>, <code>create_pull_request</code></p>
+      <p><strong>Callbacks:</strong> <code>pre_gate_callback</code> (before), <code>post_gate_callback</code> (after)</p>
+      <p><strong>Retry loop:</strong> <code>build_result_checker</code> (BaseAgent) → <code>remediation_retry_planner</code> (LlmAgent)</p>
+    </div>
+
+    <!-- Test Generation -->
+    <div class="card" style="border-top: 3px solid var(--d4-identity)">
+      <h4>Test Generation <span style="opacity:.6">(SequentialAgent)</span></h4>
+      <p>Generates JUnit 5 tests via OpenCode, iterates until they pass (up to 3 attempts), then opens a tests-only PR.</p>
+
+      <div class="flow-diagram" style="font-size: .85em; margin: .75em 0;">
+        <div class="flow-node" style="border-color: var(--d4-identity)">initial_test_writer</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="border-color: var(--d5-loop)">test_refinement_loop<br><small>LoopAgent · max 3</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="border-color: var(--green)">test_pr_opener</div>
+      </div>
+
+      <div class="component-pills">
+        <span class="component-pill" style="border-color: var(--d4-identity)">junit-test-generation</span>
+        <span class="component-pill" style="border-color: var(--d4-identity)">scm-conventions</span>
+      </div>
+      <p><strong>Tools:</strong> <code>execute_bash</code> (build_bash_tool), <code>clone_repository</code>, <code>create_pull_request</code></p>
+      <p><strong>Refinement loop:</strong> <code>test_evaluator</code> (LlmAgent) → <code>test_escalation_checker</code> (BaseAgent) → <code>test_fixer</code> (LlmAgent)</p>
+    </div>
+
+    <!-- Fix Validation -->
+    <div class="card" style="border-top: 3px solid var(--d5-loop)">
+      <h4>Fix Validation <span style="opacity:.6">(SequentialAgent)</span></h4>
+      <p>Validates remediation fixes using two adversarial personas with deterministic weighted scoring. Read-only — no write tools.</p>
+
+      <div class="flow-diagram" style="font-size: .85em; margin: .75em 0;">
+        <div class="flow-node" style="border-color: var(--d3-routing)">security_architect</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="border-color: var(--d4-identity)">penetration_tester</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="border-color: var(--d5-loop)">deterministic_scoring<br><small>BaseAgent · no LLM</small></div>
+      </div>
+
+      <div class="component-pills">
+        <span class="component-pill" style="border-color: var(--d3-routing)">validation-architect</span>
+        <span class="component-pill" style="border-color: var(--d4-identity)">validation-pentester</span>
+      </div>
+      <p><strong>Tools:</strong> <code>lookup_cve_detail</code>, <code>parse_maven_purl</code></p>
+      <p><strong>Scoring:</strong> Weighted gates — root_cause (0.43), instance_coverage (0.25), no_new_vulnerabilities (0.19), security_best_practices (0.13). Critical gate cap: root_cause not PASS caps decision down one level.</p>
+    </div>
+
+  </div>
+
+  <div class="insight-box">
+    <p>The coordinator pattern ensures clear separation of concerns. Each specialist has exactly the tools and skills it needs — no more. This is the principle of least privilege applied to agent capabilities.</p>
+  </div>
+</section>
