@@ -60,6 +60,7 @@ BASH_ALLOWED_PREFIXES = (
     "mvn ",
     "git ",
     "cd ",
+    "sed ",
     "cat ",
     "ls ",
     "head ",
