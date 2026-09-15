@@ -150,9 +150,7 @@ kbd {
 
 /* ===== SECTION LABEL (eyebrow tag) ===== */
 .section-label {
-  position: absolute;
-  left: 7.26%;
-  top: 2.5%;
+  display: inline-block;
   font: 600 11px/1 var(--fh);
   color: var(--rh-red);
   text-transform: uppercase;
@@ -160,6 +158,7 @@ kbd {
   background: rgba(238,0,0,.06);
   padding: 4px 12px;
   border-radius: 2px;
+  margin-bottom: 6px;
 }
 
 /* ===== TITLE SLIDE (hero) ===== */
@@ -235,22 +234,21 @@ kbd {
   margin-bottom: 6px;
 }
 
-/* Content wrapper for non-hero slides — scale to fit 1280x720 */
-.slide-content {
-  position: absolute;
-  left: 7.26%;
-  right: 3%;
-  top: 14%;
-  bottom: 9%;
+/* Non-hero slides: flowing content gets padding so chrome (bars, footer) overlay correctly */
+.slide {
+  padding: 80px 40px 64px 93px;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
   scrollbar-color: #ccc transparent;
 }
 
-.slide-content::-webkit-scrollbar { width: 4px; }
-.slide-content::-webkit-scrollbar-track { background: transparent; }
-.slide-content::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
+.slide::-webkit-scrollbar { width: 4px; }
+.slide::-webkit-scrollbar-track { background: transparent; }
+.slide::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
+
+/* Hero slide has no padding — absolute children only */
+.slide:first-child { padding: 0; overflow: hidden; }
 
 /* ===== GRIDS ===== */
 .grid-2 {

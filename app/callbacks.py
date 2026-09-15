@@ -226,11 +226,19 @@ async def extract_structured_results(callback_context) -> None:
     # TESTS_ADDED detection for test-generation flow
     if structured.get("TESTS_ADDED", "0") == "0":
         test_output = str(state.get("test_output", "")).lower()
-        test_eval = str(state.get("test_evaluation", "")).lower()
-        if "grade: pass" in test_eval or "tests pass" in test_output:
-            structured["TESTS_ADDED"] = "1"
-        elif any(
-            kw in test_output for kw in ("test created", "test generated", "test written", "junit")
+        if any(
+            kw in test_output
+            for kw in (
+                "tests generated",
+                "test created",
+                "test generated",
+                "tests pass",
+                "grade: pass",
+                "git push",
+                "pushed",
+                "file changed",
+                "build success",
+            )
         ):
             structured["TESTS_ADDED"] = "1"
 

@@ -17,22 +17,11 @@
 
       return Promise.all(fetches).then(function (htmls) {
         htmls.forEach(function (html, i) {
-          var div = document.createElement('div');
-          div.className = 'slide';
-          div.id = sections[i].id;
-
-          var content = document.createElement('div');
-          content.className = 'slide-content';
-          content.innerHTML = html;
-
-          var chrome = content.querySelectorAll('.rh-bar-t, .rh-bar-b, .rh-privacy, .rh-section-footer, .hero-headline, .title-presenter, .title-white-strip');
-          chrome.forEach(function (el) {
-            content.removeChild(el);
-            div.appendChild(el);
-          });
-
-          div.appendChild(content);
-          slidesEl.appendChild(div);
+          var slide = document.createElement('div');
+          slide.className = 'slide';
+          slide.id = sections[i].id;
+          slide.innerHTML = html;
+          slidesEl.appendChild(slide);
         });
 
         buildAgendaGrid(manifest);
