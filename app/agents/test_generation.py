@@ -16,6 +16,39 @@ from app.config import MODEL, SKILLS_DIR, build_bash_tool
 from app.tools.scm_tools import clone_repository_tool
 
 
+async def _test_gen_after_callback(callback_context) -> None:
+    """Set TESTS_ADDED in structured_result after test-gen completes."""
+    state = callback_context.state
+    test_output = str(state.get("test_output", "")).lower()
+
+    if any(
+        kw in test_output
+        for kw in (
+            "tests generated",
+            "test generation",
+            "git push",
+            "pushed",
+            "commit",
+            "file changed",
+            "build success",
+            "tee src/test",
+        )
+    ):
+        state["structured_result"] = {
+            "SELECTED": "0",
+            "CVE_ID": "",
+            "PACKAGE": "",
+            "CURRENT_VERSION": "",
+            "FIXED_VERSION": "",
+            "JUSTIFICATION": "Tests generated and pushed.",
+            "PR_URL": "",
+            "COUNT": "0",
+            "TESTS_ADDED": "1",
+            "ISSUES_CREATED": "0",
+            "CHANGED": "0",
+        }
+
+
 def create_test_generation_agent() -> LlmAgent:
     """Factory: single agent that generates tests end-to-end."""
     skills = [
@@ -28,6 +61,7 @@ def create_test_generation_agent() -> LlmAgent:
     return LlmAgent(
         name="test_generation",
         model=MODEL,
+        after_agent_callback=_test_gen_after_callback,
         instruction=(
             "You are a test engineer. You MUST execute these steps in order "
             "using your tools. Do NOT just describe what you would do — "
