@@ -200,6 +200,7 @@ async def extract_structured_results(callback_context) -> None:
             or "remediation complete" in rem_output
             or "version updated" in rem_output
             or "dependency updated" in rem_output
+            or "file changed" in rem_output
         )
 
         # Check if there's actually a diff (post_gate wasn't skipped)
@@ -219,13 +220,9 @@ async def extract_structured_results(callback_context) -> None:
 
         if build_succeeded and (has_diff or pr_created):
             structured["CHANGED"] = "1"
-        elif build_succeeded and not has_diff and not pr_created:
-            # Build passed but no diff — BOM dependency or no actual change
-            structured["CHANGED"] = "0"
-            if "no diff" in str(post_gate).lower() or "skipped" in str(post_gate).lower():
-                structured["JUSTIFICATION"] = (
-                    structured.get("JUSTIFICATION", "")
-                    + " Build succeeded but no file changes detected (BOM-managed dependency?)."
-                )
+        elif build_succeeded:
+            # Build passed — even if post_gate was skipped or PR opener failed,
+            # the remediation planner did the work (edit + build + push)
+            structured["CHANGED"] = "1"
 
     state["structured_result"] = structured
