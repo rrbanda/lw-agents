@@ -102,12 +102,28 @@ class BuildResultChecker(BaseAgent):
         if is_success:
             ctx.session.state["build_passed"] = True
             ctx.session.state["structured_result"] = {
+                "SELECTED": "0",
+                "CVE_ID": "",
+                "PACKAGE": "",
+                "CURRENT_VERSION": "",
+                "FIXED_VERSION": "",
+                "JUSTIFICATION": "Build and tests passed. Remediation applied.",
+                "PR_URL": "",
+                "COUNT": "0",
+                "TESTS_ADDED": "0",
+                "ISSUES_CREATED": "0",
                 "CHANGED": "1",
                 "BUILD_STATUS": "SUCCESS",
             }
             yield Event(
                 author=self.name,
-                actions=EventActions(escalate=True),
+                actions=EventActions(
+                    escalate=True,
+                    state_delta={
+                        "structured_result": ctx.session.state["structured_result"],
+                        "build_passed": True,
+                    },
+                ),
             )
         elif is_failure:
             retry_count = ctx.session.state.get("retry_count", 0) + 1
