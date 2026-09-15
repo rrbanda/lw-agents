@@ -149,4 +149,30 @@ async def extract_structured_results(callback_context) -> None:
             if match:
                 structured[field] = match.group(1)
 
+    # CHANGED detection for remediation flow
+    if structured.get("CHANGED", "0") == "0":
+        # Check if BuildResultChecker already set it
+        if state.get("build_passed"):
+            structured["CHANGED"] = "1"
+        # Check if remediation_output indicates success
+        elif state.get("remediation_output"):
+            rem_text = str(state["remediation_output"]).lower()
+            if any(
+                kw in rem_text
+                for kw in (
+                    "build success",
+                    "successfully",
+                    "fix applied",
+                    "remediation complete",
+                    "version updated",
+                    "dependency updated",
+                )
+            ):
+                structured["CHANGED"] = "1"
+        # Check if pr_result indicates a PR was created
+        if state.get("pr_result"):
+            pr_text = str(state["pr_result"]).lower()
+            if "created" in pr_text or "merge_request" in pr_text or "pull" in pr_text:
+                structured["CHANGED"] = "1"
+
     state["structured_result"] = structured
