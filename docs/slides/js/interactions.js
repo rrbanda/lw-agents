@@ -151,6 +151,9 @@
 
   window.openPresenterView = openPresenterView;
 
+  var notesBtn = document.getElementById('btn-notes');
+  if (notesBtn) notesBtn.addEventListener('click', function (e) { e.stopPropagation(); openPresenterView(); });
+
   document.addEventListener('keydown', function (e) {
     if (e.key === 'p' || e.key === 'P') {
       e.preventDefault();

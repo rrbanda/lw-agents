@@ -3,7 +3,7 @@
   <div class="rh-privacy">Confidential: Red Hat associate and NDA partner use only. No further distribution.</div>
   <div class="rh-section-footer"><span class="rh-fn">9</span><span class="rh-fl"><img class="rh-logo-img" alt="Red Hat"></span></div>
 
-  <span class="section-label" style="background:var(--d3-routing)">Remediation Pipeline</span>
+  <span class="section-label" >Remediation Pipeline</span>
   <h2>From CVE to Pull Request</h2>
 
   <p>
@@ -45,14 +45,14 @@
     </p>
     <p><strong>Tools:</strong></p>
     <div class="component-pills">
-      <span class="component-pill" style="background:var(--d2-tools)">SkillToolset</span>
-      <span class="component-pill" style="background:var(--d2-tools)">execute_bash (build_bash_tool)</span>
-      <span class="component-pill" style="background:var(--d2-tools)">clone_repository</span>
+      <span class="component-pill" >SkillToolset</span>
+      <span class="component-pill" >execute_bash (build_bash_tool)</span>
+      <span class="component-pill" >clone_repository</span>
     </div>
     <p style="margin-top:1rem"><strong>Gates:</strong></p>
     <div class="component-pills">
-      <span class="component-pill" style="background:var(--d4-identity)">before_agent_callback &rarr; pre_gate_callback</span>
-      <span class="component-pill" style="background:var(--d4-identity)">after_agent_callback &rarr; post_gate_callback</span>
+      <span class="component-pill" >before_agent_callback &rarr; pre_gate_callback</span>
+      <span class="component-pill" >after_agent_callback &rarr; post_gate_callback</span>
     </div>
     <p style="margin-top:0.75rem">
       The <strong>pre-gate</strong> validates the CVE&nbsp;ID, Maven coordinates, and versions
@@ -136,16 +136,16 @@
     </p>
     <p><strong>Allowed command prefixes:</strong></p>
     <div class="component-pills">
-      <span class="component-pill" style="background:var(--d2-tools)">opencode</span>
-      <span class="component-pill" style="background:var(--d2-tools)">mvn</span>
-      <span class="component-pill" style="background:var(--d2-tools)">git</span>
-      <span class="component-pill" style="background:var(--d2-tools)">cd</span>
-      <span class="component-pill" style="background:var(--d2-tools)">sed</span>
-      <span class="component-pill" style="background:var(--d2-tools)">cat</span>
-      <span class="component-pill" style="background:var(--d2-tools)">ls</span>
-      <span class="component-pill" style="background:var(--d2-tools)">head</span>
-      <span class="component-pill" style="background:var(--d2-tools)">grep</span>
-      <span class="component-pill" style="background:var(--d2-tools)">find</span>
+      <span class="component-pill" >opencode</span>
+      <span class="component-pill" >mvn</span>
+      <span class="component-pill" >git</span>
+      <span class="component-pill" >cd</span>
+      <span class="component-pill" >sed</span>
+      <span class="component-pill" >cat</span>
+      <span class="component-pill" >ls</span>
+      <span class="component-pill" >head</span>
+      <span class="component-pill" >grep</span>
+      <span class="component-pill" >find</span>
     </div>
     <p style="margin-top:0.75rem">
       Timeout: <strong>300&nbsp;seconds</strong>. Memory limit: <strong>1&nbsp;GB</strong>.
