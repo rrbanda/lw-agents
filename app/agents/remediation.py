@@ -89,6 +89,10 @@ class BuildResultChecker(BaseAgent):
 
         if is_success:
             ctx.session.state["build_passed"] = True
+            ctx.session.state["structured_result"] = {
+                "CHANGED": "1",
+                "BUILD_STATUS": "SUCCESS",
+            }
             yield Event(
                 author=self.name,
                 actions=EventActions(escalate=True),
