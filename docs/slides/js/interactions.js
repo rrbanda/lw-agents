@@ -1,263 +1,13 @@
 (function () {
   'use strict';
 
-  // ===== PROGRESS BAR =====
-  var progressBar = document.getElementById('progress-bar');
-  function updateProgress() {
-    var scrollTop = window.scrollY;
-    var docHeight = document.documentElement.scrollHeight - window.innerHeight;
-    var progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
-    if (progressBar) progressBar.style.width = progress + '%';
-  }
-
-  // ===== SECTION REVEAL =====
-  var sections = document.querySelectorAll('.section');
-  var revealObserver = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('visible');
-      }
-    });
-  }, { threshold: 0.08, rootMargin: '0px 0px -50px 0px' });
-
-  sections.forEach(function (s) {
-    if (!s.classList.contains('visible')) {
-      revealObserver.observe(s);
-    }
-  });
-
-  // ===== ACTIVE NAV TRACKING =====
-  var navLinks = document.querySelectorAll('#side-nav a');
-  var navObserver = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (entry.isIntersecting) {
-        navLinks.forEach(function (l) { l.classList.remove('active'); });
-        var id = entry.target.id;
-        var link = document.querySelector('#side-nav a[href="#' + id + '"]');
-        if (link) link.classList.add('active');
-      }
-    });
-  }, { threshold: 0.2, rootMargin: '-10% 0px -60% 0px' });
-
-  sections.forEach(function (s) { navObserver.observe(s); });
-
-  // ===== DECISION CARD EXPAND/COLLAPSE =====
-  document.querySelectorAll('.decision-card').forEach(function (card) {
-    card.addEventListener('click', function () {
+  // Decision card expand/collapse
+  document.querySelectorAll('.decision-header').forEach(function (hdr) {
+    hdr.addEventListener('click', function () {
+      var card = this.closest('.decision-card');
       var wasExpanded = card.classList.contains('expanded');
-      document.querySelectorAll('.decision-card').forEach(function (c) { c.classList.remove('expanded'); });
+      document.querySelectorAll('.decision-card.expanded').forEach(function (c) { c.classList.remove('expanded'); });
       if (!wasExpanded) card.classList.add('expanded');
-    });
-  });
-
-  // ===== ANIMATED COUNTERS =====
-  function animateCounter(el) {
-    var target = parseFloat(el.getAttribute('data-target'));
-    var suffix = el.getAttribute('data-suffix') || '';
-    var prefix = el.getAttribute('data-prefix') || '';
-    var decimals = parseInt(el.getAttribute('data-decimals')) || 0;
-    var duration = 2000;
-    var start = performance.now();
-
-    function update(now) {
-      var elapsed = now - start;
-      var progress = Math.min(elapsed / duration, 1);
-      var eased = 1 - Math.pow(1 - progress, 3);
-      var current = target * eased;
-
-      var display = decimals > 0 ? current.toFixed(decimals) : Math.round(current);
-      el.textContent = prefix + display + suffix;
-
-      if (progress < 1) requestAnimationFrame(update);
-    }
-    requestAnimationFrame(update);
-  }
-
-  var statNumbers = document.querySelectorAll('.stat-number[data-target]');
-  var counterObserver = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (entry.isIntersecting) {
-        animateCounter(entry.target);
-        counterObserver.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.5 });
-
-  statNumbers.forEach(function (el) { counterObserver.observe(el); });
-
-  // ===== SCROLL EVENT =====
-  window.addEventListener('scroll', updateProgress, { passive: true });
-  updateProgress();
-})();
-
-// ===== PRESENTER MODE =====
-(function () {
-  'use strict';
-
-  var presenterMode = false;
-  var revealedIndex = 0;
-  var allSections = document.querySelectorAll('.section');
-  var channel = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('presenter-sync') : null;
-
-  // Read presenter groups from config embedded in DOM
-  var presenterGroups;
-  try {
-    presenterGroups = JSON.parse(document.getElementById('presenter-config').textContent);
-  } catch (e) {
-    presenterGroups = [];
-  }
-
-  // Build a map: section index -> group leader index
-  var sectionGroupMap = {};
-  (function () {
-    presenterGroups.forEach(function (group) {
-      var leaderIdx = -1;
-      for (var i = 0; i < allSections.length; i++) {
-        if (allSections[i].id === group[0]) { leaderIdx = i; break; }
-      }
-      if (leaderIdx < 0) return;
-      for (var g = 1; g < group.length; g++) {
-        for (var j = 0; j < allSections.length; j++) {
-          if (allSections[j].id === group[g]) { sectionGroupMap[j] = leaderIdx; break; }
-        }
-      }
-    });
-  })();
-
-  function enterPresenter() {
-    presenterMode = true;
-    document.body.classList.add('presenter-mode');
-    revealedIndex = 0;
-    allSections.forEach(function (s, i) {
-      if (i === 0) { s.classList.add('p-revealed'); }
-      else { s.classList.remove('p-revealed'); }
-    });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  function exitPresenter() {
-    presenterMode = false;
-    document.body.classList.remove('presenter-mode');
-    allSections.forEach(function (s) { s.classList.remove('p-revealed'); });
-  }
-
-  function revealNext() {
-    if (revealedIndex < allSections.length - 1) {
-      revealedIndex++;
-      allSections[revealedIndex].classList.add('p-revealed');
-      while (revealedIndex + 1 < allSections.length && sectionGroupMap[revealedIndex + 1] !== undefined) {
-        revealedIndex++;
-        allSections[revealedIndex].classList.add('p-revealed');
-      }
-      allSections[revealedIndex].scrollIntoView({ behavior: 'smooth', block: 'start' });
-      if (channel) channel.postMessage({ type: 'slide-change', index: revealedIndex });
-    }
-  }
-
-  function revealPrev() {
-    if (revealedIndex > 0) {
-      var startIdx = revealedIndex;
-      while (startIdx > 0 && sectionGroupMap[startIdx] !== undefined) {
-        allSections[startIdx].classList.remove('p-revealed');
-        startIdx--;
-      }
-      allSections[startIdx].classList.remove('p-revealed');
-      revealedIndex = startIdx - 1;
-      if (revealedIndex < 0) revealedIndex = 0;
-      allSections[revealedIndex].scrollIntoView({ behavior: 'smooth', block: 'start' });
-      if (channel) channel.postMessage({ type: 'slide-change', index: revealedIndex });
-    }
-  }
-
-  // Keyboard controls
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'p' && !e.ctrlKey && !e.metaKey && e.target.tagName !== 'INPUT' && !e.target.isContentEditable) {
-      if (presenterMode) exitPresenter(); else enterPresenter();
-    }
-    if (!presenterMode) return;
-    if (e.target.isContentEditable || e.target.tagName === 'INPUT') return;
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); revealNext(); }
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); revealPrev(); }
-  });
-
-  // Presenter toggle button
-  var toggle = document.getElementById('presenter-toggle');
-  if (toggle) toggle.addEventListener('click', function () {
-    if (presenterMode) exitPresenter(); else enterPresenter();
-  });
-
-  // Listen for navigation commands from presenter popup
-  if (channel) channel.onmessage = function (e) {
-    if (!presenterMode) return;
-    if (e.data && e.data.type === 'navigate') {
-      if (e.data.direction === 'next') revealNext();
-      else if (e.data.direction === 'prev') revealPrev();
-    }
-  };
-})();
-
-// ===== CUSTOM STICKY NOTES =====
-(function () {
-  'use strict';
-
-  var stickyInput = document.getElementById('wb-sticky-input');
-  var stickyAddBtn = document.getElementById('wb-sticky-add');
-  var stickyBoard = document.getElementById('wb-sticky-board');
-
-  function addStickyNote(text) {
-    if (!stickyBoard) return;
-    var note = document.createElement('div');
-    note.className = 'wb-sticky-note';
-    note.textContent = text;
-    stickyBoard.appendChild(note);
-  }
-
-  if (stickyAddBtn) stickyAddBtn.addEventListener('click', function () {
-    if (stickyInput) {
-      var isHidden = stickyInput.style.display === 'none' || stickyInput.style.display === '';
-      stickyInput.style.display = isHidden ? 'inline-block' : 'none';
-      if (isHidden) stickyInput.focus();
-    }
-  });
-
-  function addCustomSticky() {
-    if (!stickyInput || !stickyInput.value.trim()) return;
-    addStickyNote(stickyInput.value.trim());
-    stickyInput.value = '';
-    stickyInput.focus();
-  }
-
-  if (stickyInput) stickyInput.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') { e.preventDefault(); addCustomSticky(); }
-  });
-})();
-
-// ===== FLOW NODE HOVER =====
-(function () {
-  'use strict';
-
-  var flowNodes = document.querySelectorAll('.flow-node');
-  if (!flowNodes.length) return;
-
-  flowNodes.forEach(function (node) {
-    node.addEventListener('mouseenter', function () {
-      var nodeId = node.getAttribute('data-node-id') || node.id;
-      if (!nodeId) return;
-      document.querySelectorAll('.flow-arrow').forEach(function (arrow) {
-        var from = arrow.getAttribute('data-from');
-        var to = arrow.getAttribute('data-to');
-        if (from === nodeId || to === nodeId) {
-          arrow.classList.add('highlighted');
-        }
-      });
-      node.classList.add('highlighted');
-    });
-
-    node.addEventListener('mouseleave', function () {
-      document.querySelectorAll('.flow-arrow.highlighted').forEach(function (arrow) {
-        arrow.classList.remove('highlighted');
-      });
-      node.classList.remove('highlighted');
     });
   });
 })();
@@ -304,106 +54,107 @@
     "Deployment"
   ];
 
-  window.openPresenterView = function () {
-    var pvWindow = window.open('', 'presenter', 'width=900,height=700');
-    if (!pvWindow) return;
+  // Presenter View (P key or button)
+  function openPresenterView() {
+    var cur = window.getCurrentSlide ? window.getCurrentSlide() : 0;
+    var total = window.getTotalSlides ? window.getTotalSlides() : window.SECTION_TITLES.length;
+    var notes = window.SPEAKER_NOTES;
+    var titles = window.SECTION_TITLES;
 
-    var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Presenter View</title><style>' +
-      '*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }' +
-      'body { background: #151515; color: #d2d2d2; font-family: "Red Hat Display", "Segoe UI", sans-serif; height: 100vh; display: grid; grid-template-rows: 56px 1fr; overflow: hidden; }' +
-      '.pv-header { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: #1a1a1a; border-bottom: 1px solid #333; }' +
-      '.pv-header h1 { font-size: 16px; font-weight: 600; color: #EE0000; }' +
-      '.pv-timer { font-family: "Red Hat Mono", monospace; font-size: 14px; color: #d2d2d2; }' +
-      '.pv-timer span { margin-left: 20px; color: #8a8a8a; }' +
-      '.pv-main { display: grid; grid-template-columns: 260px 1fr; overflow: hidden; }' +
-      '.pv-sidebar { padding: 24px 20px; border-right: 1px solid #333; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }' +
-      '.pv-current-section { font-size: 22px; font-weight: 700; color: #ffffff; line-height: 1.3; }' +
-      '.pv-next-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #8a8a8a; margin-top: 12px; }' +
-      '.pv-next-section { font-size: 15px; color: #8a8a8a; }' +
-      '.pv-slide-num { font-size: 13px; color: #8a8a8a; font-family: "Red Hat Mono", monospace; margin-top: auto; }' +
-      '.pv-nav { display: flex; gap: 8px; margin-top: 12px; }' +
-      '.pv-nav button { flex: 1; padding: 10px 0; border: 1px solid #444; border-radius: 6px; background: #252525; color: #d2d2d2; font-size: 13px; cursor: pointer; transition: background 0.15s; }' +
-      '.pv-nav button:hover { background: #333; }' +
-      '.pv-notes-area { padding: 24px 28px; overflow-y: auto; }' +
-      '.pv-notes-heading { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #EE0000; font-weight: 600; margin-bottom: 16px; }' +
-      '.pv-notes-content { white-space: pre-wrap; font-size: 15px; line-height: 1.6; color: #d2d2d2; }' +
-      '</style></head><body>' +
-      '<div class="pv-header"><h1>Presenter View</h1><div class="pv-timer"><span id="pv-elapsed">00:00</span><span id="pv-clock"></span></div></div>' +
-      '<div class="pv-main">' +
-      '<div class="pv-sidebar">' +
-      '<div class="pv-current-section" id="pv-current"></div>' +
-      '<div class="pv-next-label">Next</div>' +
-      '<div class="pv-next-section" id="pv-next"></div>' +
-      '<div class="pv-slide-num" id="pv-slide-num"></div>' +
-      '<div class="pv-nav"><button id="pv-prev">\u2190 Prev</button><button id="pv-next-btn">Next \u2192</button></div>' +
-      '</div>' +
-      '<div class="pv-notes-area"><div class="pv-notes-heading">Speaker Notes</div><div class="pv-notes-content" id="pv-notes"></div></div>' +
-      '</div>' +
-      '<script>' +
-      '(function(){' +
-      'var titles = ' + JSON.stringify(window.SECTION_TITLES) + ';' +
-      'var notes = ' + JSON.stringify(window.SPEAKER_NOTES) + ';' +
-      'var currentIndex = 0;' +
-      'var timerStarted = false;' +
-      'var startTime = null;' +
-      'var channel = (typeof BroadcastChannel !== "undefined") ? new BroadcastChannel("presenter-sync") : null;' +
-      '' +
-      'function updateDisplay() {' +
-      '  document.getElementById("pv-current").textContent = titles[currentIndex] || "";' +
-      '  document.getElementById("pv-next").textContent = (currentIndex < titles.length - 1) ? titles[currentIndex + 1] : "(End)";' +
-      '  document.getElementById("pv-notes").textContent = notes[currentIndex] || "";' +
-      '  document.getElementById("pv-slide-num").textContent = "Slide " + (currentIndex + 1) + " of " + titles.length;' +
-      '}' +
-      '' +
-      'function navigate(dir) {' +
-      '  if (!timerStarted) { timerStarted = true; startTime = Date.now(); }' +
-      '  if (dir === "next" && currentIndex < titles.length - 1) currentIndex++;' +
-      '  else if (dir === "prev" && currentIndex > 0) currentIndex--;' +
-      '  updateDisplay();' +
-      '  if (channel) channel.postMessage({ type: "navigate", direction: dir });' +
-      '}' +
-      '' +
-      'document.getElementById("pv-prev").addEventListener("click", function() { navigate("prev"); });' +
-      'document.getElementById("pv-next-btn").addEventListener("click", function() { navigate("next"); });' +
-      '' +
-      'document.addEventListener("keydown", function(e) {' +
-      '  if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); navigate("next"); }' +
-      '  if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); navigate("prev"); }' +
-      '});' +
-      '' +
-      'if (channel) channel.onmessage = function(e) {' +
-      '  if (e.data && e.data.type === "slide-change") {' +
-      '    currentIndex = Math.max(0, Math.min(titles.length - 1, e.data.index));' +
-      '    if (!timerStarted) { timerStarted = true; startTime = Date.now(); }' +
-      '    updateDisplay();' +
-      '  }' +
-      '};' +
-      '' +
-      'function updateTimer() {' +
-      '  if (timerStarted && startTime) {' +
-      '    var elapsed = Math.floor((Date.now() - startTime) / 1000);' +
-      '    var m = String(Math.floor(elapsed / 60)).padStart(2, "0");' +
-      '    var s = String(elapsed % 60).padStart(2, "0");' +
-      '    document.getElementById("pv-elapsed").textContent = m + ":" + s;' +
-      '  }' +
-      '  var now = new Date();' +
-      '  var h = String(now.getHours()).padStart(2, "0");' +
-      '  var mi = String(now.getMinutes()).padStart(2, "0");' +
-      '  var sec = String(now.getSeconds()).padStart(2, "0");' +
-      '  document.getElementById("pv-clock").textContent = h + ":" + mi + ":" + sec;' +
-      '}' +
-      '' +
-      'setInterval(updateTimer, 1000);' +
-      'updateTimer();' +
-      'updateDisplay();' +
-      '})();' +
-      '</script></body></html>';
+    var presenterWin = window.open('', 'presenter', 'width=900,height=700');
+    if (!presenterWin) return;
 
-    pvWindow.document.open();
-    pvWindow.document.write(html);
-    pvWindow.document.close();
-  };
+    var d = presenterWin.document;
+    d.open();
+    d.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Presenter View</title><style>');
+    d.write('*{box-sizing:border-box;margin:0;padding:0}');
+    d.write('body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#1a1a1a;color:#e0e0e0;display:grid;grid-template-rows:auto 1fr auto;height:100vh;overflow:hidden}');
+    d.write('.pv-header{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:#111;border-bottom:1px solid #333;font-size:13px}');
+    d.write('.pv-header .pv-title{color:#EE0000;font-weight:700;font-size:14px}');
+    d.write('.pv-header .pv-timer{font-variant-numeric:tabular-nums;font-size:20px;font-weight:600;color:#fff}');
+    d.write('.pv-header .pv-clock{color:#888;font-size:13px}');
+    d.write('.pv-main{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px;overflow:hidden}');
+    d.write('.pv-slide-col{display:flex;flex-direction:column;gap:8px;min-height:0}');
+    d.write('.pv-slide-box{background:#212121;border:1px solid #333;border-radius:6px;padding:8px;flex:0 0 auto}');
+    d.write('.pv-slide-box h4{font-size:11px;color:#888;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px}');
+    d.write('.pv-slide-title{font-size:13px;color:#fff;font-weight:600;margin-top:4px;line-height:1.3}');
+    d.write('.pv-notes-col{display:flex;flex-direction:column;min-height:0}');
+    d.write('.pv-notes-col h3{font-size:12px;color:#EE0000;text-transform:uppercase;letter-spacing:0.5px;padding-bottom:6px;border-bottom:1px solid #333;margin-bottom:8px;flex-shrink:0}');
+    d.write('.pv-notes{flex:1;overflow-y:auto;font-size:15px;line-height:1.6;color:#d2d2d2;white-space:pre-wrap;padding-right:8px}');
+    d.write('.pv-notes strong{color:#fff}');
+    d.write('.pv-footer{display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 16px;background:#111;border-top:1px solid #333}');
+    d.write('.pv-btn{background:#333;color:#fff;border:1px solid #555;border-radius:4px;padding:6px 18px;font-size:13px;cursor:pointer;font-family:inherit}');
+    d.write('.pv-btn:hover{background:#444}');
+    d.write('.pv-counter{font-size:15px;font-weight:600;min-width:80px;text-align:center}');
+    d.write('</style></head><body>');
+    d.write('<div class="pv-header"><span class="pv-title">Presenter View</span><span class="pv-timer" id="pv-timer">00:00</span><span class="pv-clock" id="pv-clock"></span></div>');
+    d.write('<div class="pv-main">');
+    d.write('<div class="pv-slide-col">');
+    d.write('<div class="pv-slide-box"><h4>Current Slide</h4><div class="pv-slide-title" id="pv-cur-title"></div></div>');
+    d.write('<div class="pv-slide-box"><h4>Next Slide</h4><div class="pv-slide-title" id="pv-next-title"></div></div>');
+    d.write('</div>');
+    d.write('<div class="pv-notes-col"><h3>Speaker Notes</h3><div class="pv-notes" id="pv-notes"></div></div>');
+    d.write('</div>');
+    d.write('<div class="pv-footer"><button class="pv-btn" id="pv-prev">◀ Prev</button><span class="pv-counter" id="pv-counter"></span><button class="pv-btn" id="pv-next">Next ▶</button></div>');
+    d.write('</body></html>');
+    d.close();
 
-  var pvBtn = document.getElementById('btn-presenter-view');
-  if (pvBtn) pvBtn.addEventListener('click', function () { window.openPresenterView(); });
+    var pvCurrent = cur;
+    var startTime = Date.now();
+    var pvChannel = null;
+    try { pvChannel = new BroadcastChannel('presenter-sync'); } catch (e) {}
+
+    function updatePV(idx) {
+      pvCurrent = idx;
+      var dd = presenterWin.document;
+      if (!dd || !dd.getElementById) return;
+      dd.getElementById('pv-cur-title').textContent = (idx + 1) + '. ' + (titles[idx] || '');
+      dd.getElementById('pv-next-title').textContent = idx + 1 < total ? (idx + 2) + '. ' + (titles[idx + 1] || '') : '(End)';
+      dd.getElementById('pv-notes').textContent = notes[idx] || '(No notes for this slide)';
+      dd.getElementById('pv-counter').textContent = (idx + 1) + ' / ' + total;
+    }
+
+    function pvNavigate(idx) {
+      idx = Math.max(0, Math.min(total - 1, idx));
+      updatePV(idx);
+      if (window.goToSlide) window.goToSlide(idx);
+      if (pvChannel) pvChannel.postMessage({ type: 'navigate', index: idx });
+    }
+
+    if (pvChannel) {
+      pvChannel.onmessage = function (e) {
+        if (e.data && e.data.type === 'navigate') updatePV(e.data.index);
+      };
+    }
+
+    presenterWin.document.getElementById('pv-prev').onclick = function () { pvNavigate(pvCurrent - 1); };
+    presenterWin.document.getElementById('pv-next').onclick = function () { pvNavigate(pvCurrent + 1); };
+    presenterWin.document.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); pvNavigate(pvCurrent + 1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); pvNavigate(pvCurrent - 1); }
+    });
+
+    setInterval(function () {
+      if (presenterWin.closed) return;
+      var elapsed = Math.floor((Date.now() - startTime) / 1000);
+      var mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+      var ss = String(elapsed % 60).padStart(2, '0');
+      var dd = presenterWin.document;
+      if (dd && dd.getElementById) {
+        dd.getElementById('pv-timer').textContent = mm + ':' + ss;
+        dd.getElementById('pv-clock').textContent = new Date().toLocaleTimeString();
+      }
+    }, 1000);
+
+    updatePV(cur);
+  }
+
+  window.openPresenterView = openPresenterView;
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'p' || e.key === 'P') {
+      e.preventDefault();
+      openPresenterView();
+    }
+  });
 })();

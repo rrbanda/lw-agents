@@ -235,15 +235,22 @@ kbd {
   margin-bottom: 6px;
 }
 
-/* Content wrapper for non-hero slides */
+/* Content wrapper for non-hero slides — scale to fit 1280x720 */
 .slide-content {
   position: absolute;
   left: 7.26%;
   right: 3%;
   top: 14%;
   bottom: 9%;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc transparent;
 }
+
+.slide-content::-webkit-scrollbar { width: 4px; }
+.slide-content::-webkit-scrollbar-track { background: transparent; }
+.slide-content::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
 
 /* ===== GRIDS ===== */
 .grid-2 {
