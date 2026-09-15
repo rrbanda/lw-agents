@@ -59,6 +59,7 @@ BASH_ALLOWED_PREFIXES = (
     "opencode ",
     "mvn ",
     "git ",
+    "cd ",
     "cat ",
     "ls ",
     "head ",
