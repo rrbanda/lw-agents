@@ -43,9 +43,17 @@ def _create_test_writer(name: str) -> LlmAgent:
             "STEP 1 — CLONE: You MUST call clone_repository with the repository "
             "URL and branch from the user's message. This is required.\n\n"
             "STEP 2 — SKILL: Call load_skill to load the junit-test-generation skill.\n\n"
-            "STEP 3 — WRITE: Use execute_bash to run opencode to write JUnit 5 tests.\n\n"
-            "STEP 4 — VERIFY: Use execute_bash to run 'mvn -B -q test' to verify.\n\n"
-            "STEP 5 — REPORT: If tests fail, analyze errors and report what needs fixing."
+            "STEP 3 — ANALYZE: Use execute_bash to examine the project structure "
+            "and identify classes that need test coverage.\n\n"
+            "STEP 4 — WRITE: Use execute_bash to run opencode to write JUnit 5 tests. "
+            "If tests already exist, use opencode to add more tests or improve coverage.\n\n"
+            "STEP 5 — VERIFY: Use execute_bash to run 'cd /tmp/workspace && mvn -B -q test'. "
+            "If tests fail, analyze the error and fix using opencode.\n\n"
+            "STEP 6 — COMMIT: If tests pass, run:\n"
+            "  cd /tmp/workspace && git add src/test/\n"
+            "  cd /tmp/workspace && git commit -m 'Add AI-generated unit tests'\n"
+            "  cd /tmp/workspace && git push origin HEAD:ai-tests/generated\n\n"
+            "IMPORTANT: Always prefix bash commands with 'cd /tmp/workspace && '."
         ),
         description="Generates or fixes JUnit 5 tests using OpenCode.",
         tools=[skill_toolset, bash_tool, clone_repository_tool],
@@ -61,10 +69,17 @@ def _create_test_evaluator() -> LlmAgent:
         name="test_evaluator",
         model=MODEL,
         instruction=(
-            "Run 'mvn -B -q test' via bash and evaluate the result. "
-            "If all tests pass, respond with exactly: GRADE: pass. "
-            "If tests fail, respond with: GRADE: fail, followed by "
-            "a summary of what needs fixing."
+            "You MUST run 'cd /tmp/workspace && mvn -B -q test' via execute_bash "
+            "and evaluate the result.\n\n"
+            "After running the command, you MUST respond with EXACTLY one of:\n"
+            "  GRADE: pass\n"
+            "  GRADE: fail\n\n"
+            "If the mvn output contains 'BUILD SUCCESS' or tests ran without "
+            "errors, respond: GRADE: pass\n"
+            "If the mvn output contains 'BUILD FAILURE' or test errors, "
+            "respond: GRADE: fail, followed by a summary.\n\n"
+            "You MUST include 'GRADE: pass' or 'GRADE: fail' in your response. "
+            "This is required for the pipeline to continue."
         ),
         description="Evaluates whether generated tests pass Maven build.",
         tools=[bash_tool],
