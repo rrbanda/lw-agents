@@ -96,6 +96,8 @@ async def extract_structured_results(callback_context) -> None:
         return
     if existing and existing.get("CHANGED") == "1":
         return
+    if existing and existing.get("TESTS_ADDED") not in ("0", "", None):
+        return
 
     # Start from defaults (may already be set by init_structured_result)
     structured: dict[str, Any] = (
