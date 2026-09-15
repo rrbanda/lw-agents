@@ -93,7 +93,7 @@ def _create_pr_opener() -> LlmAgent:
         model=MODEL,
         instruction=(
             "Open a pull request with the generated tests. Call "
-            "create_pull_request with branch 'ai-tests/generated-{timestamp}', "
+            "create_pull_request with a branch name like 'ai-tests/generated-<timestamp>', "
             "title 'Add AI-generated unit tests', and stage only src/test files. "
             "Use the repo_url and workspace from session state."
         ),

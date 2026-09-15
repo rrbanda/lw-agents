@@ -117,11 +117,12 @@ def _create_pr_opener() -> LlmAgent:
         model=MODEL,
         instruction=(
             "Open a pull request with the remediation changes. "
-            "Use the session state to get CVE details:\n"
-            "- Branch: rhtpa/remediate-{cve_id}-<timestamp>\n"
-            "- Title: Remediate {cve_id}: {package} -> {fixed_version}\n"
+            "Get the CVE details from session state (remediation_output) "
+            "or from earlier conversation context.\n"
+            "- Branch naming: rhtpa/remediate-<cve_id>-<timestamp>\n"
+            "- Title: Remediate <cve_id>: <package> -> <fixed_version>\n"
             "- Stage files: pom.xml */pom.xml REMEDIATION.md\n"
-            "- Base branch: use SCM_BASE_BRANCH from state or default to '" + BASE_BRANCH + "'\n\n"
+            "- Base branch: " + BASE_BRANCH + "\n\n"
             "If the build did not pass (check state), report the failure "
             "instead of opening a PR."
         ),
