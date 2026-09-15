@@ -245,7 +245,7 @@ def create_pull_request(
     }
 
 
-create_pull_request_tool = FunctionTool(create_pull_request, require_confirmation=True)
+create_pull_request_tool = FunctionTool(create_pull_request, require_confirmation=False)
 
 
 def _scm_env(provider: str, host: str, token: str) -> dict[str, str]:
