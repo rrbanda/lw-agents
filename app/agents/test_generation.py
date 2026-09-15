@@ -21,7 +21,7 @@ from google.adk.skills import load_skill_from_dir
 from google.adk.tools.skill_toolset import SkillToolset
 
 from app.config import MODEL, SKILLS_DIR, build_bash_tool
-from app.tools.scm_tools import create_pull_request_tool
+from app.tools.scm_tools import clone_repository_tool, create_pull_request_tool
 
 
 def _create_test_writer(name: str) -> LlmAgent:
@@ -37,13 +37,15 @@ def _create_test_writer(name: str) -> LlmAgent:
         name=name,
         model=MODEL,
         instruction=(
-            "You are a test engineer. Load the junit-test-generation skill "
-            "and follow its process to generate JUnit 5 tests. Use opencode "
-            "via bash to write tests and mvn to verify them. If tests fail, "
-            "analyze the error and report what needs fixing."
+            "You are a test engineer. Follow these steps:\n"
+            "1. If a repository URL is provided, clone it using clone_repository\n"
+            "2. Load the junit-test-generation skill and follow its process\n"
+            "3. Use opencode via bash to write JUnit 5 tests\n"
+            "4. Use mvn to verify tests compile and pass\n"
+            "5. If tests fail, analyze the error and report what needs fixing."
         ),
         description="Generates or fixes JUnit 5 tests using OpenCode.",
-        tools=[skill_toolset, bash_tool],
+        tools=[skill_toolset, bash_tool, clone_repository_tool],
         output_key="test_output",
     )
 

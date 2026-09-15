@@ -76,6 +76,7 @@ async def extract_structured_results(callback_context) -> None:
         "COUNT": "0",
         "TESTS_ADDED": "0",
         "ISSUES_CREATED": "0",
+        "CHANGED": "0",
     }
 
     # Collect all agent output from known output_keys

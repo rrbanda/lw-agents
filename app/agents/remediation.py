@@ -23,7 +23,7 @@ from google.adk.tools.skill_toolset import SkillToolset
 from app.config import BASE_BRANCH, MODEL, SKILLS_DIR, build_bash_tool
 from app.policy.post_gate import post_gate_callback
 from app.policy.pre_gate import pre_gate_callback
-from app.tools.scm_tools import create_pull_request_tool
+from app.tools.scm_tools import clone_repository_tool, create_pull_request_tool
 
 
 def _create_plan_agent(name: str = "remediation_planner") -> LlmAgent:
@@ -46,20 +46,21 @@ def _create_plan_agent(name: str = "remediation_planner") -> LlmAgent:
         before_agent_callback=pre_gate_callback,
         after_agent_callback=post_gate_callback,
         instruction=(
-            "You are a Maven remediation engineer. Load the maven-remediation "
-            "skill, then follow its process:\n"
-            "1. Read pom.xml to understand the project structure\n"
-            "2. Apply the fix using opencode run\n"
-            "3. Verify with mvn -B -q -DskipTests install\n"
-            "4. If build fails, report the error clearly with 'BUILD FAILURE' in output\n"
-            "5. If build passes, run mvn -B -q verify for full tests\n"
-            "6. If all passes, report 'BUILD SUCCESS'\n\n"
+            "You are a Maven remediation engineer. Follow these steps:\n"
+            "1. If a repository URL is provided, clone it using clone_repository\n"
+            "2. Load the maven-remediation skill\n"
+            "3. Read pom.xml to understand the project structure\n"
+            "4. Apply the fix using opencode run\n"
+            "5. Verify with mvn -B -q -DskipTests install\n"
+            "6. If build fails, report the error clearly with 'BUILD FAILURE' in output\n"
+            "7. If build passes, run mvn -B -q verify for full tests\n"
+            "8. If all passes, report 'BUILD SUCCESS'\n\n"
             "The CVE details (cve_id, package, current_version, fixed_version, "
-            "justification) will be provided in the user's request or in session "
-            "state. Extract them from whichever source is available."
+            "justification) and optionally a repository URL will be provided in "
+            "the user's request. Extract them from the message."
         ),
         description="Plans and applies a Maven dependency version bump using OpenCode.",
-        tools=[skill_toolset, bash_tool],
+        tools=[skill_toolset, bash_tool, clone_repository_tool],
         output_key="remediation_output",
     )
 

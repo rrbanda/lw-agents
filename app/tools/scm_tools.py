@@ -87,6 +87,59 @@ def create_scm_issue(
 create_scm_issue_tool = FunctionTool(create_scm_issue, require_confirmation=False)
 
 
+def clone_repository(
+    repo_url: str,
+    branch: str = "main",
+    target_dir: str = "/tmp/workspace",
+) -> dict[str, Any]:
+    """Clone a git repository for editing.
+
+    Used by the remediation and test-generation agents to get source code
+    when running as a remote service (no shared Tekton workspace).
+
+    Args:
+        repo_url: HTTPS URL of the repository.
+        branch: Branch to clone.
+        target_dir: Local directory to clone into.
+    """
+    host = os.environ.get("SCM_HOST", "")
+    token = os.environ.get("SCM_TOKEN", "")
+    username = os.environ.get("SCM_USERNAME", "oauth2")
+    repo_path = _extract_repo_path(repo_url)
+
+    # Clean target dir if it exists
+    if os.path.exists(target_dir):
+        import shutil
+
+        shutil.rmtree(target_dir)
+
+    # Build authenticated URL
+    if host and token:
+        clone_url = f"https://{username}:{token}@{host}/{repo_path}.git"
+    else:
+        clone_url = repo_url
+
+    try:
+        result = subprocess.run(
+            ["git", "clone", "--branch", branch, "--depth", "1", clone_url, target_dir],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        if result.returncode != 0:
+            return {"cloned": False, "error": result.stderr.strip()}
+        return {"cloned": True, "path": target_dir}
+    except FileNotFoundError:
+        return {"cloned": False, "error": "git CLI not found"}
+    except subprocess.TimeoutExpired:
+        return {"cloned": False, "error": "git clone timed out after 120s"}
+    except Exception as e:
+        return {"cloned": False, "error": str(e)}
+
+
+clone_repository_tool = FunctionTool(clone_repository, require_confirmation=False)
+
+
 def create_pull_request(
     repo_url: str,
     local_repo_path: str,

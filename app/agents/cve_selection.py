@@ -36,8 +36,13 @@ def create_cve_selection_agent() -> LlmAgent:
         instruction=(
             "You are a CVE triage specialist. When asked to select a CVE, "
             "first call load_skill to read the cve-triage skill, then follow "
-            "its process step by step using the available tools. Report your "
-            "selection as a structured summary with: selected (true/false), "
+            "its process step by step using the available tools.\n\n"
+            "IMPORTANT: If the workspace files are not found when you call "
+            "list_must_fix_cves or lookup_cve_detail (tool returns 'not_found' "
+            "or 'error'), use the CVE data provided directly in the user's "
+            "message instead. The Tekton pipeline embeds file contents in the "
+            "prompt when the agent runs as a remote service.\n\n"
+            "Report your selection as a structured summary with: selected (true/false), "
             "cve_id, package (groupId:artifactId), current_version, "
             "fixed_version, and justification."
         ),

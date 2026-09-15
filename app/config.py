@@ -57,6 +57,7 @@ MLFLOW_TRACKING_TOKEN = os.environ.get("MLFLOW_TRACKING_TOKEN", "")
 BASH_ALLOWED_PREFIXES = (
     "opencode ",
     "mvn ",
+    "git ",
     "cat ",
     "ls ",
     "head ",
