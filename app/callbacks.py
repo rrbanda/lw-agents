@@ -205,13 +205,16 @@ async def extract_structured_results(callback_context) -> None:
         # Check if there's actually a diff (post_gate wasn't skipped)
         has_diff = post_gate and not post_gate.get("skipped", False)
 
-        # Check if PR was created or attempted
+        # Check if PR was created, attempted, or branch was pushed
         pr_text = str(state.get("pr_result", "")).lower()
+        rem_text_full = str(state.get("remediation_output", "")).lower()
         pr_created = (
             "created" in pr_text
             or "merge_request" in pr_text
             or "pull" in pr_text
             or "open a pull request" in pr_text
+            or "git push" in rem_text_full
+            or "pushed" in rem_text_full
         )
 
         if build_succeeded and (has_diff or pr_created):
