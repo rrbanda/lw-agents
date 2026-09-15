@@ -78,6 +78,9 @@ def build_bash_tool(workspace: str | None = None) -> FunctionTool:
     instead of per-command confirmation.
     """
     ws = workspace or WORKSPACE_PATH
+    # Use /tmp/workspace as fallback if default workspace doesn't exist
+    if not os.path.isdir(ws):
+        ws = "/tmp/workspace" if os.path.isdir("/tmp/workspace") else "/tmp"
     allowed = BASH_ALLOWED_PREFIXES
     timeout = BASH_TIMEOUT_SECONDS
 
@@ -98,9 +101,14 @@ def build_bash_tool(workspace: str | None = None) -> FunctionTool:
             return {"error": f"Command not allowed. Must start with one of: {', '.join(allowed)}"}
 
         try:
+            # Use the command's target directory if it references an absolute path
+            run_cwd = ws
+            if "/tmp/workspace" in cmd and os.path.isdir("/tmp/workspace"):
+                run_cwd = "/tmp/workspace"
+
             result = subprocess.run(
                 ["bash", "-c", cmd],
-                cwd=ws,
+                cwd=run_cwd,
                 capture_output=True,
                 text=True,
                 timeout=timeout,
