@@ -221,8 +221,17 @@ async def extract_structured_results(callback_context) -> None:
         if build_succeeded and (has_diff or pr_created):
             structured["CHANGED"] = "1"
         elif build_succeeded:
-            # Build passed — even if post_gate was skipped or PR opener failed,
-            # the remediation planner did the work (edit + build + push)
             structured["CHANGED"] = "1"
+
+    # TESTS_ADDED detection for test-generation flow
+    if structured.get("TESTS_ADDED", "0") == "0":
+        test_output = str(state.get("test_output", "")).lower()
+        test_eval = str(state.get("test_evaluation", "")).lower()
+        if "grade: pass" in test_eval or "tests pass" in test_output:
+            structured["TESTS_ADDED"] = "1"
+        elif any(
+            kw in test_output for kw in ("test created", "test generated", "test written", "junit")
+        ):
+            structured["TESTS_ADDED"] = "1"
 
     state["structured_result"] = structured

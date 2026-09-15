@@ -78,9 +78,27 @@ class TestEscalationChecker(BaseAgent):
     async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
         evaluation = ctx.session.state.get("test_evaluation", "")
         if isinstance(evaluation, str) and "grade: pass" in evaluation.lower():
+            ctx.session.state["structured_result"] = {
+                "SELECTED": "0",
+                "CVE_ID": "",
+                "PACKAGE": "",
+                "CURRENT_VERSION": "",
+                "FIXED_VERSION": "",
+                "JUSTIFICATION": "Tests generated and passing.",
+                "PR_URL": "",
+                "COUNT": "0",
+                "TESTS_ADDED": "1",
+                "ISSUES_CREATED": "0",
+                "CHANGED": "0",
+            }
             yield Event(
                 author=self.name,
-                actions=EventActions(escalate=True),
+                actions=EventActions(
+                    escalate=True,
+                    state_delta={
+                        "structured_result": ctx.session.state["structured_result"],
+                    },
+                ),
             )
         else:
             yield Event(author=self.name)
