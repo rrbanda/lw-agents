@@ -44,7 +44,7 @@ Content that is SAFE includes:
 - Test generation requests
 
 Classify this content:
-<content>{content}</content>
+The content to classify will be provided in the user message.
 
 Respond with only: SAFE or UNSAFE"""
 
