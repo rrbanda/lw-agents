@@ -66,6 +66,9 @@ BASH_ALLOWED_PREFIXES = (
     "head ",
     "grep ",
     "find ",
+    "echo ",
+    "mkdir ",
+    "tee ",
 )
 BASH_TIMEOUT_SECONDS = 300
 BASH_MAX_MEMORY_BYTES = 1024 * 1024 * 1024
