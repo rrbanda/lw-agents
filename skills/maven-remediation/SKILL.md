@@ -40,6 +40,19 @@ Determine how the version is managed and plan the correct edit:
   add a `<dependencyManagement>` entry or property override.
 - In multi-module projects, identify which pom.xml(s) to change.
 
+**Common Spring Boot BOM property overrides:**
+- `logback-core` / `logback-classic` → `<logback.version>X.Y.Z</logback.version>`
+- `tomcat-embed-core` → `<tomcat.version>X.Y.Z</tomcat.version>`
+- `spring-security-web` / `spring-security-core` → `<spring-security.version>X.Y.Z</spring-security.version>`
+- `jackson-databind` / `jackson-core` → `<jackson-bom.version>X.Y.Z</jackson-bom.version>`
+- `snakeyaml` → `<snakeyaml.version>X.Y.Z</snakeyaml.version>`
+
+If the dependency is not a direct `<dependency>` in pom.xml, use `sed` or
+OpenCode to ADD the property to the `<properties>` block. Example:
+```
+sed -i 's|</properties>|  <logback.version>1.5.18</logback.version>\n</properties>|' pom.xml
+```
+
 ### Step 3 — Apply the fix
 
 Run OpenCode to apply the fix:

@@ -89,23 +89,32 @@ async def extract_structured_results(callback_context) -> None:
     """
     state = callback_context.state
 
-    # If a sub-agent's fail-closed callback already set structured_result, keep it
-    if state.get("structured_result"):
+    # If a sub-agent's fail-closed callback already set structured_result
+    # with SELECTED=1 (i.e., a real result, not just defaults), keep it
+    existing = state.get("structured_result", {})
+    if existing and existing.get("SELECTED") == "1":
+        return
+    if existing and existing.get("CHANGED") == "1":
         return
 
-    structured: dict[str, Any] = {
-        "SELECTED": "0",
-        "CVE_ID": "",
-        "PACKAGE": "",
-        "CURRENT_VERSION": "",
-        "FIXED_VERSION": "",
-        "JUSTIFICATION": "",
-        "PR_URL": "",
-        "COUNT": "0",
-        "TESTS_ADDED": "0",
-        "ISSUES_CREATED": "0",
-        "CHANGED": "0",
-    }
+    # Start from defaults (may already be set by init_structured_result)
+    structured: dict[str, Any] = (
+        dict(existing)
+        if existing
+        else {
+            "SELECTED": "0",
+            "CVE_ID": "",
+            "PACKAGE": "",
+            "CURRENT_VERSION": "",
+            "FIXED_VERSION": "",
+            "JUSTIFICATION": "",
+            "PR_URL": "",
+            "COUNT": "0",
+            "TESTS_ADDED": "0",
+            "ISSUES_CREATED": "0",
+            "CHANGED": "0",
+        }
+    )
 
     # Collect all agent output from known output_keys
     output_text = ""
@@ -179,28 +188,36 @@ async def extract_structured_results(callback_context) -> None:
 
     # CHANGED detection for remediation flow
     if structured.get("CHANGED", "0") == "0":
-        # Check if BuildResultChecker already set it
-        if state.get("build_passed"):
+        rem_output = str(state.get("remediation_output", "")).lower()
+        post_gate = state.get("post_gate_result", {})
+
+        # Check if build succeeded
+        build_succeeded = (
+            state.get("build_passed")
+            or "build success" in rem_output
+            or "successfully" in rem_output
+            or "fix applied" in rem_output
+            or "remediation complete" in rem_output
+            or "version updated" in rem_output
+            or "dependency updated" in rem_output
+        )
+
+        # Check if there's actually a diff (post_gate wasn't skipped)
+        has_diff = post_gate and not post_gate.get("skipped", False)
+
+        # Check if PR was created
+        pr_text = str(state.get("pr_result", "")).lower()
+        pr_created = "created" in pr_text or "merge_request" in pr_text or "pull" in pr_text
+
+        if build_succeeded and (has_diff or pr_created):
             structured["CHANGED"] = "1"
-        # Check if remediation_output indicates success
-        elif state.get("remediation_output"):
-            rem_text = str(state["remediation_output"]).lower()
-            if any(
-                kw in rem_text
-                for kw in (
-                    "build success",
-                    "successfully",
-                    "fix applied",
-                    "remediation complete",
-                    "version updated",
-                    "dependency updated",
+        elif build_succeeded and not has_diff:
+            # Build passed but no diff — BOM dependency or no actual change
+            structured["CHANGED"] = "0"
+            if "no diff" in str(post_gate).lower() or "skipped" in str(post_gate).lower():
+                structured["JUSTIFICATION"] = (
+                    structured.get("JUSTIFICATION", "")
+                    + " Build succeeded but no file changes detected (BOM-managed dependency?)."
                 )
-            ):
-                structured["CHANGED"] = "1"
-        # Check if pr_result indicates a PR was created
-        if state.get("pr_result"):
-            pr_text = str(state["pr_result"]).lower()
-            if "created" in pr_text or "merge_request" in pr_text or "pull" in pr_text:
-                structured["CHANGED"] = "1"
 
     state["structured_result"] = structured
