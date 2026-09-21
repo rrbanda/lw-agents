@@ -60,6 +60,17 @@ CREDENTIAL_KEYS = frozenset(
         "access_token",
         "refresh_token",
         "client_secret",
+        # L7.3 — Additional credential keys for CVE remediation tools
+        "nvd_api_key",
+        "bugzilla_api_key",
+        "maven_repo_password",
+        "nexus_password",
+        "quay_token",
+        "pulp_password",
+        "github_token",
+        "gitlab_token",
+        "gemini_api_key",
+        "maas_api_key",
     }
 )
 

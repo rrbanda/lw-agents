@@ -1,5 +1,9 @@
 """CVE exploration tools — agents call these to investigate vulnerabilities
-one at a time, never loading the entire report into a single prompt."""
+one at a time, never loading the entire report into a single prompt.
+
+Now uses the shared HTTP retry layer (app/http.py) for resilience
+and delegates version checking to the ecosystem registry.
+"""
 
 from __future__ import annotations
 
@@ -9,17 +13,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-import httpx
-
-_http_client: httpx.Client | None = None
-
-
-def _get_http_client() -> httpx.Client:
-    """Return a module-level httpx.Client for connection pooling to Maven Central."""
-    global _http_client
-    if _http_client is None or _http_client.is_closed:
-        _http_client = httpx.Client(timeout=10.0, follow_redirects=True)
-    return _http_client
+from app.http import head_check
 
 
 def list_must_fix_cves(workspace_path: str) -> dict[str, Any]:
@@ -175,7 +169,8 @@ def check_version_exists(
     """Verify a Maven version exists in Maven Central.
 
     Prevents hallucinated version numbers. Returns whether the version
-    is a real published artifact.
+    is a real published artifact. Uses the shared HTTP retry layer for
+    resilience against transient failures.
 
     Args:
         group_id: Maven groupId, e.g. com.fasterxml.jackson.core.
@@ -186,33 +181,12 @@ def check_version_exists(
     group_path = group_id.replace(".", "/")
     url = f"{maven_repo}/{group_path}/{artifact_id}/{version}/{artifact_id}-{version}.pom"
 
-    try:
-        resp = _get_http_client().head(url)
-        return {
-            "group_id": group_id,
-            "artifact_id": artifact_id,
-            "version": version,
-            "exists": resp.status_code == 200,
-            "status": "checked",
-            "checked_url": url,
-        }
-    except httpx.TimeoutException:
-        return {
-            "group_id": group_id,
-            "artifact_id": artifact_id,
-            "version": version,
-            "exists": False,
-            "status": "timeout",
-            "error": "Maven Central check timed out — version unverified",
-            "checked_url": url,
-        }
-    except httpx.HTTPError as e:
-        return {
-            "group_id": group_id,
-            "artifact_id": artifact_id,
-            "version": version,
-            "exists": False,
-            "status": "error",
-            "error": f"Network error checking version: {e}",
-            "checked_url": url,
-        }
+    status_code, exists = head_check(url)
+    return {
+        "group_id": group_id,
+        "artifact_id": artifact_id,
+        "version": version,
+        "exists": exists,
+        "status": "checked" if status_code > 0 else "error",
+        "checked_url": url,
+    }

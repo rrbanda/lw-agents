@@ -18,11 +18,15 @@ from google.adk.events import Event
 from google.adk.skills import load_skill_from_dir
 from google.adk.tools.skill_toolset import SkillToolset
 
+from google.adk.tools import FunctionTool
+
 from app.config import MODEL, SKILLS_DIR
 from app.tools.cve_tools import (
     lookup_cve_detail,
     parse_maven_purl,
 )
+from app.tools.diff_tools import analyze_diff, check_regex_safety, score_exploit_source
+from app.tools.live_cve_tools import lookup_nvd, lookup_osv
 
 # Gate weights (from VVAH scoring engine)
 GATE_WEIGHTS = {
@@ -54,7 +58,13 @@ def _create_security_architect() -> LlmAgent:
             "For each gate, report: status (pass/partial/fail), summary, and evidence."
         ),
         description="Evaluates fix design, data flow paths, and security controls.",
-        tools=[skill_toolset, lookup_cve_detail, parse_maven_purl],
+        tools=[
+            skill_toolset, lookup_cve_detail, parse_maven_purl,
+            FunctionTool(analyze_diff),
+            FunctionTool(check_regex_safety),
+            FunctionTool(lookup_nvd),
+            FunctionTool(lookup_osv),
+        ],
         output_key="architect_report",
     )
 
@@ -76,7 +86,13 @@ def _create_penetration_tester() -> LlmAgent:
             "For each gate, report: status (pass/partial/fail), summary, and evidence."
         ),
         description="Evaluates real-world exploitability of the fix.",
-        tools=[skill_toolset, lookup_cve_detail, parse_maven_purl],
+        tools=[
+            skill_toolset, lookup_cve_detail, parse_maven_purl,
+            FunctionTool(analyze_diff),
+            FunctionTool(check_regex_safety),
+            FunctionTool(score_exploit_source),
+            FunctionTool(lookup_nvd),
+        ],
         output_key="pentester_report",
     )
 

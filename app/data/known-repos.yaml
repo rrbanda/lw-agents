@@ -1,0 +1,150 @@
+# Component → upstream GitHub repo mapping.
+# Format: "owner/repo" for GitHub, "host/owner/repo" for non-GitHub.
+# Lookup is case-insensitive. Supports artifact name, full Maven coordinate,
+# and common short names.
+#
+# This file avoids API calls for the most common Maven components.
+# Add entries as agents encounter new components.
+
+# --- Jackson ---
+jackson-databind: FasterXML/jackson-databind
+jackson-core: FasterXML/jackson-core
+jackson-annotations: FasterXML/jackson-annotations
+jackson-dataformat-xml: FasterXML/jackson-dataformat-xml
+jackson-dataformat-yaml: FasterXML/jackson-dataformat-yaml
+jackson-dataformat-cbor: FasterXML/jackson-dataformats-binary
+jackson-datatype-jsr310: FasterXML/jackson-modules-java8
+jackson-module-jaxb-annotations: FasterXML/jackson-modules-base
+
+# --- Spring Framework ---
+spring-beans: spring-projects/spring-framework
+spring-core: spring-projects/spring-framework
+spring-context: spring-projects/spring-framework
+spring-web: spring-projects/spring-framework
+spring-webmvc: spring-projects/spring-framework
+spring-webflux: spring-projects/spring-framework
+spring-expression: spring-projects/spring-framework
+spring-aop: spring-projects/spring-framework
+spring-jdbc: spring-projects/spring-framework
+spring-tx: spring-projects/spring-framework
+spring-orm: spring-projects/spring-framework
+spring-messaging: spring-projects/spring-framework
+
+# --- Spring Security ---
+spring-security-web: spring-projects/spring-security
+spring-security-core: spring-projects/spring-security
+spring-security-config: spring-projects/spring-security
+spring-security-oauth2-core: spring-projects/spring-security
+spring-security-oauth2-client: spring-projects/spring-security
+
+# --- Spring Boot ---
+spring-boot: spring-projects/spring-boot
+spring-boot-autoconfigure: spring-projects/spring-boot
+spring-boot-actuator: spring-projects/spring-boot
+
+# --- Apache Commons ---
+commons-io: apache/commons-io
+commons-text: apache/commons-text
+commons-lang3: apache/commons-lang
+commons-collections4: apache/commons-collections
+commons-compress: apache/commons-compress
+commons-codec: apache/commons-codec
+commons-fileupload: apache/commons-fileupload
+commons-beanutils: apache/commons-beanutils
+commons-configuration2: apache/commons-configuration
+commons-dbcp2: apache/commons-dbcp
+
+# --- Logging ---
+logback-core: qos-ch/logback
+logback-classic: qos-ch/logback
+log4j-core: apache/logging-log4j2
+log4j-api: apache/logging-log4j2
+slf4j-api: qos-ch/slf4j
+
+# --- Netty ---
+netty-codec-http: netty/netty
+netty-codec-http2: netty/netty
+netty-handler: netty/netty
+netty-buffer: netty/netty
+netty-transport: netty/netty
+netty-common: netty/netty
+netty-codec: netty/netty
+netty-codec-haproxy: netty/netty
+
+# --- Tomcat ---
+tomcat-embed-core: apache/tomcat
+tomcat-embed-websocket: apache/tomcat
+tomcat-catalina: apache/tomcat
+tomcat-coyote: apache/tomcat
+
+# --- Jetty ---
+jetty-server: jetty/jetty.project
+jetty-http: jetty/jetty.project
+jetty-io: jetty/jetty.project
+jetty-util: jetty/jetty.project
+jetty-servlet: jetty/jetty.project
+
+# --- Google ---
+guava: google/guava
+gson: google/gson
+protobuf-java: protocolbuffers/protobuf
+grpc-core: grpc/grpc-java
+grpc-netty-shaded: grpc/grpc-java
+
+# --- Apache CXF ---
+cxf-core: apache/cxf
+cxf-rt-transports-http: apache/cxf
+cxf-rt-frontend-jaxrs: apache/cxf
+cxf-rt-transports-jms: apache/cxf
+
+# --- Apache Struts ---
+struts2-core: apache/struts
+
+# --- Apache HTTP ---
+httpclient: apache/httpcomponents-client
+httpcore: apache/httpcomponents-core
+httpclient5: apache/httpcomponents-client
+
+# --- Data / ORM ---
+hibernate-core: hibernate/hibernate-orm
+hibernate-validator: hibernate/hibernate-validator
+h2: h2database/h2database
+postgresql: pgjdbc/pgjdbc
+mysql-connector-java: mysql/mysql-connector-j
+snakeyaml: snakeyaml/snakeyaml
+
+# --- Security ---
+bcprov-jdk18on: bcgit/bc-java
+bcpkix-jdk18on: bcgit/bc-java
+nimbus-jose-jwt: connect2id/nimbus-jose-jwt
+jose4j: felx/jose4j
+xmlsec: apache/santuario-xml-security-java
+
+# --- JSON / XML ---
+json-path: json-path/JsonPath
+woodstox-core: FasterXML/woodstox
+xstream: x-stream/xstream
+json-smart: netplex/json-smart-v2
+
+# --- Web ---
+undertow-core: undertow-io/undertow
+okhttp: square/okhttp
+retrofit: square/retrofit
+
+# --- Misc popular ---
+caffeine: ben-manes/caffeine
+byte-buddy: raphw/byte-buddy
+asm: ow2/asm
+javassist: jboss-javassist/javassist
+neethi: apache/ws-neethi
+velocity-engine-core: apache/velocity-engine
+freemarker: apache/freemarker
+batik-transcoder: apache/xmlgraphics-batik
+xnio-api: xnio/xnio
+wildfly-elytron: wildfly-security/wildfly-elytron
+resteasy-core: resteasy/resteasy
+vertx-core: eclipse-vertx/vert.x
+vertx-web: eclipse-vertx/vert.x
+reactor-core: reactor/reactor-core
+reactor-netty: reactor/reactor-netty
+micrometer-core: micrometer-metrics/micrometer

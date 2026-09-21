@@ -19,6 +19,13 @@ FORBIDDEN_PATTERNS = [
     (r"rejectUnauthorized:\s*false", "TLS rejection disabled"),
     (r"try:\s*\n\s*.*\n\s*except.*:\s*pass", "bare except-pass (swallows errors)"),
     (r"@PermitAll", "PermitAll annotation (removes auth)"),
+    # L7.2 — Enhanced forbidden patterns
+    (r"FIXME.*security", "FIXME security comment left in fix"),
+    (r"TODO.*hack", "TODO hack comment left in fix"),
+    (r"security\.checkPermission\s*=\s*false", "security permission check disabled"),
+    (r"setSecurityManager\(null\)", "SecurityManager disabled"),
+    (r"TrustManager\[\]\s*\{[^}]*new\s+X509TrustManager",
+     "Custom TrustManager (potential TLS bypass)"),
 ]
 
 MAX_DIFF_LINES = 100

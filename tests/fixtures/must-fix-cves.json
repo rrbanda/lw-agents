@@ -1,0 +1,20 @@
+[
+  {
+    "cve_id": "CVE-2024-29025",
+    "severity": "high",
+    "affected_purls": ["pkg:maven/io.netty/netty-codec-http@4.1.100.Final"],
+    "fixed_version_hints": ["4.1.108.Final"]
+  },
+  {
+    "cve_id": "CVE-2024-22262",
+    "severity": "critical",
+    "affected_purls": ["pkg:maven/org.springframework/spring-web@6.1.5"],
+    "fixed_version_hints": ["6.1.6"]
+  },
+  {
+    "cve_id": "CVE-2023-44487",
+    "severity": "high",
+    "affected_purls": ["pkg:maven/io.netty/netty-codec-http2@4.1.97.Final"],
+    "fixed_version_hints": ["4.1.100.Final"]
+  }
+]

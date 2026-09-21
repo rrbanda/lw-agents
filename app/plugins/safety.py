@@ -112,62 +112,73 @@ async def _classify(text: str) -> bool:
 class SafetyPlugin(BasePlugin):
     """Runner-level safety guardrail using an LLM judge.
 
-    Callback parameter names match BasePlugin's contract (ADK 2.8.0):
-    - on_user_message_callback: invocation_context, user_message
-    - before_run_callback: invocation_context (returns Content to halt)
-    - after_model_callback: invocation_context, llm_response (returns LlmResponse)
+    Callback signatures match the official ADK 2.9 BasePlugin contract
+    and the adk-samples/core/python/safety-plugins reference implementation.
     """
 
     def __init__(self):
         super().__init__(name="safety_plugin")
 
     async def on_user_message_callback(
-        self, *, callback_context=None, invocation_context=None, user_message, **kwargs
-    ):
+        self,
+        invocation_context,
+        user_message: genai_types.Content,
+    ) -> genai_types.Content | None:
         text = ""
         if user_message and user_message.parts:
-            text = " ".join(p.text for p in user_message.parts if hasattr(p, "text") and p.text)
+            text = " ".join(
+                p.text for p in user_message.parts
+                if hasattr(p, "text") and p.text
+            )
 
         if await _classify(text):
-            ctx = callback_context or invocation_context
-            ctx.session.state["is_user_prompt_safe"] = False
+            invocation_context.session.state["is_user_prompt_safe"] = False
             return genai_types.Content(
                 role="user",
-                parts=[genai_types.Part.from_text(text="[Content removed by safety filter]")],
+                parts=[genai_types.Part.from_text(
+                    text="[Content removed by safety filter]"
+                )],
             )
         return None
 
     async def before_run_callback(
-        self, *, callback_context=None, invocation_context=None, **kwargs
-    ):
-        ctx = callback_context or invocation_context
-        if not ctx.session.state.get("is_user_prompt_safe", True):
-            ctx.session.state["is_user_prompt_safe"] = True
-            # Return Content (not LlmResponse) to halt the run
+        self,
+        invocation_context,
+    ) -> genai_types.Content | None:
+        if not invocation_context.session.state.get(
+            "is_user_prompt_safe", True
+        ):
+            invocation_context.session.state["is_user_prompt_safe"] = True
             return genai_types.Content(
                 role="model",
-                parts=[
-                    genai_types.Part.from_text(
-                        text="I cannot process this request as it was flagged by the safety filter."
-                    )
-                ],
+                parts=[genai_types.Part.from_text(
+                    text="I cannot process this request as it was "
+                    "flagged by the safety filter."
+                )],
             )
         return None
 
     async def after_model_callback(
-        self, *, callback_context=None, invocation_context=None, llm_response, **kwargs
-    ):
-        if llm_response and llm_response.content and llm_response.content.parts:
+        self,
+        callback_context,
+        llm_response: LlmResponse,
+    ) -> LlmResponse | None:
+        if (
+            llm_response
+            and llm_response.content
+            and llm_response.content.parts
+        ):
             text = " ".join(
-                p.text for p in llm_response.content.parts if hasattr(p, "text") and p.text
+                p.text for p in llm_response.content.parts
+                if hasattr(p, "text") and p.text
             )
             if await _classify(text):
                 return LlmResponse(
                     content=genai_types.Content(
                         role="model",
-                        parts=[
-                            genai_types.Part.from_text(text="[Response removed by safety filter]")
-                        ],
+                        parts=[genai_types.Part.from_text(
+                            text="[Response removed by safety filter]"
+                        )],
                     ),
                 )
         return None

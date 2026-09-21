@@ -3,13 +3,23 @@
 The ADK agents return natural language. Downstream consumers (Tekton tasks)
 need structured fields. These after_agent_callbacks parse the agent's output
 and write structured results to session state, which the API response exposes.
+
+Strategy (L10.5): Try Pydantic model parsing first (typed, validated),
+fall back to regex extraction only when structured parsing fails.
 """
 
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Any
+
+from pydantic import ValidationError
+
+from app.models.contracts import CVEDecision, RemediationResult, ValidationVerdict
+
+logger = logging.getLogger(__name__)
 
 # Default structured_result fields — set early so even if the pipeline
 # errors partway through, Tekton always gets a valid response.
@@ -76,13 +86,84 @@ def _extract_json_object(text: str) -> dict[str, Any] | None:
     return None
 
 
+def _try_typed_extraction(state: dict) -> dict[str, str] | None:
+    """Attempt to parse agent output into typed Pydantic models.
+
+    Tries CVEDecision for selection/analysis, RemediationResult for
+    remediation, and ValidationVerdict for validation. Returns a Tekton-
+    compatible dict on success, None on failure (triggering regex fallback).
+    """
+    # Collect output text from all known output keys
+    output_text = ""
+    for key in (
+        "selection_result", "analysis_result", "remediation_result",
+        "remediation_output", "test_generation_result", "test_output",
+        "pr_result", "validation_result",
+    ):
+        val = state.get(key)
+        if val:
+            output_text += str(val) + "\n"
+
+    if not output_text.strip():
+        return None
+
+    # Try JSON extraction
+    parsed = _extract_json_object(output_text)
+    if not parsed:
+        return None
+
+    # Try CVEDecision model
+    try:
+        fields = {k.lower(): v for k, v in parsed.items() if k.lower() in CVEDecision.model_fields}
+        decision = CVEDecision(**fields)
+        if decision.cve_id or decision.selected:
+            tekton = decision.to_tekton_results()
+            # Merge additional fields
+            tekton.setdefault("PR_URL", "")
+            tekton.setdefault("COUNT", "0")
+            tekton.setdefault("TESTS_ADDED", "0")
+            tekton.setdefault("ISSUES_CREATED", "0")
+            tekton.setdefault("CHANGED", "0")
+            logger.debug("typed_extraction_success model=CVEDecision cve_id=%s", decision.cve_id)
+            return tekton
+    except (ValidationError, Exception) as exc:
+        logger.debug("typed_extraction_failed model=CVEDecision error=%s", exc)
+
+    # Try RemediationResult model
+    try:
+        rem_fields = {k: v for k, v in parsed.items() if k in RemediationResult.model_fields}
+        remediation = RemediationResult(**rem_fields)
+        if remediation.success or remediation.pr_url or remediation.changed_files:
+            return {
+                "SELECTED": "0", "CVE_ID": "", "PACKAGE": "",
+                "CURRENT_VERSION": "", "FIXED_VERSION": "",
+                "JUSTIFICATION": "Remediation completed" if remediation.success else "",
+                "PR_URL": remediation.pr_url,
+                "COUNT": "0", "TESTS_ADDED": "0", "ISSUES_CREATED": "0",
+                "CHANGED": "1" if remediation.success else "0",
+            }
+    except (ValidationError, Exception):
+        pass
+
+    # Try ValidationVerdict model
+    try:
+        vrd_fields = {k: v for k, v in parsed.items() if k in ValidationVerdict.model_fields}
+        verdict = ValidationVerdict(**vrd_fields)
+        if verdict.decision != "NOT_FIXED" or verdict.score > 0:
+            state["validation_result"] = verdict.model_dump()
+            return None  # Validation doesn't map to Tekton results
+    except (ValidationError, Exception):
+        pass
+
+    return None
+
+
 async def extract_structured_results(callback_context) -> None:
     """Parse the agent's output into a structured result dict in session state.
 
-    Looks for the selection_result, analysis_result, remediation_result, or
-    test_generation_result output_key, then extracts the 6-field decision
-    contract (SELECTED, CVE_ID, PACKAGE, CURRENT_VERSION, FIXED_VERSION,
-    JUSTIFICATION) plus PR_URL and COUNT.
+    Strategy (L10.5):
+    1. Try Pydantic model parsing first (typed, validated)
+    2. Fall back to regex extraction when structured parsing fails
 
     The Tekton call-ssc-agent task reads state["structured_result"] from the
     API response to populate Tekton results.
@@ -98,6 +179,15 @@ async def extract_structured_results(callback_context) -> None:
         return
     if existing and existing.get("TESTS_ADDED") not in ("0", "", None):
         return
+
+    # --- Phase 1: Try typed Pydantic parsing ---
+    typed_result = _try_typed_extraction(state)
+    if typed_result is not None:
+        state["structured_result"] = typed_result
+        logger.debug("structured_result extracted via Pydantic model")
+        return
+
+    # --- Phase 2: Fall back to regex extraction (original logic) ---
 
     # Start from defaults (may already be set by init_structured_result)
     structured: dict[str, Any] = (
