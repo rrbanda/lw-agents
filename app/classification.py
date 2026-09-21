@@ -12,7 +12,6 @@ from typing import Any
 
 from app.http import fetch_json, github_headers
 
-
 # ============================================================================
 # L12.1 — Complexity classification (P0-P4)
 # ============================================================================

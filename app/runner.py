@@ -19,8 +19,11 @@ import yaml
 
 from app.logging_config import bind_run_context, clear_run_context
 from app.results import (
-    AgentResult, AgentStatus, RunSummary,
-    load_prior_results, write_metrics_snapshot,
+    AgentResult,
+    AgentStatus,
+    RunSummary,
+    load_prior_results,
+    write_metrics_snapshot,
 )
 from app.validation import is_valid_cve_id
 

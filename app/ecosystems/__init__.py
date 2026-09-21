@@ -12,7 +12,6 @@ from typing import Any
 
 from app.http import fetch_json, head_check
 
-
 # ============================================================================
 # L11.1 — Ecosystem handler abstraction
 # ============================================================================

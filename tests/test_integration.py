@@ -9,13 +9,10 @@ from __future__ import annotations
 import json
 import os
 import tempfile
-from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
-from app.results import AgentResult, AgentStatus, RunSummary
-from app.runner import PipelineRunner, RunConfig, REMEDIATION_AGENT_ORDER
+from app.results import AgentResult, AgentStatus
+from app.runner import REMEDIATION_AGENT_ORDER, PipelineRunner, RunConfig
 
 
 class TestPipelineRunnerE2E:
@@ -51,12 +48,6 @@ class TestPipelineRunnerE2E:
             config = self._make_config(tmpdir)
             runner = PipelineRunner(config)
 
-            success_result = AgentResult(
-                agent="placeholder",
-                status=AgentStatus.SUCCESS,
-                duration_seconds=0.1,
-                data={"selected": "1", "cve_id": "CVE-2024-9999"},
-            )
             mock = self._mock_run_agent({
                 name: AgentResult(
                     agent=name,
@@ -190,7 +181,7 @@ class TestPipelineRunnerE2E:
                 )
 
             with patch.object(runner, "_run_agent", side_effect=mock_run):
-                results = runner.run()
+                runner.run()
 
             # Should only run agents 3-5 (remediation, test_gen, validation)
             assert "cve_selection" not in call_log

@@ -20,7 +20,6 @@ import sys
 
 import structlog
 
-
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]|\x1b\].*?\x07")
 
 
