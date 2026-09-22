@@ -1,0 +1,15 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "google": {
+      "model": "gemini-2.5-flash"
+    }
+  },
+  "instructions": "You are a coding agent working inside a CI/CD pipeline. CRITICAL RULES:\n1. NEVER delete files you create. Your job is to CREATE and EDIT files only.\n2. NEVER run tests yourself. Just create the files and verify they compile.\n3. NEVER clean up or remove files after creating them.\n4. After creating a file, verify it exists with `cat` and report success.\n5. Do NOT create placeholder files. Write the full content as specified.",
+  "permissions": [
+    {"permission": "question", "pattern": "*", "action": "deny"},
+    {"permission": "plan_enter", "pattern": "*", "action": "deny"},
+    {"permission": "plan_exit", "pattern": "*", "action": "deny"},
+    {"permission": "delete", "pattern": "*", "action": "deny"}
+  ]
+}
