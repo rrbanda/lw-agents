@@ -30,11 +30,11 @@ spec:
                 optional: true
           resources:
             requests:
-              cpu: 500m
-              memory: 1Gi
+              cpu: "1"
+              memory: 4Gi
             limits:
               cpu: "4"
-              memory: 4Gi
+              memory: 12Gi
           readinessProbe:
             httpGet:
               path: /list-apps

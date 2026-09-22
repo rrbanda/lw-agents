@@ -4,6 +4,13 @@ metadata:
   name: lw-agents
   labels:
     app.kubernetes.io/name: lw-agents
+  annotations:
+    # SSE/long-lived connections need generous timeouts.
+    # OpenCode calls take 60-90s with no SSE events — without these,
+    # HAProxy closes the idle connection and ADK cancels the agent.
+    haproxy.router.openshift.io/timeout: 30m
+    haproxy.router.openshift.io/timeout-tunnel: 30m
+    haproxy.router.openshift.io/timeout-server: 30m
 spec:
   to:
     kind: Service
