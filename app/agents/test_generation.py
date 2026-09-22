@@ -169,7 +169,17 @@ class TestResultChecker(BaseAgent):
         self,
         ctx: InvocationContext,
     ) -> AsyncGenerator[Event, None]:
+        # Resolve workspace: session state > env var > /tmp/workspace
         workspace = ctx.session.state.get("workspace_path", WORKSPACE)
+        if not os.path.isdir(workspace):
+            workspace = "/tmp/workspace"
+        if not os.path.isdir(workspace):
+            logger.warning("TestResultChecker: workspace %s not found", workspace)
+            ctx.session.state["compile_error"] = f"Workspace not found: {workspace}"
+            yield Event(author=self.name)
+            return
+
+        logger.warning("TestResultChecker: checking workspace %s", workspace)
 
         # Find any *Test.java or *Tests.java files under src/test
         test_dir = os.path.join(workspace, "src", "test")
