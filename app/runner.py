@@ -449,6 +449,7 @@ class PipelineRunner:
 
         prompt = self._build_prompt(name)
         final_text = ""
+        all_text = ""  # Captures ALL events including sub-agents
 
         try:
             async for event in runner.run_async(
@@ -459,10 +460,12 @@ class PipelineRunner:
                     parts=[genai_types.Part.from_text(text=prompt)],
                 ),
             ):
-                if event.is_final_response() and event.content:
+                if event.content and event.content.parts:
                     for part in event.content.parts or []:
                         if hasattr(part, "text") and part.text:
-                            final_text += part.text
+                            all_text += part.text
+                            if event.is_final_response():
+                                final_text += part.text
         except Exception as exc:
             return AgentResult(
                 agent=name,
@@ -475,11 +478,14 @@ class PipelineRunner:
         data = dict(session.state) if hasattr(session, "state") else {}
         tekton_fields = data.get("structured_result", {})
 
-        # If session state is empty, try parsing the agent's JSON output
+        # If session state is empty, try parsing the agent's JSON output.
+        # Use all_text (not just final_text) because sub-agent output
+        # doesn't appear in is_final_response() events.
         if not tekton_fields or all(v in ("0", "") for v in tekton_fields.values()):
             from app.callbacks import _extract_json_object
 
-            parsed = _extract_json_object(final_text)
+            parse_source = all_text if all_text else final_text
+            parsed = _extract_json_object(parse_source)
             if parsed:
                 for key, val in parsed.items():
                     k_upper = key.upper()
@@ -504,13 +510,16 @@ class PipelineRunner:
         if name == "cve_selection" and str(selected) not in ("1", "true", "True"):
             status = AgentStatus.NEEDS_ESCALATION
 
+        # Use all_text (includes sub-agent output) for raw_output,
+        # since output_key only captures the parent agent's own text.
+        raw = all_text if all_text else final_text
         return AgentResult(
             agent=name,
             status=status,
             duration_seconds=time.monotonic() - start,
             data={
                 **tekton_fields,
-                "raw_output": final_text[:5000],
+                "raw_output": raw[:5000],
             },
         )
 

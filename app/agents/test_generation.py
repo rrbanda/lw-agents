@@ -30,12 +30,24 @@ from app.tools.upstream_tools import (
 
 
 async def _test_gen_after_callback(callback_context) -> None:
-    """Set TESTS_ADDED in structured_result after test-gen completes."""
+    """Set TESTS_ADDED in structured_result after test-gen completes.
+
+    IMPORTANT: ADK's output_key only captures text authored by the agent
+    itself (event.author == agent.name). When the parent delegates to
+    test_code_writer sub-agent, the sub-agent's output goes to its own
+    output_key (coding_output), NOT to the parent's (test_output).
+
+    We must check BOTH output keys to detect success.
+    """
     state = callback_context.state
-    test_output = str(state.get("test_output", "")).lower()
+
+    # Merge parent output + sub-agent output
+    all_output = " ".join(
+        str(state.get(key, "")) for key in ("test_output", "coding_output")
+    ).lower()
 
     if any(
-        kw in test_output
+        kw in all_output
         for kw in (
             "tests generated",
             "tests_generated",
@@ -51,6 +63,8 @@ async def _test_gen_after_callback(callback_context) -> None:
             "opencode",
             "strategy",
             "test_files",
+            "wrote",
+            "test file",
         )
     ):
         state["structured_result"] = {
