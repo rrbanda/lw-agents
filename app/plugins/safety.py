@@ -126,18 +126,13 @@ class SafetyPlugin(BasePlugin):
     ) -> genai_types.Content | None:
         text = ""
         if user_message and user_message.parts:
-            text = " ".join(
-                p.text for p in user_message.parts
-                if hasattr(p, "text") and p.text
-            )
+            text = " ".join(p.text for p in user_message.parts if hasattr(p, "text") and p.text)
 
         if await _classify(text):
             invocation_context.session.state["is_user_prompt_safe"] = False
             return genai_types.Content(
                 role="user",
-                parts=[genai_types.Part.from_text(
-                    text="[Content removed by safety filter]"
-                )],
+                parts=[genai_types.Part.from_text(text="[Content removed by safety filter]")],
             )
         return None
 
@@ -145,16 +140,15 @@ class SafetyPlugin(BasePlugin):
         self,
         invocation_context,
     ) -> genai_types.Content | None:
-        if not invocation_context.session.state.get(
-            "is_user_prompt_safe", True
-        ):
+        if not invocation_context.session.state.get("is_user_prompt_safe", True):
             invocation_context.session.state["is_user_prompt_safe"] = True
             return genai_types.Content(
                 role="model",
-                parts=[genai_types.Part.from_text(
-                    text="I cannot process this request as it was "
-                    "flagged by the safety filter."
-                )],
+                parts=[
+                    genai_types.Part.from_text(
+                        text="I cannot process this request as it was flagged by the safety filter."
+                    )
+                ],
             )
         return None
 
@@ -163,22 +157,17 @@ class SafetyPlugin(BasePlugin):
         callback_context,
         llm_response: LlmResponse,
     ) -> LlmResponse | None:
-        if (
-            llm_response
-            and llm_response.content
-            and llm_response.content.parts
-        ):
+        if llm_response and llm_response.content and llm_response.content.parts:
             text = " ".join(
-                p.text for p in llm_response.content.parts
-                if hasattr(p, "text") and p.text
+                p.text for p in llm_response.content.parts if hasattr(p, "text") and p.text
             )
             if await _classify(text):
                 return LlmResponse(
                     content=genai_types.Content(
                         role="model",
-                        parts=[genai_types.Part.from_text(
-                            text="[Response removed by safety filter]"
-                        )],
+                        parts=[
+                            genai_types.Part.from_text(text="[Response removed by safety filter]")
+                        ],
                     ),
                 )
         return None

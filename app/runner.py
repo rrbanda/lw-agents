@@ -60,13 +60,12 @@ def _check_cost_budget(
     """Return True if the cost budget has been exceeded."""
     if not config.max_cost_usd:
         return False
-    total_cost = sum(
-        float(r.token_usage.get("cost_usd", 0.0) or 0.0) for r in results
-    )
+    total_cost = sum(float(r.token_usage.get("cost_usd", 0.0) or 0.0) for r in results)
     if total_cost >= config.max_cost_usd:
         logger.warning(
             "cost_budget_exceeded total=%.2f budget=%.2f",
-            total_cost, config.max_cost_usd,
+            total_cost,
+            config.max_cost_usd,
         )
         return True
     return False
@@ -184,17 +183,23 @@ def _is_hopeless_case(build_output: str, attempt_cost: float = 0.0) -> tuple[boo
     """Detect cases that shouldn't be retried."""
     output_lower = build_output.lower()
     missing_count = sum(
-        output_lower.count(p) for p in [
-            "cannot find symbol", "does not exist",
-            "error: file not found", "no such file or directory",
+        output_lower.count(p)
+        for p in [
+            "cannot find symbol",
+            "does not exist",
+            "error: file not found",
+            "no such file or directory",
         ]
     )
     if missing_count > 3:
         return True, f"Too many missing symbols ({missing_count})"
 
     error_count = sum(
-        build_output.count(m) for m in [
-            "COMPILATION ERROR", "] error:", "] ERROR:",
+        build_output.count(m)
+        for m in [
+            "COMPILATION ERROR",
+            "] error:",
+            "] ERROR:",
         ]
     )
     if error_count > 40:
@@ -243,8 +248,10 @@ _STATUS_EMOJI = {
 def _display_agent_start(name: str, index: int, total: int) -> None:
     is_ci = bool(os.environ.get("CI"))
     if is_ci:
-        print(f"\n\033[0Ksection_start:{int(time.time())}:{name}[collapsed=false]\r\033[0K"
-              f"▶ [{index}/{total}] {name}")
+        print(
+            f"\n\033[0Ksection_start:{int(time.time())}:{name}[collapsed=false]\r\033[0K"
+            f"▶ [{index}/{total}] {name}"
+        )
     else:
         print(f"\n▶ [{index}/{total}] {name} ...", flush=True)
 
@@ -290,17 +297,15 @@ class PipelineRunner:
             if prior:
                 all_results = prior
                 for i, name in enumerate(agent_names):
-                    found = any(
-                        r.agent == name and r.status == AgentStatus.SUCCESS
-                        for r in prior
-                    )
+                    found = any(r.agent == name and r.status == AgentStatus.SUCCESS for r in prior)
                     if found:
                         start_index = i + 1
                     else:
                         break
                 logger.info(
                     "pipeline_resume start_index=%d prior=%d",
-                    start_index, len(prior),
+                    start_index,
+                    len(prior),
                 )
 
         wall_start = time.monotonic()
@@ -355,13 +360,18 @@ class PipelineRunner:
         # L5.8 — Run summary
         wall_seconds = time.monotonic() - wall_start
         summary = RunSummary.from_results(
-            all_results, vuln_id=self.config.vuln_id, wall_clock_seconds=wall_seconds,
+            all_results,
+            vuln_id=self.config.vuln_id,
+            wall_clock_seconds=wall_seconds,
         )
         summary.to_json(os.path.join(report_dir, "run_summary.json"))
         logger.info(
             "pipeline_complete status=%s agents=%d/%d cost=$%.4f wall=%.1fs",
-            summary.status, summary.agents_succeeded, summary.total_agents,
-            summary.total_cost_usd, summary.wall_clock_seconds,
+            summary.status,
+            summary.agents_succeeded,
+            summary.total_agents,
+            summary.total_cost_usd,
+            summary.wall_clock_seconds,
         )
 
         clear_run_context()
@@ -393,10 +403,9 @@ class PipelineRunner:
                 asyncio.get_running_loop()
                 # Already in an async context — run in a new thread
                 import concurrent.futures
+
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                    future = pool.submit(
-                        asyncio.run, self._run_adk_agent(agent, name)
-                    )
+                    future = pool.submit(asyncio.run, self._run_adk_agent(agent, name))
                     return future.result(timeout=120)
             except RuntimeError:
                 # No running loop — safe to use asyncio.run()
@@ -469,6 +478,7 @@ class PipelineRunner:
         # If session state is empty, try parsing the agent's JSON output
         if not tekton_fields or all(v in ("0", "") for v in tekton_fields.values()):
             from app.callbacks import _extract_json_object
+
             parsed = _extract_json_object(final_text)
             if parsed:
                 for key, val in parsed.items():
@@ -482,8 +492,7 @@ class PipelineRunner:
                     elif k_lower == "package":
                         tekton_fields["PACKAGE"] = str(val)
                         tekton_fields["package"] = str(val)
-                    elif k_lower in ("current_version", "fixed_version",
-                                     "justification"):
+                    elif k_lower in ("current_version", "fixed_version", "justification"):
                         tekton_fields[k_upper] = str(val)
                         tekton_fields[k_lower] = str(val)
                 # Also store as typed data
@@ -551,6 +560,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     from app.logging_config import configure_logging
+
     configure_logging(level=logging.DEBUG if args.debug else logging.INFO)
 
     if args.config:

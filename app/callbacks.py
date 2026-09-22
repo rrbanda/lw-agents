@@ -96,9 +96,14 @@ def _try_typed_extraction(state: dict) -> dict[str, str] | None:
     # Collect output text from all known output keys
     output_text = ""
     for key in (
-        "selection_result", "analysis_result", "remediation_result",
-        "remediation_output", "test_generation_result", "test_output",
-        "pr_result", "validation_result",
+        "selection_result",
+        "analysis_result",
+        "remediation_result",
+        "remediation_output",
+        "test_generation_result",
+        "test_output",
+        "pr_result",
+        "validation_result",
     ):
         val = state.get(key)
         if val:
@@ -135,11 +140,16 @@ def _try_typed_extraction(state: dict) -> dict[str, str] | None:
         remediation = RemediationResult(**rem_fields)
         if remediation.success or remediation.pr_url or remediation.changed_files:
             return {
-                "SELECTED": "0", "CVE_ID": "", "PACKAGE": "",
-                "CURRENT_VERSION": "", "FIXED_VERSION": "",
+                "SELECTED": "0",
+                "CVE_ID": "",
+                "PACKAGE": "",
+                "CURRENT_VERSION": "",
+                "FIXED_VERSION": "",
                 "JUSTIFICATION": "Remediation completed" if remediation.success else "",
                 "PR_URL": remediation.pr_url,
-                "COUNT": "0", "TESTS_ADDED": "0", "ISSUES_CREATED": "0",
+                "COUNT": "0",
+                "TESTS_ADDED": "0",
+                "ISSUES_CREATED": "0",
                 "CHANGED": "1" if remediation.success else "0",
             }
     except (ValidationError, Exception):

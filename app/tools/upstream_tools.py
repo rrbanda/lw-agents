@@ -30,9 +30,7 @@ _GH_COMMIT_RE = re.compile(
     r"github\.com/([^/]+)/([^/]+)/commit/([0-9a-fA-F]{7,40})",
     re.IGNORECASE,
 )
-_GH_SCM_RE = re.compile(
-    r"github\.com[:/]([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?/?$"
-)
+_GH_SCM_RE = re.compile(r"github\.com[:/]([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?/?$")
 
 _known_repos: dict[str, str] | None = None
 
@@ -126,6 +124,7 @@ def discover_repo_from_maven_pom(
     cached = cache_get("maven_pom_scm", cache_key)
     if cached:
         import json
+
         return json.loads(cached)
 
     maven_repo = os.environ.get("MAVEN_REPO_URL", "https://repo1.maven.org/maven2")
@@ -158,6 +157,7 @@ def discover_repo_from_maven_pom(
                     "scm_tag": tag,
                 }
                 import json
+
                 cache_put("maven_pom_scm", cache_key, json.dumps(result))
                 return result
 
@@ -215,6 +215,7 @@ def discover_upstream_repo(
     # 3. ecosyste.ms
     try:
         from app.tools.live_cve_tools import lookup_ecosystems_package
+
         pkg_name = f"{group_id}:{artifact_id}" if group_id else component
         eco_result = lookup_ecosystems_package("maven", pkg_name)
         if eco_result.get("status") == "ok" and eco_result.get("repository_url"):
@@ -304,12 +305,14 @@ def search_fix_commits(
             html_url = item["html_url"]
             subject = item["commit"]["message"].split("\n")[0]
             item_repo = item.get("repository", {}).get("full_name", f"{owner}/{repo}")
-            candidates.append({
-                "sha": sha,
-                "url": canonicalize_github_commit_url(html_url),
-                "repo": item_repo,
-                "subject": subject,
-            })
+            candidates.append(
+                {
+                    "sha": sha,
+                    "url": canonicalize_github_commit_url(html_url),
+                    "repo": item_repo,
+                    "subject": subject,
+                }
+            )
         except (KeyError, IndexError):
             continue
 
@@ -399,11 +402,13 @@ def extract_commit_urls(references: list[dict | str]) -> list[dict[str, str]]:
             owner, repo_name, sha = m.groups()
             if sha not in seen_shas:
                 seen_shas.add(sha)
-                commits.append({
-                    "sha": sha,
-                    "url": f"https://github.com/{owner}/{repo_name}/commit/{sha}",
-                    "repo": f"{owner}/{repo_name}",
-                })
+                commits.append(
+                    {
+                        "sha": sha,
+                        "url": f"https://github.com/{owner}/{repo_name}/commit/{sha}",
+                        "repo": f"{owner}/{repo_name}",
+                    }
+                )
 
     return commits
 

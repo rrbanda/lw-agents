@@ -183,6 +183,7 @@ def setup_tee_output(log_path: str):
 @dataclass
 class PromptMetric:
     """Record of a single LLM invocation."""
+
     prompt_id: str = ""
     model: str = ""
     input_tokens: int = 0

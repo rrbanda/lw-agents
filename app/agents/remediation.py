@@ -44,10 +44,12 @@ async def _remediation_before_callback(callback_context) -> None:
     if max_cost > 0 and running_cost >= max_cost:
         return genai_types.Content(
             role="model",
-            parts=[genai_types.Part.from_text(
-                text=f"Cost budget exhausted (${running_cost:.2f} "
-                f">= ${max_cost:.2f}). Stopping remediation."
-            )],
+            parts=[
+                genai_types.Part.from_text(
+                    text=f"Cost budget exhausted (${running_cost:.2f} "
+                    f">= ${max_cost:.2f}). Stopping remediation."
+                )
+            ],
         )
 
     # Inject build feedback from previous retry if available
@@ -57,6 +59,7 @@ async def _remediation_before_callback(callback_context) -> None:
 
     workspace = state.get("workspace_path") or WORKSPACE_PATH
     import os
+
     if os.path.isdir(workspace):
         snapshot = snapshot_workspace(workspace)
         state["_workspace_snapshot"] = snapshot
@@ -73,6 +76,7 @@ async def _remediation_after_callback(callback_context) -> None:
     snapshot = state.get("_workspace_snapshot", {})
 
     import os
+
     if snapshot and os.path.isdir(workspace):
         evidence = verify_changes(workspace, snapshot)
         state["diff_content"] = evidence.get("diff_content", "")
@@ -84,9 +88,7 @@ async def _remediation_after_callback(callback_context) -> None:
         if diff_text:
             regex_result = check_regex_safety(diff_text)
             if not regex_result["safe"]:
-                state["regex_lint_warnings"] = [
-                    s["risk"] for s in regex_result["smells"]
-                ]
+                state["regex_lint_warnings"] = [s["risk"] for s in regex_result["smells"]]
 
     # Then run the post-gate validation on the evidence
     await post_gate_callback(callback_context)
@@ -125,10 +127,8 @@ def _create_plan_agent(name: str = "remediation_planner") -> LlmAgent:
             "You are a remediation engineer. You MUST execute these steps "
             "in order using your tools. Do NOT just describe what you would do — "
             "actually call the tools.\n\n"
-
             "STEP 1 — CLONE: Call clone_repository with the repository "
             "URL and branch from the user's message.\n\n"
-
             "STEP 2 — INVESTIGATE THE UPSTREAM FIX: Before editing anything, "
             "understand what the upstream fix actually changed:\n"
             "  a) Call search_github_advisory(cve_id) to find fix commit URLs\n"
@@ -144,32 +144,26 @@ def _create_plan_agent(name: str = "remediation_planner") -> LlmAgent:
             "If the upstream fix involves source code changes beyond a dependency "
             "version bump, report that in your output — the pipeline may need "
             "source-level patching which requires human review.\n\n"
-
             "STEP 3 — SKILL: Call load_skill to load the remediation skill "
             "(maven-remediation or gradle-remediation based on build system).\n\n"
-
             "STEP 4 — READ: Use execute_bash to examine the project:\n"
             "  cd /tmp/workspace && cat pom.xml\n"
             "  (or cat build.gradle / build.gradle.kts for Gradle)\n"
             "Understand: Is the dependency direct? In dependencyManagement? "
             "Via a BOM? A property variable?\n\n"
-
             "STEP 5 — FIX: Apply the version change. For Maven:\n"
             "  - Property-controlled: edit the property value\n"
             "  - BOM-managed: add a version override property\n"
             "  - Direct dependency: edit the version inline\n"
             "For Gradle: edit build.gradle, version catalog, or ext property.\n"
             "Use sed or direct file writing via execute_bash.\n\n"
-
             "STEP 6 — BUILD: Run the build:\n"
             "  Maven: cd /tmp/workspace && mvn -B -q -DskipTests install\n"
             "  Gradle: cd /tmp/workspace && ./gradlew build -x test\n"
             "If it fails, report 'BUILD FAILURE' with the error output.\n\n"
-
             "STEP 7 — TEST: If build passes, run tests:\n"
             "  Maven: cd /tmp/workspace && mvn -B -q verify\n"
             "  Gradle: cd /tmp/workspace && ./gradlew test\n\n"
-
             "STEP 8 — COMMIT AND PUSH: If tests pass:\n"
             "  cd /tmp/workspace && git add -A\n"
             "  cd /tmp/workspace && git diff --cached --stat\n"
@@ -177,19 +171,19 @@ def _create_plan_agent(name: str = "remediation_planner") -> LlmAgent:
             "'Remediate <CVE>: <package> -> <version>'\n"
             "  cd /tmp/workspace && git push origin "
             "HEAD:rhtpa/remediate-<CVE>\n\n"
-
             "STEP 9 — REPORT: Report as JSON:\n"
-            "  {\"build_status\": \"SUCCESS\"|\"FAILURE\", "
-            "\"fix_type\": \"version_bump\"|\"source_patch\"|\"config_change\", "
-            "\"upstream_fix_analyzed\": true|false, "
-            "\"files_changed\": [\"pom.xml\"]}\n\n"
-
+            '  {"build_status": "SUCCESS"|"FAILURE", '
+            '"fix_type": "version_bump"|"source_patch"|"config_change", '
+            '"upstream_fix_analyzed": true|false, '
+            '"files_changed": ["pom.xml"]}\n\n'
             "IMPORTANT: Always prefix bash commands with "
             "'cd /tmp/workspace && ' to ensure correct directory."
         ),
         description="Plans and applies a Maven dependency version bump using OpenCode.",
         tools=[
-            skill_toolset, bash_tool, clone_repository_tool,
+            skill_toolset,
+            bash_tool,
+            clone_repository_tool,
             # G8: Build system detection
             FunctionTool(detect_build_system),
             # G1: Upstream fix investigation
@@ -216,7 +210,8 @@ class BuildResultChecker(BaseAgent):
     """
 
     async def _run_async_impl(
-        self, ctx: InvocationContext,
+        self,
+        ctx: InvocationContext,
     ) -> AsyncGenerator[Event, None]:
         from app.tools.diff_tools import classify_build_failure
 
@@ -229,11 +224,17 @@ class BuildResultChecker(BaseAgent):
         if is_success:
             ctx.session.state["build_passed"] = True
             ctx.session.state["structured_result"] = {
-                "SELECTED": "0", "CVE_ID": "", "PACKAGE": "",
-                "CURRENT_VERSION": "", "FIXED_VERSION": "",
+                "SELECTED": "0",
+                "CVE_ID": "",
+                "PACKAGE": "",
+                "CURRENT_VERSION": "",
+                "FIXED_VERSION": "",
                 "JUSTIFICATION": "Build and tests passed.",
-                "PR_URL": "", "COUNT": "0", "TESTS_ADDED": "0",
-                "ISSUES_CREATED": "0", "CHANGED": "1",
+                "PR_URL": "",
+                "COUNT": "0",
+                "TESTS_ADDED": "0",
+                "ISSUES_CREATED": "0",
+                "CHANGED": "1",
                 "BUILD_STATUS": "SUCCESS",
             }
             yield Event(
@@ -241,9 +242,7 @@ class BuildResultChecker(BaseAgent):
                 actions=EventActions(
                     escalate=True,
                     state_delta={
-                        "structured_result": (
-                            ctx.session.state["structured_result"]
-                        ),
+                        "structured_result": (ctx.session.state["structured_result"]),
                         "build_passed": True,
                     },
                 ),
@@ -259,20 +258,20 @@ class BuildResultChecker(BaseAgent):
         classification = classify_build_failure(output)
         category = classification.get("category", "UNKNOWN")
         ctx.session.state["failure_category"] = category
-        ctx.session.state["failure_description"] = (
-            classification.get("description", "")
-        )
+        ctx.session.state["failure_description"] = classification.get("description", "")
 
         # G4: Hopeless case detection
         missing_patterns = [
-            "cannot find symbol", "does not exist",
-            "error: file not found", "no such file or directory",
+            "cannot find symbol",
+            "does not exist",
+            "error: file not found",
+            "no such file or directory",
         ]
-        missing_count = sum(
-            output_lower.count(p) for p in missing_patterns
-        )
+        missing_count = sum(output_lower.count(p) for p in missing_patterns)
         error_markers = [
-            "compilation error", "] error:", "] ERROR:",
+            "compilation error",
+            "] error:",
+            "] ERROR:",
         ]
         error_count = sum(output.count(m) for m in error_markers)
 
@@ -280,8 +279,7 @@ class BuildResultChecker(BaseAgent):
         if is_hopeless:
             ctx.session.state["hopeless"] = True
             ctx.session.state["hopeless_reason"] = (
-                f"Too many errors ({error_count} compile, "
-                f"{missing_count} missing symbols)"
+                f"Too many errors ({error_count} compile, {missing_count} missing symbols)"
             )
             # Escalate to stop the loop — no point retrying
             yield Event(
@@ -294,9 +292,7 @@ class BuildResultChecker(BaseAgent):
         # Non-retryable categories → escalate
         if category in ("NETWORK_ERROR", "PRE_EXISTING"):
             ctx.session.state["non_retryable"] = True
-            ctx.session.state["non_retryable_reason"] = (
-                classification.get("description", category)
-            )
+            ctx.session.state["non_retryable_reason"] = classification.get("description", category)
             yield Event(
                 author=self.name,
                 actions=EventActions(escalate=True),

@@ -69,6 +69,7 @@ logger = logging.getLogger(__name__)
 # Shared tool sets (reused by multiple agents)
 # ============================================================================
 
+
 def _cve_tools() -> list:
     """Tools for CVE investigation."""
     return [
@@ -117,6 +118,7 @@ def _validation_tools() -> list:
 # ============================================================================
 # Agent nodes (LlmAgents in single_turn mode for pipeline use)
 # ============================================================================
+
 
 def _create_selection_agent() -> LlmAgent:
     """CVE selection agent as a Workflow node."""
@@ -216,7 +218,8 @@ def _create_pentester_agent() -> LlmAgent:
             "For each gate report: status (pass/partial/fail), summary, evidence."
         ),
         tools=[
-            SkillToolset(skills=skills), *_validation_tools(),
+            SkillToolset(skills=skills),
+            *_validation_tools(),
             FunctionTool(score_exploit_source),
         ],
         output_key="pentester_report",
@@ -226,6 +229,7 @@ def _create_pentester_agent() -> LlmAgent:
 # ============================================================================
 # Routing functions (deterministic decision nodes)
 # ============================================================================
+
 
 def route_on_selection(node_input: str) -> Event:
     """Route based on whether a CVE was selected."""
@@ -243,8 +247,7 @@ def route_on_build(node_input: str) -> Event:
 
     # Hopeless detection
     missing_count = sum(
-        text.count(p)
-        for p in ["cannot find symbol", "does not exist", "file not found"]
+        text.count(p) for p in ["cannot find symbol", "does not exist", "file not found"]
     )
     if missing_count > 3:
         return Event(output=node_input, route="hopeless")
@@ -297,9 +300,7 @@ def compute_validation_score(node_input: str) -> str:
         most_conservative = min(statuses, key=lambda s: severity_rank.get(s, 2))
         gates[gate_name] = most_conservative
 
-    total = sum(
-        gate_weights[g] * score_map.get(gates[g], 0.0) for g in gate_weights
-    )
+    total = sum(gate_weights[g] * score_map.get(gates[g], 0.0) for g in gate_weights)
     if total >= 0.80:
         decision = "FIXED"
     elif total >= 0.50:
@@ -310,10 +311,7 @@ def compute_validation_score(node_input: str) -> str:
     if gates.get("root_cause") != "pass" and decision == "FIXED":
         decision = "PARTIALLY_FIXED"
 
-    return (
-        f'{{"decision": "{decision}", "score": {total:.3f}, '
-        f'"gates": {gates}}}'
-    )
+    return f'{{"decision": "{decision}", "score": {total:.3f}, "gates": {gates}}}'
 
 
 def report_no_selection(node_input: str) -> str:
@@ -340,6 +338,7 @@ def report_complete(node_input: str) -> str:
 # Workflow construction
 # ============================================================================
 
+
 def create_pipeline_workflow() -> Workflow:
     """Build the full CVE remediation pipeline as a Workflow graph.
 
@@ -360,30 +359,34 @@ def create_pipeline_workflow() -> Workflow:
         edges=[
             # Phase 1: Select CVE
             (START, selection, route_on_selection),
-
             # Phase 2: Route on selection result
-            (route_on_selection, {
-                "selected": remediation,
-                "not_selected": report_no_selection,
-            }),
-
+            (
+                route_on_selection,
+                {
+                    "selected": remediation,
+                    "not_selected": report_no_selection,
+                },
+            ),
             # Phase 3: Route on build result
             (remediation, route_on_build),
-            (route_on_build, {
-                "success": test_gen,
-                "failure": route_on_retry,
-                "hopeless": report_hopeless,
-            }),
-
+            (
+                route_on_build,
+                {
+                    "success": test_gen,
+                    "failure": route_on_retry,
+                    "hopeless": report_hopeless,
+                },
+            ),
             # Phase 3b: Retry loop
-            (route_on_retry, {
-                "retry": remediation,
-                "stop": report_failure,
-            }),
-
+            (
+                route_on_retry,
+                {
+                    "retry": remediation,
+                    "stop": report_failure,
+                },
+            ),
             # Phase 4: Test generation → Validation
-            (test_gen, architect, pentester,
-             compute_validation_score, report_complete),
+            (test_gen, architect, pentester, compute_validation_score, report_complete),
         ],
     )
 
@@ -391,6 +394,7 @@ def create_pipeline_workflow() -> Workflow:
 # ============================================================================
 # Convenience: create App with Workflow as root
 # ============================================================================
+
 
 def create_workflow_app():
     """Create an ADK App with the Workflow as root agent.

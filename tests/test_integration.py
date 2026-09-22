@@ -31,6 +31,7 @@ class TestPipelineRunnerE2E:
 
     def _mock_run_agent(self, results_map: dict[str, AgentResult]):
         """Create a mock _run_agent that returns preset results."""
+
         def mock_run(name: str) -> AgentResult:
             if name in results_map:
                 return results_map[name]
@@ -40,6 +41,7 @@ class TestPipelineRunnerE2E:
                 duration_seconds=0.1,
                 data={"selected": "1", "cve_id": "CVE-2024-9999"},
             )
+
         return mock_run
 
     def test_full_pipeline_all_success(self):
@@ -48,15 +50,17 @@ class TestPipelineRunnerE2E:
             config = self._make_config(tmpdir)
             runner = PipelineRunner(config)
 
-            mock = self._mock_run_agent({
-                name: AgentResult(
-                    agent=name,
-                    status=AgentStatus.SUCCESS,
-                    duration_seconds=0.1,
-                    data={"selected": "1", "cve_id": "CVE-2024-9999"},
-                )
-                for name in REMEDIATION_AGENT_ORDER
-            })
+            mock = self._mock_run_agent(
+                {
+                    name: AgentResult(
+                        agent=name,
+                        status=AgentStatus.SUCCESS,
+                        duration_seconds=0.1,
+                        data={"selected": "1", "cve_id": "CVE-2024-9999"},
+                    )
+                    for name in REMEDIATION_AGENT_ORDER
+                }
+            )
 
             with patch.object(runner, "_run_agent", side_effect=mock):
                 results = runner.run()
@@ -84,14 +88,16 @@ class TestPipelineRunnerE2E:
             config = self._make_config(tmpdir)
             runner = PipelineRunner(config)
 
-            mock = self._mock_run_agent({
-                "cve_selection": AgentResult(
-                    agent="cve_selection",
-                    status=AgentStatus.SUCCESS,
-                    duration_seconds=0.1,
-                    data={"selected": "0", "justification": "No CVEs"},
-                ),
-            })
+            mock = self._mock_run_agent(
+                {
+                    "cve_selection": AgentResult(
+                        agent="cve_selection",
+                        status=AgentStatus.SUCCESS,
+                        duration_seconds=0.1,
+                        data={"selected": "0", "justification": "No CVEs"},
+                    ),
+                }
+            )
 
             with patch.object(runner, "_run_agent", side_effect=mock):
                 results = runner.run()
@@ -106,20 +112,22 @@ class TestPipelineRunnerE2E:
             config = self._make_config(tmpdir)
             runner = PipelineRunner(config)
 
-            mock = self._mock_run_agent({
-                "cve_selection": AgentResult(
-                    agent="cve_selection",
-                    status=AgentStatus.SUCCESS,
-                    duration_seconds=0.1,
-                    data={"selected": "1", "cve_id": "CVE-2024-9999"},
-                ),
-                "cve_analysis": AgentResult(
-                    agent="cve_analysis",
-                    status=AgentStatus.FAILED,
-                    duration_seconds=0.1,
-                    error="Analysis crashed",
-                ),
-            })
+            mock = self._mock_run_agent(
+                {
+                    "cve_selection": AgentResult(
+                        agent="cve_selection",
+                        status=AgentStatus.SUCCESS,
+                        duration_seconds=0.1,
+                        data={"selected": "1", "cve_id": "CVE-2024-9999"},
+                    ),
+                    "cve_analysis": AgentResult(
+                        agent="cve_analysis",
+                        status=AgentStatus.FAILED,
+                        duration_seconds=0.1,
+                        error="Analysis crashed",
+                    ),
+                }
+            )
 
             with patch.object(runner, "_run_agent", side_effect=mock):
                 results = runner.run()
@@ -133,15 +141,17 @@ class TestPipelineRunnerE2E:
             config = self._make_config(tmpdir, max_cost_usd=0.001)
             runner = PipelineRunner(config)
 
-            mock = self._mock_run_agent({
-                "cve_selection": AgentResult(
-                    agent="cve_selection",
-                    status=AgentStatus.SUCCESS,
-                    duration_seconds=0.1,
-                    data={"selected": "1", "cve_id": "CVE-2024-9999"},
-                    token_usage={"cost_usd": 0.01},
-                ),
-            })
+            mock = self._mock_run_agent(
+                {
+                    "cve_selection": AgentResult(
+                        agent="cve_selection",
+                        status=AgentStatus.SUCCESS,
+                        duration_seconds=0.1,
+                        data={"selected": "1", "cve_id": "CVE-2024-9999"},
+                        token_usage={"cost_usd": 0.01},
+                    ),
+                }
+            )
 
             with patch.object(runner, "_run_agent", side_effect=mock):
                 results = runner.run()
@@ -197,14 +207,16 @@ class TestPipelineRunnerE2E:
             )
             runner = PipelineRunner(config)
 
-            mock = self._mock_run_agent({
-                "cve_selection": AgentResult(
-                    agent="cve_selection",
-                    status=AgentStatus.SUCCESS,
-                    duration_seconds=0.1,
-                    data={"selected": "1", "cve_id": "CVE-2024-9999"},
-                ),
-            })
+            mock = self._mock_run_agent(
+                {
+                    "cve_selection": AgentResult(
+                        agent="cve_selection",
+                        status=AgentStatus.SUCCESS,
+                        duration_seconds=0.1,
+                        data={"selected": "1", "cve_id": "CVE-2024-9999"},
+                    ),
+                }
+            )
 
             with patch.object(runner, "_run_agent", side_effect=mock):
                 results = runner.run()
@@ -218,21 +230,21 @@ class TestPipelineRunnerE2E:
             config = self._make_config(tmpdir, agents=["cve_selection"])
             runner = PipelineRunner(config)
 
-            mock = self._mock_run_agent({
-                "cve_selection": AgentResult(
-                    agent="cve_selection",
-                    status=AgentStatus.SUCCESS,
-                    duration_seconds=0.5,
-                    data={"selected": "1"},
-                ),
-            })
+            mock = self._mock_run_agent(
+                {
+                    "cve_selection": AgentResult(
+                        agent="cve_selection",
+                        status=AgentStatus.SUCCESS,
+                        duration_seconds=0.5,
+                        data={"selected": "1"},
+                    ),
+                }
+            )
 
             with patch.object(runner, "_run_agent", side_effect=mock):
                 runner.run()
 
-            metrics_path = os.path.join(
-                config.run_report_dir, "agent-metrics.jsonl"
-            )
+            metrics_path = os.path.join(config.run_report_dir, "agent-metrics.jsonl")
             assert os.path.exists(metrics_path)
             with open(metrics_path) as f:
                 lines = f.readlines()
@@ -261,13 +273,15 @@ class TestPipelineRunnerE2E:
             assert config.agents == ["cve_selection"]
 
             runner = PipelineRunner(config)
-            mock = self._mock_run_agent({
-                "cve_selection": AgentResult(
-                    agent="cve_selection",
-                    status=AgentStatus.SUCCESS,
-                    data={"selected": "1", "cve_id": "CVE-2024-8888"},
-                ),
-            })
+            mock = self._mock_run_agent(
+                {
+                    "cve_selection": AgentResult(
+                        agent="cve_selection",
+                        status=AgentStatus.SUCCESS,
+                        data={"selected": "1", "cve_id": "CVE-2024-8888"},
+                    ),
+                }
+            )
 
             with patch.object(runner, "_run_agent", side_effect=mock):
                 results = runner.run()

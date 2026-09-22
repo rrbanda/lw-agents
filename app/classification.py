@@ -110,9 +110,7 @@ def java_version_constraint(required_jdk: int) -> str:
         Constraint text for inclusion in agent prompts. Empty if no restrictions.
     """
     unavailable = [
-        f"{name} (requires {ver}+)"
-        for ver, name in _JAVA_FEATURES_BY_VERSION
-        if ver > required_jdk
+        f"{name} (requires {ver}+)" for ver, name in _JAVA_FEATURES_BY_VERSION if ver > required_jdk
     ]
     if not unavailable:
         return ""
@@ -134,7 +132,8 @@ def detect_java_version(project_dir: str) -> int | None:
             # <maven.compiler.source>1.8</maven.compiler.source>
             m = re.search(
                 r"<maven\.compiler\.source>\s*(\d[\d.]*)"
-                r"\s*</maven\.compiler\.source>", content,
+                r"\s*</maven\.compiler\.source>",
+                content,
             )
             if m:
                 ver = m.group(1)

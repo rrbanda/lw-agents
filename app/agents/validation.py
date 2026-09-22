@@ -58,7 +58,9 @@ def _create_security_architect() -> LlmAgent:
         ),
         description="Evaluates fix design, data flow paths, and security controls.",
         tools=[
-            skill_toolset, lookup_cve_detail, parse_maven_purl,
+            skill_toolset,
+            lookup_cve_detail,
+            parse_maven_purl,
             FunctionTool(analyze_diff),
             FunctionTool(check_regex_safety),
             FunctionTool(lookup_nvd),
@@ -86,7 +88,9 @@ def _create_penetration_tester() -> LlmAgent:
         ),
         description="Evaluates real-world exploitability of the fix.",
         tools=[
-            skill_toolset, lookup_cve_detail, parse_maven_purl,
+            skill_toolset,
+            lookup_cve_detail,
+            parse_maven_purl,
             FunctionTool(analyze_diff),
             FunctionTool(check_regex_safety),
             FunctionTool(score_exploit_source),

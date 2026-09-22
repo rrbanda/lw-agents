@@ -39,6 +39,7 @@ class BuildOutcome(StrEnum):
 @dataclass
 class SurefireResult:
     """Parsed JUnit/Surefire XML test results."""
+
     tests_run: int = 0
     tests_passed: int = 0
     tests_failed: int = 0
@@ -50,6 +51,7 @@ class SurefireResult:
 @dataclass
 class BuildVerificationResult:
     """Typed result from a build verification run."""
+
     success: bool = False
     build_system: str = ""
     compile_status: str = ""
@@ -114,6 +116,7 @@ class BuildVerificationResult:
 @dataclass
 class BuildRecipeEntry:
     """A single fix applied during the build-fix process."""
+
     source: str  # "deterministic:<name>" or "agent"
     description: str
     files_modified: list[str] = field(default_factory=list)
@@ -129,6 +132,7 @@ class BuildRecipeEntry:
 @dataclass
 class BuildRecipe:
     """Accumulated build-configuration fixes for auditability and replay."""
+
     entries: list[BuildRecipeEntry] = field(default_factory=list)
     build_args: list[str] | None = None
     file_snapshot: dict[str, str] = field(default_factory=dict)
@@ -221,7 +225,11 @@ def run_maven_build(
 
     try:
         result = subprocess.run(
-            cmd, cwd=project_dir, capture_output=True, text=True, timeout=timeout,
+            cmd,
+            cwd=project_dir,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
         )
     except subprocess.TimeoutExpired as exc:
         raw = exc.stdout or b""
@@ -234,9 +242,7 @@ def run_maven_build(
             project_dir=project_dir,
         )
 
-    combined = result.stdout + (
-        "\n" + result.stderr if result.stderr else ""
-    )
+    combined = result.stdout + ("\n" + result.stderr if result.stderr else "")
 
     if result.returncode != 0:
         classification = classify_build_failure(combined)
@@ -300,8 +306,7 @@ def _parse_surefire_reports(project_dir: str) -> SurefireResult | None:
         return None
 
     result.tests_passed = (
-        result.tests_run - result.tests_failed
-        - result.tests_errored - result.tests_skipped
+        result.tests_run - result.tests_failed - result.tests_errored - result.tests_skipped
     )
     return result
 
@@ -340,7 +345,11 @@ def run_gradle_build(
 
     try:
         result = subprocess.run(
-            cmd, cwd=project_dir, capture_output=True, text=True, timeout=timeout,
+            cmd,
+            cwd=project_dir,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
         )
     except subprocess.TimeoutExpired as exc:
         raw = exc.stdout or b""
@@ -353,21 +362,22 @@ def run_gradle_build(
             project_dir=project_dir,
         )
 
-    combined = result.stdout + (
-        "\n" + result.stderr if result.stderr else ""
-    )
+    combined = result.stdout + ("\n" + result.stderr if result.stderr else "")
 
     if result.returncode != 0:
         classification = classify_build_failure(combined)
         return BuildVerificationResult(
-            build_system="gradle", compile_status="failed",
+            build_system="gradle",
+            compile_status="failed",
             compile_output=combined[-5000:],
             error=f"Gradle failed with exit code {result.returncode}",
-            project_dir=project_dir, classification=classification,
+            project_dir=project_dir,
+            classification=classification,
         )
 
     return BuildVerificationResult(
-        build_system="gradle", compile_status="passed",
+        build_system="gradle",
+        compile_status="passed",
         compile_output=combined[-2000:],
         test_status="skipped" if skip_tests else "passed",
         project_dir=project_dir,
@@ -412,7 +422,8 @@ def _fix_spring_format(build_output: str, project_dir: str) -> str | None:
                 r"<plugin>\s*<groupId>io\.spring\.javaformat"
                 r"</groupId>.*?</plugin>",
                 "<!-- spring-javaformat disabled -->",
-                content, flags=re.DOTALL
+                content,
+                flags=re.DOTALL,
             )
             Path(pom_path).write_text(content)
             return "Disabled spring-javaformat-maven-plugin (formatting check)"
@@ -434,7 +445,9 @@ def _fix_missing_toolchains(build_output: str, project_dir: str) -> str | None:
             content = re.sub(
                 r"<plugin>\s*<groupId>org\.apache\.maven\.plugins</groupId>\s*"
                 r"<artifactId>maven-toolchains-plugin</artifactId>.*?</plugin>",
-                "<!-- toolchains plugin disabled by build fixer -->", content, flags=re.DOTALL
+                "<!-- toolchains plugin disabled by build fixer -->",
+                content,
+                flags=re.DOTALL,
             )
             Path(pom_path).write_text(content)
             return "Disabled maven-toolchains-plugin (no matching JDK)"
@@ -459,10 +472,12 @@ def apply_deterministic_fixes(
     for fixer in DETERMINISTIC_FIXERS:
         result = fixer(build_output, project_dir)
         if result:
-            entries.append(BuildRecipeEntry(
-                source=f"deterministic:{fixer.__name__}",
-                description=result,
-            ))
+            entries.append(
+                BuildRecipeEntry(
+                    source=f"deterministic:{fixer.__name__}",
+                    description=result,
+                )
+            )
     return entries
 
 

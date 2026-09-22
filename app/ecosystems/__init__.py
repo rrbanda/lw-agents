@@ -101,6 +101,7 @@ class JavaEcosystemHandler(EcosystemHandler):
     def check_version_exists(self, package: str, version: str) -> dict[str, Any]:
         """Check Maven Central for a version."""
         import os
+
         parts = package.split(":")
         if len(parts) != 2:
             return {"exists": False, "error": f"Invalid Maven coordinate: {package}"}
@@ -110,8 +111,11 @@ class JavaEcosystemHandler(EcosystemHandler):
         url = f"{maven_repo}/{group_path}/{artifact_id}/{version}/{artifact_id}-{version}.pom"
         status, exists = head_check(url)
         return {
-            "package": package, "version": version,
-            "exists": exists, "status": "checked", "checked_url": url,
+            "package": package,
+            "version": version,
+            "exists": exists,
+            "status": "checked",
+            "checked_url": url,
         }
 
     def detect_build_system(self, project_dir: Path) -> str:
@@ -149,8 +153,10 @@ class PythonEcosystemHandler(EcosystemHandler):
         url = f"https://pypi.org/pypi/{package}/{version}/json"
         status, data = fetch_json(url, max_retries=2)
         return {
-            "package": package, "version": version,
-            "exists": status == 200, "status": "checked",
+            "package": package,
+            "version": version,
+            "exists": status == 200,
+            "status": "checked",
         }
 
     def detect_build_system(self, project_dir: Path) -> str:

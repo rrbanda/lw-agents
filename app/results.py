@@ -197,15 +197,17 @@ class RunSummary:
             total_output += out
             total_cost += cost
 
-            details.append({
-                "agent": r.agent,
-                "status": r.status.value,
-                "duration_seconds": r.duration_seconds,
-                "ai_invocations": r.ai_invocations,
-                "input_tokens": inp,
-                "output_tokens": out,
-                "cost_usd": cost,
-            })
+            details.append(
+                {
+                    "agent": r.agent,
+                    "status": r.status.value,
+                    "duration_seconds": r.duration_seconds,
+                    "ai_invocations": r.ai_invocations,
+                    "input_tokens": inp,
+                    "output_tokens": out,
+                    "cost_usd": cost,
+                }
+            )
 
         return cls(
             vuln_id=vuln_id,

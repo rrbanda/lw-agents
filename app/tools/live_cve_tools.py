@@ -96,7 +96,8 @@ def _enrich_from_alias(osv_data: dict) -> dict:
                 if status == 200 and isinstance(ghsa_data, dict) and _has_package_data(ghsa_data):
                     logger.info(
                         "osv_enriched_from_alias cve_id=%s alias=%s",
-                        osv_data.get("id"), alias,
+                        osv_data.get("id"),
+                        alias,
                     )
                     return ghsa_data
             except Exception as exc:
@@ -118,10 +119,12 @@ def _parse_osv_response(cve_id: str, data: dict) -> dict[str, Any]:
     }
 
     for ref in data.get("references", []):
-        result["references"].append({
-            "type": ref.get("type", ""),
-            "url": ref.get("url", ""),
-        })
+        result["references"].append(
+            {
+                "type": ref.get("type", ""),
+                "url": ref.get("url", ""),
+            }
+        )
 
     for affected in data.get("affected", []):
         pkg = affected.get("package", {})
@@ -136,10 +139,12 @@ def _parse_osv_response(cve_id: str, data: dict) -> dict[str, Any]:
                 if "fixed" in event:
                     entry["fixed_versions"].append(event["fixed"])
                     result["fixed_versions"].append(event["fixed"])
-            entry["ranges"].append({
-                "type": rng.get("type", ""),
-                "events": rng.get("events", []),
-            })
+            entry["ranges"].append(
+                {
+                    "type": rng.get("type", ""),
+                    "events": rng.get("events", []),
+                }
+            )
         result["affected_packages"].append(entry)
 
     return result

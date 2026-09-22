@@ -24,8 +24,10 @@ FORBIDDEN_PATTERNS = [
     (r"TODO.*hack", "TODO hack comment left in fix"),
     (r"security\.checkPermission\s*=\s*false", "security permission check disabled"),
     (r"setSecurityManager\(null\)", "SecurityManager disabled"),
-    (r"TrustManager\[\]\s*\{[^}]*new\s+X509TrustManager",
-     "Custom TrustManager (potential TLS bypass)"),
+    (
+        r"TrustManager\[\]\s*\{[^}]*new\s+X509TrustManager",
+        "Custom TrustManager (potential TLS bypass)",
+    ),
 ]
 
 MAX_DIFF_LINES = 100

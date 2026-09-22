@@ -28,13 +28,31 @@ FORBIDDEN_PATTERNS: list[tuple[str, str]] = [
 
 _DOC_EXTENSIONS = frozenset({".md", ".txt", ".rst", ".adoc", ".html"})
 _DOC_PATHS = ("CHANGELOG", "RELEASE-NOTES", "README", "docs/", "src/site/")
-_SOURCE_EXTENSIONS = frozenset({
-    ".java", ".py", ".go", ".c", ".cpp", ".rs", ".kt", ".scala", ".groovy",
-})
-_CONFIG_EXTENSIONS = frozenset({
-    ".xml", ".yaml", ".yml", ".properties", ".json", ".toml",
-    ".gradle", ".gradle.kts",
-})
+_SOURCE_EXTENSIONS = frozenset(
+    {
+        ".java",
+        ".py",
+        ".go",
+        ".c",
+        ".cpp",
+        ".rs",
+        ".kt",
+        ".scala",
+        ".groovy",
+    }
+)
+_CONFIG_EXTENSIONS = frozenset(
+    {
+        ".xml",
+        ".yaml",
+        ".yml",
+        ".properties",
+        ".json",
+        ".toml",
+        ".gradle",
+        ".gradle.kts",
+    }
+)
 _TEST_INDICATORS = ("test/", "tests/", "Test.java", "Tests.java", "IT.java", "_test.py", "test_")
 
 
@@ -49,9 +67,17 @@ def analyze_diff(diff_text: str) -> dict[str, Any]:
     """
     if not diff_text:
         return {
-            "total_files": 0, "files": [], "lines_added": 0, "lines_removed": 0,
-            "forbidden_patterns": [], "is_doc_only": False, "is_pom_only": False,
-            "source_files": [], "test_files": [], "config_files": [], "doc_files": [],
+            "total_files": 0,
+            "files": [],
+            "lines_added": 0,
+            "lines_removed": 0,
+            "forbidden_patterns": [],
+            "is_doc_only": False,
+            "is_pom_only": False,
+            "source_files": [],
+            "test_files": [],
+            "config_files": [],
+            "doc_files": [],
         }
 
     files = re.findall(r"^diff --git a/.+ b/(.+)$", diff_text, re.MULTILINE)
@@ -116,6 +142,7 @@ _SINK_BEFORE = re.compile(
 @dataclass(frozen=True)
 class RegexSmell:
     """A quantified alternation group flagged as a ReDoS/StackOverflow risk."""
+
     group: str
     quantifier: str
     line: int = 0
@@ -146,10 +173,12 @@ def _find_alternation_groups(pattern: str) -> list[RegexSmell]:
             if has_alt and i + 1 < n and pattern[i + 1] in ("*", "+"):
                 quant = pattern[i + 1]
                 if i + 2 >= n or pattern[i + 2] != "+":
-                    smells.append(RegexSmell(
-                        group=pattern[start:i + 2],
-                        quantifier=quant,
-                    ))
+                    smells.append(
+                        RegexSmell(
+                            group=pattern[start : i + 2],
+                            quantifier=quant,
+                        )
+                    )
             if has_alt and stack:
                 stack[-1][1] = True
         i += 1
@@ -189,13 +218,15 @@ def check_regex_safety(diff_text: str) -> dict[str, Any]:
             for string_match in re.finditer(r'"([^"\\]*(?:\\.[^"\\]*)*)"', line):
                 literal = string_match.group(1)
                 for smell in _find_alternation_groups(literal):
-                    smells.append({
-                        "file": current_file,
-                        "line": line_num,
-                        "group": smell.group,
-                        "quantifier": smell.quantifier,
-                        "risk": "Quantified alternation group — potential ReDoS/StackOverflow",
-                    })
+                    smells.append(
+                        {
+                            "file": current_file,
+                            "line": line_num,
+                            "group": smell.group,
+                            "quantifier": smell.quantifier,
+                            "risk": "Quantified alternation group — potential ReDoS/StackOverflow",
+                        }
+                    )
         elif not raw_line.startswith("-"):
             line_num += 1
 
@@ -324,33 +355,48 @@ def classify_build_failure(build_output: str) -> dict[str, Any]:
 # ============================================================================
 
 _NON_SECURITY_PATTERNS: list[tuple[str, re.Pattern]] = [
-    ("release-prep", re.compile(
-        r"prepare for next development iteration"
-        r"|prepare release\b"
-        r"|\[maven-release-plugin\]"
-        r"|^\[release\] "
-    )),
-    ("build-config", re.compile(
-        r"maven plugin configuration"
-        r"|gpg[\s/]signing config"
-        r"|javadoc plugin"
-        r"|updated? build (?:config|script)"
-    )),
-    ("dependency-upgrade", re.compile(
-        r"general dependency version upgrade"
-        r"|general maven plugin version upgrade"
-        r"|bump(?:ed)? \S+ from \S+ to \S+"
-    )),
-    ("housekeeping", re.compile(
-        r"\.gitignore"
-        r"|^updated headers$"
-        r"|^fix(?:ed)? typos?$"
-        r"|^updated? copyright"
-    )),
-    ("version-bump", re.compile(
-        r"^(?:set |bump(?:ed)? )?version to \S+$"
-        r"|^\d+\.\d+[\d.]*(?:[._-](?:release|final|ga|snapshot))?$"
-    )),
+    (
+        "release-prep",
+        re.compile(
+            r"prepare for next development iteration"
+            r"|prepare release\b"
+            r"|\[maven-release-plugin\]"
+            r"|^\[release\] "
+        ),
+    ),
+    (
+        "build-config",
+        re.compile(
+            r"maven plugin configuration"
+            r"|gpg[\s/]signing config"
+            r"|javadoc plugin"
+            r"|updated? build (?:config|script)"
+        ),
+    ),
+    (
+        "dependency-upgrade",
+        re.compile(
+            r"general dependency version upgrade"
+            r"|general maven plugin version upgrade"
+            r"|bump(?:ed)? \S+ from \S+ to \S+"
+        ),
+    ),
+    (
+        "housekeeping",
+        re.compile(
+            r"\.gitignore"
+            r"|^updated headers$"
+            r"|^fix(?:ed)? typos?$"
+            r"|^updated? copyright"
+        ),
+    ),
+    (
+        "version-bump",
+        re.compile(
+            r"^(?:set |bump(?:ed)? )?version to \S+$"
+            r"|^\d+\.\d+[\d.]*(?:[._-](?:release|final|ga|snapshot))?$"
+        ),
+    ),
 ]
 
 
@@ -393,6 +439,7 @@ def filter_non_security_commits(
 # ============================================================================
 # L3.5 — Intelligent diff filtering
 # ============================================================================
+
 
 class _Priority(IntEnum):
     CRITICAL = 1
@@ -483,8 +530,11 @@ def filter_diff_by_priority(
 # ============================================================================
 
 _INJECTION_PATTERNS: list[tuple[str, str]] = [
-    (r"\bignore\s+(?:all\s+)?(?:previous|prior)"
-     r"\s+(?:instructions?|directives?|commands?)", "instruction_override"),
+    (
+        r"\bignore\s+(?:all\s+)?(?:previous|prior)"
+        r"\s+(?:instructions?|directives?|commands?)",
+        "instruction_override",
+    ),
     (r"\bignore\s+all\s+(?:instructions?|directives?|commands?)", "instruction_override"),
     (r"\bdisregard\s+(?:all\s+)?(?:previous|prior)", "instruction_override"),
     (r"\bforget\s+(?:everything|all|previous)", "instruction_override"),
@@ -521,9 +571,9 @@ def detect_prompt_injection(text: str) -> dict[str, Any]:
         if match:
             descriptive_types = ("security_bypass", "instruction_override", "role_confusion")
             if threat_type in descriptive_types:
-                window = text[max(0, match.start() - 60):match.start()]
+                window = text[max(0, match.start() - 60) : match.start()]
                 last_break = max(window.rfind("."), window.rfind("!"), window.rfind("\n"))
-                clause = window[last_break + 1:] if last_break >= 0 else window
+                clause = window[last_break + 1 :] if last_break >= 0 else window
                 if _DESCRIPTIVE_MODAL_RE.search(clause):
                     continue
             threats.append(threat_type)
@@ -550,8 +600,10 @@ def sanitize_text(text: str, threats: list[str]) -> str:
 
     if "role_marker" in threats or "role_confusion" in threats:
         sanitized = re.sub(
-            r"^(system|assistant|user|admin|root):\s*", "",
-            sanitized, flags=re.IGNORECASE | re.MULTILINE
+            r"^(system|assistant|user|admin|root):\s*",
+            "",
+            sanitized,
+            flags=re.IGNORECASE | re.MULTILINE,
         )
     if "instruction_override" in threats:
         for p in [
@@ -563,12 +615,16 @@ def sanitize_text(text: str, threats: list[str]) -> str:
     if "security_bypass" in threats:
         sanitized = re.sub(
             r"(skip|bypass|disable)\s+(all|security|safety|validation)[^\n]*",
-            "[REMOVED]", sanitized, flags=re.IGNORECASE
+            "[REMOVED]",
+            sanitized,
+            flags=re.IGNORECASE,
         )
     if "exfiltration" in threats:
         sanitized = re.sub(
             r"(send|post)\s+.+?\s+to\s+(https?://[^\s]+)",
-            r"\1 [URL REMOVED]", sanitized, flags=re.IGNORECASE
+            r"\1 [URL REMOVED]",
+            sanitized,
+            flags=re.IGNORECASE,
         )
     if "context_break" in threats:
         sanitized = re.sub(r"\n{3,}", "\n\n", sanitized)
@@ -581,16 +637,34 @@ def sanitize_text(text: str, threats: list[str]) -> str:
 # L3.7 — Exploit source trust scoring
 # ============================================================================
 
-TRUSTED_ORGS = frozenset({
-    "spring-projects", "apache", "eclipse", "kubernetes", "docker",
-    "nodejs", "microsoft", "google", "netty", "FasterXML", "qos-ch",
-})
+TRUSTED_ORGS = frozenset(
+    {
+        "spring-projects",
+        "apache",
+        "eclipse",
+        "kubernetes",
+        "docker",
+        "nodejs",
+        "microsoft",
+        "google",
+        "netty",
+        "FasterXML",
+        "qos-ch",
+    }
+)
 SAFE_ORGS = frozenset({"projectdiscovery", "offensive-security"})
 SAFE_DOMAINS = frozenset({"www.exploit-db.com", "exploit-db.com"})
-ADVISORY_DOMAINS = frozenset({
-    "www.herodevs.com", "herodevs.com", "security.snyk.io", "snyk.io",
-    "nvd.nist.gov", "cve.mitre.org", "spring.io",
-})
+ADVISORY_DOMAINS = frozenset(
+    {
+        "www.herodevs.com",
+        "herodevs.com",
+        "security.snyk.io",
+        "snyk.io",
+        "nvd.nist.gov",
+        "cve.mitre.org",
+        "spring.io",
+    }
+)
 
 
 def score_exploit_source(url: str) -> dict[str, Any]:
@@ -603,6 +677,7 @@ def score_exploit_source(url: str) -> dict[str, Any]:
         url: URL of the exploit source.
     """
     from urllib.parse import urlparse
+
     parsed = urlparse(url)
     domain = parsed.netloc.lower()
     path = parsed.path.lower()
@@ -620,8 +695,18 @@ def score_exploit_source(url: str) -> dict[str, Any]:
                 return {"url": url, "tier": "TRUSTED", "score": 95.0, "can_download": True}
             if org.lower() in {o.lower() for o in SAFE_ORGS}:
                 return {"url": url, "tier": "SAFE", "score": 70.0, "can_download": True}
-            return {"url": url, "tier": "COMMUNITY", "score": 35.0, "can_download": True,
-                    "warning": "Unknown GitHub org — verify before use"}
+            return {
+                "url": url,
+                "tier": "COMMUNITY",
+                "score": 35.0,
+                "can_download": True,
+                "warning": "Unknown GitHub org — verify before use",
+            }
 
-    return {"url": url, "tier": "UNTRUSTED", "score": 10.0, "can_download": False,
-            "warning": "Unknown domain — manual review required"}
+    return {
+        "url": url,
+        "tier": "UNTRUSTED",
+        "score": 10.0,
+        "can_download": False,
+        "warning": "Unknown domain — manual review required",
+    }
