@@ -21,7 +21,7 @@ spec:
       default: tests/eval/evalhub-safety-baseline.yaml
     - name: EVALHUB_URL
       type: string
-      default: https://evalhub-redhat-ods-applications.apps.ocp.qn6c5.sandbox1388.opentlc.com
+      default: https://evalhub-redhat-ods-applications.apps.ocp.example.com
     - name: EVALHUB_TENANT
       type: string
       default: redhat-ods-applications
@@ -39,7 +39,7 @@ spec:
       default: ""
     - name: MLFLOW_TRACKING_URI
       type: string
-      default: https://mlflow-redhat-ods-applications.apps.ocp.qn6c5.sandbox1388.opentlc.com
+      default: https://mlflow-redhat-ods-applications.apps.ocp.example.com
     - name: MLFLOW_WORKSPACE
       type: string
       default: autorag

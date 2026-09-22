@@ -15,7 +15,7 @@ spec:
           env:
             # --- MLflow Tracing ---
             - name: MLFLOW_TRACKING_URI
-              value: https://mlflow-redhat-ods-applications.apps.ocp.qn6c5.sandbox1388.opentlc.com
+              value: https://mlflow-redhat-ods-applications.apps.ocp.example.com
             - name: MLFLOW_EXPERIMENT_NAME
               value: lw-agents
             - name: MLFLOW_WORKSPACE

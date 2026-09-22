@@ -84,7 +84,7 @@ flowchart TB
         rem["remediation\n(SequentialAgent)"]
         remInitPlan["initial_remediation_planner\n(LlmAgent)\npre/post_gate_callback"]
         subgraph remRetryLoop [LoopAgent: remediation_retry_loop, max=3]
-            remChecker["build_result_checker\n(BaseAgent)"]
+            remChecker["build_result_checker\n(BaseAgent)\nemits CHANGED=1 via Event.state_delta\nclassifies: PATCH | ENV | PRE_EXISTING | NETWORK"]
             remRetryPlan["remediation_retry_planner\n(LlmAgent)\npre/post_gate_callback"]
         end
         remPR["remediation_pr_opener\n(LlmAgent)"]
@@ -96,13 +96,16 @@ flowchart TB
 
     subgraph testAgent [Test Generation Agent]
         tst["test_generation\n(SequentialAgent)"]
-        tstWriter["initial_test_writer\n(LlmAgent)"]
-        tstLoop["test_refinement_loop\n(LoopAgent)"]
-        tstPR["test_pr_opener\n(LlmAgent)"]
+        tstInvestigator["test_investigator\n(LlmAgent)\noutput_key: test_spec"]
+        tstWriter["test_writer\n(LlmAgent)\ntee or OpenCode"]
+        subgraph tstRetryLoop [LoopAgent: test_retry_loop, max=2]
+            tstChecker["test_result_checker\n(TestResultChecker / BaseAgent)\nfinds *Test.java + mvn compile\nemits TESTS_ADDED=1"]
+            tstFixer["test_fixer or opencode_fixer\n(LlmAgent)"]
+        end
+        tstCommitter["test_committer\n(LlmAgent)"]
         tstSkills["SkillToolset\njunit-test-generation\nscm-conventions"]
         tstBash["execute_bash\n(build_bash_tool)"]
         tstClone["clone_repository_tool"]
-        tstPRTool["create_pull_request_tool"]
     end
 
     subgraph valAgent [Fix Validation Agent]
@@ -127,9 +130,8 @@ flowchart TB
     remInitPlan --- remSkills & remBash & remClone
     remChecker --> remRetryPlan
     remPR --- remPRTool
-    tst --- tstWriter --> tstLoop --> tstPR
-    tstWriter --- tstSkills & tstBash & tstClone
-    tstPR --- tstPRTool
+    tst --- tstInvestigator --> tstWriter --> tstRetryLoop --> tstCommitter
+    tstInvestigator --- tstSkills & tstBash & tstClone
     val --- valArch --> valPen --> valScore
     valArch --- valArchSkill & valTools
     valPen --- valPenSkill

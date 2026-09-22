@@ -174,12 +174,12 @@ class TestResultChecker(BaseAgent):
         if not os.path.isdir(workspace):
             workspace = "/tmp/workspace"
         if not os.path.isdir(workspace):
-            logger.warning("TestResultChecker: workspace %s not found", workspace)
+            logger.info("TestResultChecker: workspace %s not found", workspace)
             ctx.session.state["compile_error"] = f"Workspace not found: {workspace}"
             yield Event(author=self.name)
             return
 
-        logger.warning("TestResultChecker: checking workspace %s", workspace)
+        logger.info("TestResultChecker: checking workspace %s", workspace)
 
         # Find any *Test.java or *Tests.java files under src/test
         test_dir = os.path.join(workspace, "src", "test")
@@ -195,7 +195,7 @@ class TestResultChecker(BaseAgent):
         cve_tests = [f for f in test_files if "Cve" in f or "cve" in f.lower()]
 
         if cve_tests:
-            logger.warning(
+            logger.info(
                 "TestResultChecker: FOUND %d CVE test files: %s",
                 len(cve_tests),
                 cve_tests,
@@ -216,7 +216,7 @@ class TestResultChecker(BaseAgent):
                 compile_ok = False
 
             if compile_ok:
-                logger.warning("TestResultChecker: Compile OK → TESTS_ADDED=1")
+                logger.info("TestResultChecker: Compile OK → TESTS_ADDED=1")
                 ctx.session.state["tests_added"] = True
                 ctx.session.state["test_files"] = cve_tests
                 ctx.session.state["structured_result"] = {
@@ -246,7 +246,7 @@ class TestResultChecker(BaseAgent):
                 return
 
             # Compile failed — inject feedback for fixer
-            logger.warning(
+            logger.info(
                 "TestResultChecker: Compile FAILED for %s",
                 cve_tests,
             )
@@ -258,7 +258,7 @@ class TestResultChecker(BaseAgent):
             return
 
         # No test files found at all
-        logger.warning("TestResultChecker: NO CVE test files found in %s", test_dir)
+        logger.info("TestResultChecker: NO CVE test files found in %s", test_dir)
         ctx.session.state["compile_error"] = "No CVE test files found in src/test/"
         yield Event(author=self.name)
 

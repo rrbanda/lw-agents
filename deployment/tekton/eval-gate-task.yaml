@@ -15,7 +15,7 @@ spec:
     - name: EVALHUB_URL
       type: string
       description: EvalHub API route URL.
-      default: https://evalhub-redhat-ods-applications.apps.ocp.qn6c5.sandbox1388.opentlc.com
+      default: https://evalhub-redhat-ods-applications.apps.ocp.example.com
     - name: EVALHUB_TENANT
       type: string
       description: EvalHub tenant namespace.

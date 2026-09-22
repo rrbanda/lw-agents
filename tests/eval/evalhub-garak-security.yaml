@@ -7,7 +7,7 @@
 
 name: lw-agents-security-scan
 model:
-  url: https://autorag-ogx-autorag.apps.ocp.qn6c5.sandbox1388.opentlc.com/v1
+  url: https://autorag-ogx-autorag.apps.ocp.example.com/v1
   name: gemini-2.5-flash
 
 benchmarks:

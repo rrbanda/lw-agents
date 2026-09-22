@@ -110,9 +110,9 @@ flowchart LR
 2. **Eval gates** run EvalHub safety/security benchmarks and 38 agent eval cases -- the pipeline only proceeds if both pass
 3. **CVE Selection agent** loads the `cve-triage` skill, explores each CVE via tools, verifies versions on Maven Central, and selects the best one to fix
 4. **CVE Analysis agent** iterates all CVEs and creates SCM issues for every fixable vulnerability
-5. **Remediation agent** loads the `maven-remediation` skill, edits `pom.xml` via OpenCode, runs `mvn install` to verify, retries up to 3 times on failure, then opens a PR
-6. **Test Generation agent** writes JUnit tests, iterates until they pass, opens a separate tests-only PR
-7. **Fix Validation agent** runs two adversarial personas (security architect + penetration tester) that independently evaluate the fix against 4 weighted gates, producing a deterministic FIXED / PARTIALLY_FIXED / NOT_FIXED verdict
+5. **Remediation agent** (SequentialAgent) investigates the upstream fix commit, applies the version change via `execute_bash`, runs the build, and retries up to 3 times with classified error feedback from a deterministic `BuildResultChecker` -- then opens a PR
+6. **Test Generation agent** (SequentialAgent) researches the CVE, writes JUnit tests (via `tee` or OpenCode), verifies they compile using a deterministic `TestResultChecker` that inspects the filesystem, and commits
+7. **Fix Validation agent** (SequentialAgent) runs two adversarial personas (security architect + penetration tester) that independently evaluate the fix against 4 weighted gates, producing a deterministic FIXED / PARTIALLY_FIXED / NOT_FIXED verdict via `DeterministicScoring`
 8. **Human reviewer** sees the PR with the fix, the tests, and the validation verdict -- and merges
 
 ---
@@ -122,8 +122,9 @@ flowchart LR
 - **Skills-first architecture** -- agent behavior lives in SKILL.md files loaded on demand via ADK's `SkillToolset`, not hardcoded in Python
 - **5-layer guardrails** -- SafetyPlugin (LLM-as-judge), RedactionPlugin (secret masking), pre-gate (input validation), post-gate (diff validation), fail-closed scoring
 - **Multi-persona adversarial validation** -- security architect + penetration tester personas evaluate fixes with weighted deterministic consensus
-- **Retry loops with self-correction** -- `LoopAgent` pipelines retry failed builds up to 3 times, analyzing errors between attempts
-- **3-layer evaluation** -- 64 unit tests + 38 agent eval cases + EvalHub safety/security benchmarks
+- **Deterministic checkers** -- `BuildResultChecker` and `TestResultChecker` (BaseAgent, no LLM) verify build output and filesystem state, emitting structured results via `Event.state_delta` -- no keyword parsing
+- **Retry loops with self-correction** -- `LoopAgent` pipelines retry failed builds up to 3 times (remediation) or 2 times (test generation), with classified error feedback between attempts
+- **3-layer evaluation** -- 176 unit tests + 38 agent eval cases + EvalHub safety/security benchmarks
 - **MLflow tracing** -- full-stack observability via OpenTelemetry; every LLM call, tool execution, and agent delegation captured as spans
 - **Agent-as-a-Service** -- long-lived HTTP service that any CI/CD system can call (not just Tekton)
 - **Red Hat MaaS support** -- auto-detects and configures [rh-maas-litellm](https://github.com/rrbanda/rh-maas-litellm) for OpenAI-compatible Gemini proxy on RHOAI
