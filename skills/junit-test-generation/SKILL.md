@@ -66,7 +66,7 @@ Write a test targeting the specific vulnerability pattern based on CWE:
 | CWE-918 | SSRF | Test that URLs are validated against allowlist |
 | CWE-835 | Infinite Loop | Test that input causing loop is bounded |
 
-**Naming:** `Cve{YYYY}{NNNN}ReproducerTest.java` (e.g. `Cve202429025ReproducerTest.java`)
+**Naming:** `CveYYYYNNNNNReproducerTest.java` (e.g. `Cve202429025ReproducerTest.java`)
 
 Call `lookup_nvd(cve_id)` to get the CWE, then write a test that:
 1. Constructs the malicious input described in the CVE
@@ -127,5 +127,6 @@ cd /tmp/workspace && git push origin HEAD:ai-tests/generated
 - NEVER remove or change existing tests.
 - Prefer Strategy 1 > 2 > 3.
 - Tests must be deterministic — no randomness, network, or live DB.
-- Write files with `tee`, not opencode.
-- Always use `cd /tmp/workspace && ` prefix.
+- If a coding sub-agent (OpenCode) is available, delegate file
+  writing to it. Otherwise write files directly with `tee`.
+- Always use `cd /tmp/workspace && ` prefix for bash commands.
