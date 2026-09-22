@@ -54,6 +54,11 @@ async def _test_gen_after_callback(callback_context) -> None:
             "test generation",
             "reproducer adapted",
             "reproducer test",
+            "create the test file",
+            "created the test",
+            "wrote the test",
+            "test file",
+            "reproducertest",
             "git push",
             "pushed",
             "commit",
@@ -64,7 +69,6 @@ async def _test_gen_after_callback(callback_context) -> None:
             "strategy",
             "test_files",
             "wrote",
-            "test file",
         )
     ):
         state["structured_result"] = {
