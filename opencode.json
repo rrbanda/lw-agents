@@ -1,15 +1,34 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "provider": {
-    "google": {
-      "model": "gemini-2.5-flash"
-    }
+  "model": "google/gemini-2.5-flash",
+  "small_model": "google/gemini-2.5-flash",
+  "instructions": [
+    "You are working inside a CI/CD pipeline. CRITICAL RULES:",
+    "1. NEVER delete files you create. Your job is to CREATE and EDIT only.",
+    "2. NEVER run tests yourself (no mvn test, no gradle test).",
+    "3. After creating a file, verify it exists with cat and verify it compiles.",
+    "4. Write the FULL content as specified. Do NOT create placeholder files.",
+    "5. Do NOT clean up, remove, or undo your work."
+  ],
+  "skills": {
+    "paths": ["/tmp/.config/opencode/skills"]
   },
-  "instructions": "You are a coding agent working inside a CI/CD pipeline. CRITICAL RULES:\n1. NEVER delete files you create. Your job is to CREATE and EDIT files only.\n2. NEVER run tests yourself. Just create the files and verify they compile.\n3. NEVER clean up or remove files after creating them.\n4. After creating a file, verify it exists with `cat` and report success.\n5. Do NOT create placeholder files. Write the full content as specified.",
-  "permissions": [
-    {"permission": "question", "pattern": "*", "action": "deny"},
-    {"permission": "plan_enter", "pattern": "*", "action": "deny"},
-    {"permission": "plan_exit", "pattern": "*", "action": "deny"},
-    {"permission": "delete", "pattern": "*", "action": "deny"}
-  ]
+  "permission": {
+    "edit": "allow",
+    "bash": {
+      "rm *": "deny",
+      "rmdir *": "deny",
+      "*": "allow"
+    },
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "list": "allow",
+    "question": "deny"
+  },
+  "formatter": false,
+  "lsp": false,
+  "snapshot": false,
+  "share": "disabled",
+  "autoupdate": false
 }

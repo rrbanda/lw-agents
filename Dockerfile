@@ -75,10 +75,12 @@ RUN uv pip install --python /opt/app-root/bin/python3 --no-cache .
 # Copy skills (loaded at runtime via SkillToolset)
 COPY --chown=1001:0 skills/ ./skills/
 
-# OpenCode configuration — model, instructions, and permissions
-# Prevents OpenCode from deleting files and sets the correct model
-RUN install -d -o 1001 -g 0 -m 775 /tmp/.config/opencode
+# OpenCode configuration — model, instructions, permissions, and skills
+# Prevents OpenCode from deleting files, sets correct model, provides CVE test templates
+RUN install -d -o 1001 -g 0 -m 775 /tmp/.config/opencode \
+    && install -d -o 1001 -g 0 -m 775 /tmp/.config/opencode/skills
 COPY --chown=1001:0 opencode.json /tmp/.config/opencode/opencode.json
+COPY --chown=1001:0 .opencode/skills/ /tmp/.config/opencode/skills/
 
 USER 1001
 
