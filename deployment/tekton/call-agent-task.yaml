@@ -17,9 +17,16 @@ spec:
       type: string
       description: Base URL of the ADK agent service.
       default: http://ssc-agent.tssc-app-ci.svc:8080
+    - name: APP_NAME
+      type: string
+      description: >-
+        ADK app to call. Use "lw-agents-pipeline" for deterministic
+        Workflow execution (CI/CD). Use "app" for interactive
+        coordinator (playground/debug only).
+      default: lw-agents-pipeline
     - name: TASK_TYPE
       type: string
-      description: "Agent task type: select-cve | analyze-cves | remediate | generate-tests"
+      description: "Agent task type: select-cve | analyze-cves | remediate | generate-tests | full-pipeline"
     - name: WORKSPACE_PATH
       type: string
       default: /workspace/source
@@ -57,6 +64,8 @@ spec:
 
         echo "Calling agent: ${ENDPOINT} task=${TASK_TYPE}"
 
+        APP_NAME="$(params.APP_NAME)"
+
         # Build the prompt based on task type
         case "${TASK_TYPE}" in
           select-cve)
@@ -71,18 +80,21 @@ spec:
           generate-tests)
             PROMPT="Generate unit tests. Workspace path: $(params.WORKSPACE_PATH)"
             ;;
+          full-pipeline)
+            PROMPT="Run the full CVE remediation pipeline. $(params.REQUEST_BODY) Workspace: $(params.WORKSPACE_PATH)"
+            ;;
           *)
             echo "Unknown TASK_TYPE: ${TASK_TYPE}" >&2
             exit 1
             ;;
         esac
 
+        echo "Using app: ${APP_NAME} (pipeline=deterministic, app=interactive)"
+
         # Call the ADK agent API
-        # ADK api_server exposes /run on /apps/{app_name}/users/{user_id}/sessions/{session_id}/run
-        # For stateless calls, create a session first or use the /run shorthand
         RESPONSE=$(curl -sf -X POST "${ENDPOINT}/run" \
           -H "Content-Type: application/json" \
-          -d "{\"app_name\": \"app\", \"user_id\": \"tekton\", \"new_message\": {\"role\": \"user\", \"parts\": [{\"text\": \"${PROMPT}\"}]}}" \
+          -d "{\"app_name\": \"${APP_NAME}\", \"user_id\": \"tekton\", \"new_message\": {\"role\": \"user\", \"parts\": [{\"text\": \"${PROMPT}\"}]}}" \
           --max-time 600) || {
             echo "ERROR: Agent call failed" >&2
             # Write empty defaults on failure

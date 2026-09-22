@@ -47,9 +47,13 @@ spec:
       type: string
       default: ""
     # --- Agent task params ---
+    - name: APP_NAME
+      type: string
+      description: "ADK app: lw-agents-pipeline (deterministic) or app (interactive)"
+      default: lw-agents-pipeline
     - name: TASK_TYPE
       type: string
-      description: "Agent task type: select-cve | analyze-cves | remediate | generate-tests"
+      description: "Agent task type: select-cve | analyze-cves | remediate | generate-tests | full-pipeline"
     - name: REQUEST_BODY
       type: string
       default: "{}"
@@ -100,6 +104,8 @@ spec:
       params:
         - name: AGENT_ENDPOINT
           value: $(params.AGENT_ENDPOINT)
+        - name: APP_NAME
+          value: $(params.APP_NAME)
         - name: TASK_TYPE
           value: $(params.TASK_TYPE)
         - name: REQUEST_BODY
