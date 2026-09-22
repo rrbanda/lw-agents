@@ -28,7 +28,7 @@ USER 0
 # OpenShell deps + Java + build tools
 RUN dnf install -y --nodocs \
         iproute nftables \
-        java-17-openjdk-headless \
+        java-17-openjdk-devel \
         git jq tar gzip findutils \
     && dnf clean all && rm -rf /var/cache/dnf
 
@@ -81,7 +81,7 @@ EXPOSE 8080
 
 ENV PORT=8080 \
     PYTHONPATH=/sandbox \
-    JAVA_HOME=/usr/lib/jvm/jre-17-openjdk \
+    JAVA_HOME=/usr/lib/jvm/java-17-openjdk \
     PATH="/opt/apache-maven-3.9.9/bin:/opt/app-root/bin:/usr/local/bin:${PATH}"
 
 # ADK web serves both the playground UI + API — single entry point for everything
