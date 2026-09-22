@@ -32,19 +32,25 @@ from app.tools.upstream_tools import (
 async def _test_gen_after_callback(callback_context) -> None:
     """Set TESTS_ADDED in structured_result after test-gen completes.
 
-    IMPORTANT: ADK's output_key only captures text authored by the agent
-    itself (event.author == agent.name). When the parent delegates to
-    test_code_writer sub-agent, the sub-agent's output goes to its own
-    output_key (coding_output), NOT to the parent's (test_output).
-
-    We must check BOTH output keys to detect success.
+    Two propagation fixes:
+    1. Read BOTH test_output (parent) AND coding_output (sub-agent)
+       because ADK's output_key is per-agent scoped.
+    2. Copy coding_output INTO test_output so the coordinator's
+       extract_structured_results callback also sees it.
     """
     state = callback_context.state
 
-    # Merge parent output + sub-agent output
-    all_output = " ".join(
-        str(state.get(key, "")) for key in ("test_output", "coding_output")
-    ).lower()
+    # Propagate sub-agent output to parent's output_key.
+    # This ensures the coordinator's callback sees it too.
+    coding_output = str(state.get("coding_output", ""))
+    test_output = str(state.get("test_output", ""))
+    if coding_output and not test_output:
+        state["test_output"] = coding_output
+    elif coding_output and test_output:
+        state["test_output"] = test_output + "\n" + coding_output
+
+    # Merge for keyword detection
+    all_output = (test_output + " " + coding_output).lower()
 
     if any(
         kw in all_output
