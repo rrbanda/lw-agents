@@ -64,7 +64,10 @@ async def _test_gen_after_callback(callback_context) -> None:
     logger.warning(
         "_test_gen_after_callback: test_output=%d chars, coding_output=%d chars, "
         "fix_output=%d chars, all_output=%d chars",
-        len(test_output), len(coding_output), len(fix_output), len(all_output),
+        len(test_output),
+        len(coding_output),
+        len(fix_output),
+        len(all_output),
     )
 
     if any(
