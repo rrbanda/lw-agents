@@ -113,10 +113,19 @@ def clone_repository(
 
         shutil.rmtree(target_dir)
 
-    # Build authenticated URL
-    if host and token:
+    # Build authenticated URL — only inject credentials if repo is on SCM_HOST
+    from urllib.parse import urlparse
+
+    parsed = urlparse(repo_url)
+    repo_host = parsed.hostname or ""
+
+    if host and token and (repo_host == host or not repo_host):
         clone_url = f"https://{username}:{token}@{host}/{repo_path}.git"
+    elif host and token and "github.com" not in repo_host:
+        # Different private host — try with token anyway
+        clone_url = f"https://{username}:{token}@{repo_host}/{repo_path}.git"
     else:
+        # Public repo or unknown host — clone without credentials
         clone_url = repo_url
 
     try:
