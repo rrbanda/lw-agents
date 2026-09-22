@@ -28,8 +28,27 @@ from app.config import MODEL, build_bash_tool
 
 
 def is_opencode_available() -> bool:
-    """Check if the opencode CLI is on PATH."""
-    return shutil.which("opencode") is not None
+    """Check if OpenCode should be used.
+
+    OpenCode takes 60-90 seconds per call. This works fine in:
+    - Pipeline runner (app/runner.py) — own process, no timeout
+    - Tekton Tasks — 600s HTTP timeout
+
+    But does NOT work in:
+    - ADK web UI / playground — SSE connection times out at ~30s
+
+    Use the LW_USE_OPENCODE env var to opt in explicitly.
+    When not set, OpenCode is disabled to avoid timeouts in the
+    default ADK web UI path.
+    """
+    import os
+
+    # Explicit opt-in (set by runner.py and Tekton)
+    if os.environ.get("LW_USE_OPENCODE", "").lower() in ("1", "true", "yes"):
+        return shutil.which("opencode") is not None
+
+    # Default: disabled (safe for web UI)
+    return False
 
 
 def create_opencode_writer(

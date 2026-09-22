@@ -281,6 +281,9 @@ class PipelineRunner:
 
     def run(self) -> list[AgentResult]:
         """Run the configured agents in order."""
+        # Enable OpenCode in pipeline mode (no SSE timeout here)
+        os.environ["LW_USE_OPENCODE"] = "true"
+
         run_id = uuid4().hex[:12]
         bind_run_context(run_id=run_id, cve_id=self.config.vuln_id)
 
