@@ -41,7 +41,11 @@ async def _test_gen_after_callback(callback_context) -> None:
     from opencode_test_gen, fix_output from opencode_fixer).
     Copies into test_output for coordinator visibility.
     """
+    import logging
+
+    logger = logging.getLogger(__name__)
     state = callback_context.state
+    logger.warning("_test_gen_after_callback FIRED")
 
     # Merge all output sources
     coding_output = str(state.get("coding_output", ""))
@@ -56,6 +60,12 @@ async def _test_gen_after_callback(callback_context) -> None:
         state["test_output"] = test_output + "\n" + combined_sub
 
     all_output = " ".join([test_output, coding_output, fix_output]).lower()
+
+    logger.warning(
+        "_test_gen_after_callback: test_output=%d chars, coding_output=%d chars, "
+        "fix_output=%d chars, all_output=%d chars",
+        len(test_output), len(coding_output), len(fix_output), len(all_output),
+    )
 
     if any(
         kw in all_output
@@ -88,6 +98,12 @@ async def _test_gen_after_callback(callback_context) -> None:
             "ISSUES_CREATED": "0",
             "CHANGED": "0",
         }
+        logger.warning("_test_gen_after_callback: SET TESTS_ADDED=1")
+    else:
+        logger.warning(
+            "_test_gen_after_callback: NO keyword match. First 200 chars: %s",
+            all_output[:200],
+        )
 
 
 # -- Investigation steps (same for both modes) --
