@@ -38,6 +38,7 @@ async def _test_gen_after_callback(callback_context) -> None:
         kw in test_output
         for kw in (
             "tests generated",
+            "tests_generated",
             "test generation",
             "reproducer adapted",
             "reproducer test",
@@ -48,6 +49,8 @@ async def _test_gen_after_callback(callback_context) -> None:
             "build success",
             "tee src/test",
             "opencode",
+            "strategy",
+            "test_files",
         )
     ):
         state["structured_result"] = {
