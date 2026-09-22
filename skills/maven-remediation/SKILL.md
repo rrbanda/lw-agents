@@ -1,9 +1,9 @@
 ---
 name: maven-remediation
 description: >
-  Maven dependency remediation methodology. Guides the agent through reading
-  pom.xml structure, planning the edit, using OpenCode to apply the fix,
-  verifying via Maven build, and opening a pull request.
+  Maven dependency remediation methodology. Guides the agent through
+  investigating the upstream fix, reading pom.xml structure, planning
+  the edit, applying and verifying via Maven build, and opening a PR.
 ---
 
 # Maven Dependency Remediation
@@ -13,83 +13,111 @@ description: >
 You are a build engineer. Update a single vulnerable Maven dependency to its
 fixed version, verify compilation and tests pass, then open a pull request.
 
+## Available Tools
+
+**Investigation (use BEFORE editing):**
+- `search_github_advisory(cve_id)` — find fix commit URLs and patched versions
+- `fetch_commit_diff(commit_url)` — see what the upstream fix changed
+- `discover_upstream_repo(component)` — find the upstream GitHub repo
+- `search_fix_commits(cve_id, owner, repo)` — search for fix commits
+- `lookup_osv(cve_id)` — affected ranges and fix versions
+- `lookup_nvd(cve_id)` — CVSS, CWE, patch URLs
+
+**Build & edit:**
+- `execute_bash(command)` — run shell commands (sed, mvn, git, cat, etc.)
+- `clone_repository(repo_url, branch)` — clone repo for editing
+- `detect_build_system(project_dir)` — detect Maven/Gradle/Ant
+- `analyze_diff(diff_text)` — analyze the changes you've made
+
 ## Process
 
-### Step 1 — Understand the project
+### Step 1 — Clone the repository
 
-Run `bash("cat pom.xml")` or use read tools to understand:
+Call `clone_repository` with the repo URL and branch from the request.
+
+### Step 2 — Investigate the upstream fix
+
+**Before editing anything**, understand what the upstream fix changed:
+
+1. Call `search_github_advisory(cve_id)` to find fix commit URLs.
+2. If commits found, call `fetch_commit_diff(commit_url)` to see the diff.
+3. Determine the fix type:
+   - **Version bump only** (pom.xml/build file change) → proceed with edit
+   - **Source code patch** (Java files changed) → report that source-level
+     patching is needed and describe what the upstream fix does
+   - **Configuration change** → describe and apply if simple
+
+### Step 3 — Understand the project
+
+Run `execute_bash("cd /tmp/workspace && cat pom.xml")` to understand:
 - Is the dependency in `<dependencyManagement>`?
 - Is the version a `<properties>` variable?
 - Is there a BOM import managing it?
 - Is it a direct `<dependency>` with inline version?
 
-### Step 2 — Plan the edit
+### Step 4 — Plan and apply the fix
 
-Determine how the version is managed and plan the correct edit:
+Determine how the version is managed and apply the correct edit:
 
-- If a **property** controls the version (e.g. `<jackson.version>`),
-  edit the property value, not the dependency element.
-- If in **dependencyManagement**, edit it there.
-- If a **direct dependency** with inline version, edit that.
-- If the dependency is **BOM-managed** (e.g. Spring Boot parent BOM manages
-  it automatically), you need to ADD a version override property to the
-  `<properties>` section. For example, if `spring-security-web` is managed
-  by the Spring Boot BOM, add `<spring-security.version>5.7.12</spring-security.version>`
-  to `<properties>`. Do NOT add the dependency directly — override via property.
-- If the dependency does NOT appear in pom.xml at all (transitive only),
-  add a `<dependencyManagement>` entry or property override.
-- In multi-module projects, identify which pom.xml(s) to change.
+- **Property-controlled** (e.g. `<jackson.version>`): edit the property value
+- **BOM-managed** (e.g. Spring Boot parent): ADD a version override property
+- **Direct dependency**: edit the version inline
+- **Transitive only**: add a `<dependencyManagement>` entry
 
-**Common Spring Boot BOM property overrides:**
-- `logback-core` / `logback-classic` → `<logback.version>X.Y.Z</logback.version>`
-- `tomcat-embed-core` → `<tomcat.version>X.Y.Z</tomcat.version>`
-- `spring-security-web` / `spring-security-core` → `<spring-security.version>X.Y.Z</spring-security.version>`
-- `jackson-databind` / `jackson-core` → `<jackson-bom.version>X.Y.Z</jackson-bom.version>`
-- `snakeyaml` → `<snakeyaml.version>X.Y.Z</snakeyaml.version>`
-
-If the dependency is not a direct `<dependency>` in pom.xml, use `sed` or
-OpenCode to ADD the property to the `<properties>` block. Example:
+Use `execute_bash` with `sed` to make the edit. Example:
 ```
-sed -i 's|</properties>|  <logback.version>1.5.18</logback.version>\n</properties>|' pom.xml
+cd /tmp/workspace && sed -i 's|<jackson.version>2.13.2</jackson.version>|<jackson.version>2.13.4.2</jackson.version>|' pom.xml
 ```
 
-### Step 3 — Apply the fix
-
-Run OpenCode to apply the fix:
+For BOM overrides:
 ```
-bash("opencode run 'In pom.xml, change the property jackson.version from 2.13.2 to 2.13.4.2. Do not change any other properties or dependencies.'")
+cd /tmp/workspace && sed -i '/<properties>/a\    <logback.version>1.5.18</logback.version>' pom.xml
 ```
 
-Be specific in the instruction — name the exact property/dependency and versions.
+### Step 5 — Build
 
-### Step 4 — Verify compilation
-
-Run `bash("mvn -B -q -DskipTests install")`.
-- **Success**: proceed to Step 5.
-- **Failure**: analyze error. Common issues:
+Run: `cd /tmp/workspace && mvn -B -q -DskipTests install`
+- **Success**: proceed to Step 6.
+- **Failure**: analyze the error. Common issues:
   - Version conflict → check if BOM also needs updating
   - API change → beyond simple bump; report and stop
-- Retry up to 3 times with corrected instructions.
+- Retry up to 3 times with corrected approach.
 
-### Step 5 — Run full tests
+### Step 6 — Test
 
-Run `bash("mvn -B -q verify")`.
-- If tests pass, proceed to Step 6.
+Run: `cd /tmp/workspace && mvn -B -q verify`
+- If tests pass, proceed.
 - If tests fail from the version change, report and stop.
 - If pre-existing failures, proceed.
 
-### Step 6 — Open pull request
+### Step 7 — Commit and push
 
-Call `create_pull_request` with:
-- Branch: `rhtpa/remediate-{cve_id}-{timestamp}`
-- Title: `Remediate {cve_id}: {package} -> {fixed_version}`
-- Files to stage: only `pom.xml`, `*/pom.xml`, `REMEDIATION.md`
+```
+cd /tmp/workspace && git add pom.xml
+cd /tmp/workspace && git diff --cached --stat
+cd /tmp/workspace && git commit -m 'Remediate <CVE>: <package> -> <version>'
+cd /tmp/workspace && git push origin HEAD:rhtpa/remediate-<CVE>
+```
+
+### Step 8 — Report
+
+Report as JSON:
+```json
+{
+  "build_status": "SUCCESS",
+  "fix_type": "version_bump",
+  "upstream_fix_analyzed": true,
+  "files_changed": ["pom.xml"]
+}
+```
 
 ## Constraints
 
-- Edit ONLY the target dependency.
+- Investigate the upstream fix BEFORE editing.
+- Edit ONLY the target dependency version.
 - Never modify application source code.
 - Never add new dependencies.
 - Maximum 3 retry attempts on build failure.
+- Always prefix commands with `cd /tmp/workspace && `.
 
 For pom.xml editing patterns, see `references/pom-patterns.md`.

@@ -28,7 +28,8 @@ PRs must NEVER include agent artifacts. Stage only:
 
 | Task | Allowed pathspecs |
 |------|-------------------|
-| CVE remediation | `pom.xml`, `*/pom.xml`, `REMEDIATION.md` |
+| CVE remediation (Maven) | `pom.xml`, `*/pom.xml`, `REMEDIATION.md` |
+| CVE remediation (Gradle) | `build.gradle`, `build.gradle.kts`, `gradle/libs.versions.toml`, `gradle.properties` |
 | Test generation | `src/test/`, `*/src/test/` |
 
 ## Issue Body Template
@@ -42,6 +43,9 @@ See `references/issue-template.md` in the `cve-analysis` skill.
 Automated remediation from the agentic-cve-remediation pipeline.
 - CVE: {cve_id}
 - Dependency: {package} {current_version} -> {fixed_version}
+- Build system: Maven|Gradle
+- Upstream fix analyzed: yes|no
+- Fix type: version_bump|source_patch|config_change
 - Rationale: {justification}
 ```
 
@@ -57,3 +61,5 @@ Please review before merging.
 | Context | Labels |
 |---------|--------|
 | CVE issues | `security`, `cve`, `{severity}` |
+| Remediation PRs | `security`, `remediation`, `automated` |
+| Test PRs | `testing`, `automated` |
