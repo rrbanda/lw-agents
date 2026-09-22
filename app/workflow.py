@@ -168,7 +168,7 @@ def _create_remediation_agent() -> LlmAgent:
 
 
 def _create_test_gen_agent() -> LlmAgent:
-    """Test generation agent as a Workflow node."""
+    """CVE-aware test generation agent as a Workflow node."""
     skills = [
         load_skill_from_dir(SKILLS_DIR / "junit-test-generation"),
         load_skill_from_dir(SKILLS_DIR / "scm-conventions"),
@@ -178,11 +178,22 @@ def _create_test_gen_agent() -> LlmAgent:
         model=MODEL,
         mode="single_turn",
         instruction=(
-            "Generate JUnit tests for the applied fix. Write test files "
-            "directly via bash (mkdir + tee), verify they pass, commit "
-            "and push. Report 'TESTS GENERATED' or 'TEST GENERATION FAILED'."
+            "Generate CVE-aware tests. First search for upstream reproducer "
+            "tests in the fix commit diff (Strategy 1). If none found, write "
+            "a CWE-targeted test (Strategy 2). Last resort: generic coverage "
+            "(Strategy 3). Write tests via bash tee, verify, commit and push."
         ),
-        tools=[SkillToolset(skills=skills), build_bash_tool(), clone_repository_tool],
+        tools=[
+            SkillToolset(skills=skills),
+            build_bash_tool(),
+            clone_repository_tool,
+            FunctionTool(search_github_advisory),
+            FunctionTool(fetch_commit_diff),
+            FunctionTool(discover_upstream_repo),
+            FunctionTool(search_fix_commits),
+            FunctionTool(lookup_nvd),
+            FunctionTool(lookup_osv),
+        ],
         output_key="test_output",
     )
 
