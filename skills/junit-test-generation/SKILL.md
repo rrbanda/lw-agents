@@ -121,12 +121,19 @@ cd /tmp/workspace && git commit -m 'Add CVE reproducer test for <CVE-ID>'
 cd /tmp/workspace && git push origin HEAD:ai-tests/generated
 ```
 
+## Test Specification (for OpenCode delegation)
+
+When delegating to OpenCode, build a specification using the template
+in `references/test-specification-template.md`. Pass the SPECIFICATION
+(what to test), not generated code. OpenCode reads the project and
+writes compilable tests from the spec.
+
 ## Constraints
 
 - NEVER modify files under src/main.
 - NEVER remove or change existing tests.
 - Prefer Strategy 1 > 2 > 3.
 - Tests must be deterministic — no randomness, network, or live DB.
-- If a coding sub-agent (OpenCode) is available, delegate file
-  writing to it. Otherwise write files directly with `tee`.
+- If OpenCode is available, pass a test SPECIFICATION (not code).
+  If not available, write files directly with `tee`.
 - Always use `cd /tmp/workspace && ` prefix for bash commands.
