@@ -1,13 +1,15 @@
 """Remediation Agent — SequentialAgent pipeline that reads the pom.xml,
 plans the edit, applies it via OpenCode (ExecuteBashTool), verifies via
-Maven build with retry, and opens a PR with HITL approval.
+Maven build with retry, and opens a PR.
 
 Uses SequentialAgent + LoopAgent for the retry logic, following the same
-pattern as test_generation.py. The coordinator delegates here when the
-task is dependency remediation.
+pattern as test_generation.py. The coordinator in agent.py delegates here
+when the task is dependency remediation.
 
-Note: Workflow cannot yet be used as an LlmAgent sub-agent (ADK limitation),
-so we use SequentialAgent + LoopAgent which are compatible.
+Note: A parallel Workflow-based implementation exists in app/workflow.py
+for deterministic pipeline execution (used by Tekton / CI). This
+SequentialAgent version is used as a coordinator sub-agent because ADK's
+Workflow cannot be nested inside an LlmAgent's sub_agents list.
 """
 
 from __future__ import annotations

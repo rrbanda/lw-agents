@@ -11,21 +11,21 @@
         ]
       },
       "context": {
-        "description": "Standard version bump remediation. Agent should: load junit-test-generation skill, use opencode to generate JUnit 5 tests that verify the fix, run mvn test to validate, then open a PR.",
+        "description": "Standard version bump remediation. Agent should: investigate CVE (search_github_advisory, fetch_commit_diff, lookup_nvd), check existing test coverage, write JUnit 5 tests, verify compilation, then commit and push.",
         "cve_id": "CVE-2024-29025",
         "remediation_type": "version_bump",
         "language": "java",
         "build_tool": "maven"
       },
       "expected_tool_use": [
-        {"tool_name": "ExecuteBashTool", "min_calls": 2, "note": "opencode to write tests + mvn to verify"},
-        {"tool_name": "create_pull_request", "min_calls": 1}
+        {"tool_name": "search_github_advisory", "min_calls": 1, "note": "investigate upstream fix"},
+        {"tool_name": "execute_bash", "min_calls": 1, "note": "clone, write tests, or compile check"}
       ],
       "reference_answer_key_points": [
+        "investigated CVE upstream fix",
         "generated JUnit 5 tests",
         "tests verify the vulnerability is no longer exploitable",
-        "tests compile and pass",
-        "opened a PR with the tests"
+        "tests compile and pass"
       ]
     },
     {
@@ -45,7 +45,7 @@
         "remediation_type": "version_bump"
       },
       "expected_tool_use": [
-        {"tool_name": "ExecuteBashTool", "min_calls": 3, "note": "write + fail + fix + retest"}
+        {"tool_name": "execute_bash", "min_calls": 2, "note": "write + compile fail + fix + retest"}
       ],
       "reference_answer_key_points": [
         "detected test compilation failure",
@@ -70,7 +70,7 @@
         "config_change": "Disabled external entity processing in XML parser factory"
       },
       "expected_tool_use": [
-        {"tool_name": "ExecuteBashTool", "min_calls": 2}
+        {"tool_name": "execute_bash", "min_calls": 1, "note": "write test + verify compile"}
       ],
       "reference_answer_key_points": [
         "tests verify XXE is disabled",
@@ -117,10 +117,10 @@
         "remediation_type": "version_bump"
       },
       "expected_tool_use": [
-        {"tool_name": "create_pull_request", "min_calls": 1}
+        {"tool_name": "execute_bash", "min_calls": 1, "note": "write test via tee or opencode"}
       ],
       "reference_answer_key_points": [
-        "PR contains only test files",
+        "commit contains only test files",
         "no production code modified",
         "test files are in src/test directory"
       ]

@@ -11,7 +11,7 @@
 <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License"></a>
 <a href="https://python.org"><img src="https://img.shields.io/badge/Python-3.11+-green.svg" alt="Python"></a>
 <a href="https://adk.dev/"><img src="https://img.shields.io/badge/Google_ADK-2.0-orange.svg" alt="Google ADK"></a>
-<a href="#testing"><img src="https://img.shields.io/badge/Tests-64_passing-brightgreen.svg" alt="Tests"></a>
+<a href="#testing"><img src="https://img.shields.io/badge/Tests-219_passing-brightgreen.svg" alt="Tests"></a>
 </p>
 
 <p align="center">
@@ -124,7 +124,7 @@ flowchart LR
 - **Multi-persona adversarial validation** -- security architect + penetration tester personas evaluate fixes with weighted deterministic consensus
 - **Deterministic checkers** -- `BuildResultChecker` and `TestResultChecker` (BaseAgent, no LLM) verify build output and filesystem state, emitting structured results via `Event.state_delta` -- no keyword parsing
 - **Retry loops with self-correction** -- `LoopAgent` pipelines retry failed builds up to 3 times (remediation) or 2 times (test generation), with classified error feedback between attempts
-- **3-layer evaluation** -- 176 unit tests + 38 agent eval cases + EvalHub safety/security benchmarks
+- **3-layer evaluation** -- 219 unit tests + 38 agent eval cases + EvalHub safety/security benchmarks
 - **MLflow tracing** -- full-stack observability via OpenTelemetry; every LLM call, tool execution, and agent delegation captured as spans
 - **Agent-as-a-Service** -- long-lived HTTP service that any CI/CD system can call (not just Tekton)
 - **Red Hat MaaS support** -- auto-detects and configures [rh-maas-litellm](https://github.com/rrbanda/rh-maas-litellm) for OpenAI-compatible Gemini proxy on RHOAI
@@ -205,7 +205,7 @@ to handle tools/response_format conflicts and PDF routing automatically.
 No cluster required. No pipelines. Just an LLM (or nothing at all for unit tests).
 
 ```bash
-# Unit tests -- no LLM needed (64 tests)
+# Unit tests -- no LLM needed (219 tests)
 make test
 
 # Lint + format
@@ -236,7 +236,7 @@ lw-agents/
     scoring/              # Fail-closed CVE selection validation
     eval/                 # EvalHub + MLflow + CVE metrics integration
     models/               # Pydantic data contracts
-  skills/                 # 7 ADK skills (SKILL.md + references/)
+  skills/                 # 8 ADK skills (SKILL.md + references/)
   tests/                  # Unit tests, eval datasets, behavioral tests
   deployment/tekton/      # Thin HTTP-caller tasks for Tekton pipelines
   docs/adr/               # 11 Architecture Decision Records
@@ -254,6 +254,7 @@ disclosure (metadata at startup, instructions on demand, resources when needed).
 | `cve-triage` | CVE Selection | Methodology for selecting the best CVE |
 | `cve-analysis` | CVE Analysis | Methodology for analyzing all CVEs + issue creation |
 | `maven-remediation` | Remediation | How to apply Maven dependency bumps |
+| `gradle-remediation` | Remediation | How to apply Gradle dependency bumps |
 | `junit-test-generation` | Test Generation | How to generate JUnit 5 tests |
 | `scm-conventions` | Multiple agents | Branch naming, PR format, issue templates |
 | `validation-architect` | Fix Validation | Security architect review persona |

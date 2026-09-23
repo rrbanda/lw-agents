@@ -11,12 +11,24 @@ Architecture:
         "selected"     → remediation_planner → route_on_build
         "not_selected" → report_no_selection
     route_on_build:
-        "success"  → test_generation → fix_validation → report_complete
+        "success"  → test_gen_investigator → test_gen_writer
+                     → check_test_compile
+                       "pass" → commit_tests → validation → report_complete
+                       "fail" → route_on_test_retry
+                                  "retry" → test_gen_fixer → check_test_compile
+                                  "stop"  → commit_tests (best effort)
         "failure"  → route_on_retry
         "hopeless" → report_hopeless
     route_on_retry:
         "retry" → remediation_planner  (back to build loop)
         "stop"  → report_failure
+
+Test generation mirrors the SequentialAgent pipeline in test_generation.py:
+    - Investigator: NO skills, CVE tools only (saves ~2K tokens)
+    - Writer: SkillToolset for junit-test-generation + bash
+    - check_test_compile: deterministic snapshot comparison (same as TestResultChecker)
+    - Fixer: LlmAgent that fixes compile errors (max 2 retries)
+    - commit_tests: deterministic git commands (same as TestCommitter)
 """
 
 from __future__ import annotations
@@ -167,24 +179,36 @@ def _create_remediation_agent() -> LlmAgent:
     )
 
 
-def _create_test_gen_agent() -> LlmAgent:
-    """CVE-aware test generation agent as a Workflow node."""
-    skills = [
-        load_skill_from_dir(SKILLS_DIR / "junit-test-generation"),
-        load_skill_from_dir(SKILLS_DIR / "scm-conventions"),
-    ]
+def _create_test_gen_investigator() -> LlmAgent:
+    """Test gen investigator — CVE research + coverage check + spec.
+
+    Mirrors test_generation.py's investigator: NO skills loaded
+    (saves ~2K tokens), only CVE investigation tools.
+    """
     return LlmAgent(
-        name="test_generation",
+        name="test_gen_investigator",
         model=MODEL,
         mode="single_turn",
         instruction=(
-            "Generate CVE-aware tests. First search for upstream reproducer "
-            "tests in the fix commit diff (Strategy 1). If none found, write "
-            "a CWE-targeted test (Strategy 2). Last resort: generic coverage "
-            "(Strategy 3). Write tests via bash tee, verify, commit and push."
+            "You are a CVE investigator. Research the CVE and produce a "
+            "TEST SPECIFICATION. Do NOT write code.\n\n"
+            "STEP 1 — Use search_github_advisory and fetch_commit_diff to "
+            "find the upstream fix. Use lookup_nvd for CWE classification.\n\n"
+            "STEP 2 — Check existing test coverage:\n"
+            "  execute_bash('cd /tmp/workspace && find src/test -name "
+            '"*Test.java" | head -30\')\n'
+            '  execute_bash(\'cd /tmp/workspace && grep -rl "<class>" '
+            "src/test/ | head -10')\n\n"
+            "STEP 3 — Snapshot existing test files:\n"
+            "  execute_bash('cd /tmp/workspace && find src/test -name "
+            '"*.java" -exec md5sum {} \\; > /tmp/test_snapshot.txt '
+            "2>/dev/null')\n\n"
+            "STEP 4 — Output specification with ALL fields:\n"
+            "  CVE, COMPONENT, CWE, VULNERABLE CLASS, VULNERABLE METHOD,\n"
+            "  VULNERABILITY, ATTACK, ASSERTION, TEST PATH, FIXED VERSION,\n"
+            "  UPSTREAM COMMIT, EXISTING COVERAGE, ACTION, STRATEGY\n"
         ),
         tools=[
-            SkillToolset(skills=skills),
             build_bash_tool(),
             clone_repository_tool,
             FunctionTool(search_github_advisory),
@@ -194,7 +218,59 @@ def _create_test_gen_agent() -> LlmAgent:
             FunctionTool(lookup_nvd),
             FunctionTool(lookup_osv),
         ],
+        output_key="test_spec",
+    )
+
+
+def _create_test_gen_writer() -> LlmAgent:
+    """Test gen writer — generates code from spec via tee.
+
+    Mirrors test_generation.py's tee writer: has SkillToolset
+    for junit-test-generation + bash tool.
+    """
+    skills = [load_skill_from_dir(SKILLS_DIR / "junit-test-generation")]
+    return LlmAgent(
+        name="test_gen_writer",
+        model=MODEL,
+        mode="single_turn",
+        instruction=(
+            "You are a test code writer. Read the test specification from "
+            "the previous step and write the test file using bash.\n\n"
+            "Use the ACTION field from the spec:\n"
+            "  new_file → mkdir + tee to create new file\n"
+            "  add_method → read existing file, add test method\n"
+            "  enhance_existing → write enhanced version\n\n"
+            "Write via tee:\n"
+            "  execute_bash('cd /tmp/workspace && mkdir -p <dir>')\n"
+            "  execute_bash('cd /tmp/workspace && tee <path> << ENDTEST\n"
+            "  <JUnit 5 test code>\n  ENDTEST')\n\n"
+            "After writing, verify compilation:\n"
+            "  execute_bash('cd /tmp/workspace && mvn -B -q "
+            "-DskipTests compile')\n"
+        ),
+        tools=[SkillToolset(skills=skills), build_bash_tool()],
         output_key="test_output",
+    )
+
+
+def _create_test_gen_fixer() -> LlmAgent:
+    """Test gen fixer — fixes compilation errors in generated tests.
+
+    Mirrors test_generation.py's test_fixer.
+    """
+    return LlmAgent(
+        name="test_gen_fixer",
+        model=MODEL,
+        mode="single_turn",
+        instruction=(
+            "The generated test file has compilation errors. "
+            "Read the error output from the previous step and fix "
+            "the test file using sed or tee. Then verify:\n"
+            "  execute_bash('cd /tmp/workspace && mvn -B -q "
+            "-DskipTests compile')\n"
+        ),
+        tools=[build_bash_tool()],
+        output_key="test_fix_output",
     )
 
 
@@ -325,6 +401,140 @@ def compute_validation_score(node_input: str) -> str:
     return f'{{"decision": "{decision}", "score": {total:.3f}, "gates": {gates}}}'
 
 
+# ============================================================================
+# Test generation: deterministic check, retry, and commit
+# (mirrors TestResultChecker + TestCommitter from test_generation.py)
+# ============================================================================
+
+_test_retry_count = 0
+_MAX_TEST_RETRIES = 2
+
+
+def check_test_compile(node_input: str) -> Event:
+    """Deterministic test file check + compile (Workflow equivalent of TestResultChecker).
+
+    Compares md5 checksums against the snapshot taken by the investigator.
+    Detects new and modified test files, then verifies compilation.
+    Routes to "pass" or "fail".
+    """
+    import os
+    import subprocess
+
+    workspace = "/tmp/workspace"
+    if not os.path.isdir(workspace):
+        return Event(output="No workspace found", route="fail")
+
+    # Load pre-snapshot (written by investigator)
+    old_checksums: dict[str, str] = {}
+    snapshot_path = "/tmp/test_snapshot.txt"
+    if os.path.isfile(snapshot_path):
+        try:
+            for line in open(snapshot_path).readlines():
+                parts = line.strip().split(None, 1)
+                if len(parts) == 2:
+                    old_checksums[parts[1]] = parts[0]
+        except OSError:
+            pass
+
+    # Current test files
+    new_checksums: dict[str, str] = {}
+    test_dir = os.path.join(workspace, "src", "test")
+    if os.path.isdir(test_dir):
+        try:
+            result = subprocess.run(
+                ["find", "src/test", "-name", "*.java", "-exec", "md5sum", "{}", ";"],
+                cwd=workspace,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            for line in result.stdout.strip().splitlines():
+                parts = line.strip().split(None, 1)
+                if len(parts) == 2:
+                    new_checksums[parts[1]] = parts[0]
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            pass
+
+    new_files = [f for f in new_checksums if f not in old_checksums]
+    modified_files = [
+        f for f in new_checksums if f in old_checksums and new_checksums[f] != old_checksums[f]
+    ]
+    changed_files = new_files + modified_files
+
+    if not changed_files:
+        return Event(output=f"{node_input}\nNo test files created or modified.", route="fail")
+
+    # Compile check
+    try:
+        result = subprocess.run(
+            ["mvn", "-B", "-q", "-DskipTests", "compile"],
+            cwd=workspace,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        if result.returncode == 0:
+            logger.info("check_test_compile: PASS — %d files", len(changed_files))
+            return Event(
+                output=f"Tests compiled: {', '.join(changed_files)}",
+                route="pass",
+            )
+        error = result.stderr[-2000:]
+    except subprocess.TimeoutExpired:
+        error = "compile timeout"
+    except FileNotFoundError:
+        error = "mvn not found"
+
+    return Event(
+        output=f"{node_input}\nCompile error: {error}\nFiles: {changed_files}",
+        route="fail",
+    )
+
+
+def route_on_test_retry(node_input: str) -> Event:
+    """Route test gen retry based on counter."""
+    global _test_retry_count
+    _test_retry_count += 1
+    if _test_retry_count >= _MAX_TEST_RETRIES:
+        return Event(output=node_input, route="stop")
+    return Event(output=node_input, route="retry")
+
+
+def commit_tests(node_input: str) -> str:
+    """Deterministic git add/commit/push (Workflow equivalent of TestCommitter).
+
+    No LLM needed — git commands are always the same.
+    """
+    import os
+    import subprocess
+
+    workspace = "/tmp/workspace"
+    if not os.path.isdir(workspace):
+        return f'{{"tests_committed": false, "error": "workspace not found"}}\n{node_input}'
+
+    commands = [
+        ["git", "add", "src/test/"],
+        ["git", "commit", "-m", "Add CVE reproducer test"],
+        ["git", "push", "origin", "HEAD:ai-tests/generated"],
+    ]
+    output_lines = []
+    for cmd in commands:
+        try:
+            result = subprocess.run(cmd, cwd=workspace, capture_output=True, text=True, timeout=60)
+            status = "OK" if result.returncode == 0 else "FAIL"
+            output_lines.append(f"$ {' '.join(cmd)}: {status}")
+            if result.returncode != 0:
+                output_lines.append(result.stderr[:500])
+                break
+        except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
+            output_lines.append(f"$ {' '.join(cmd)}: ERROR {exc}")
+            break
+
+    commit_output = "\n".join(output_lines)
+    logger.info("commit_tests: %s", commit_output)
+    return f"{commit_output}\n{node_input}"
+
+
 def report_no_selection(node_input: str) -> str:
     """Terminal node when no CVE is selected."""
     return '{"status": "no_selection", "message": "No CVE met selection criteria"}'
@@ -355,13 +565,32 @@ def create_pipeline_workflow() -> Workflow:
 
     This is the production execution path. The LLM coordinator in agent.py
     remains available for playground/interactive use.
+
+    Architecture:
+        START → cve_selection → route_on_selection
+        route_on_selection:
+            "selected"     → remediation_planner → route_on_build
+            "not_selected" → report_no_selection
+        route_on_build:
+            "success"  → test_gen_investigator → test_gen_writer
+                         → check_test_compile → route
+                           "pass" → commit_tests → architect → pentester
+                                    → compute_validation_score → report_complete
+                           "fail" → route_on_test_retry
+                                      "retry" → test_gen_fixer → check_test_compile
+                                      "stop"  → commit_tests (best effort)
+            "failure"  → route_on_retry → remediation_planner (max 3)
+            "hopeless" → report_hopeless
     """
-    global _retry_count
+    global _retry_count, _test_retry_count
     _retry_count = 0
+    _test_retry_count = 0
 
     selection = _create_selection_agent()
     remediation = _create_remediation_agent()
-    test_gen = _create_test_gen_agent()
+    test_investigator = _create_test_gen_investigator()
+    test_writer = _create_test_gen_writer()
+    test_fixer = _create_test_gen_fixer()
     architect = _create_architect_agent()
     pentester = _create_pentester_agent()
 
@@ -378,17 +607,16 @@ def create_pipeline_workflow() -> Workflow:
                     "not_selected": report_no_selection,
                 },
             ),
-            # Phase 3: Route on build result
+            # Phase 3: Remediation with retry
             (remediation, route_on_build),
             (
                 route_on_build,
                 {
-                    "success": test_gen,
+                    "success": test_investigator,
                     "failure": route_on_retry,
                     "hopeless": report_hopeless,
                 },
             ),
-            # Phase 3b: Retry loop
             (
                 route_on_retry,
                 {
@@ -396,8 +624,25 @@ def create_pipeline_workflow() -> Workflow:
                     "stop": report_failure,
                 },
             ),
-            # Phase 4: Test generation → Validation
-            (test_gen, architect, pentester, compute_validation_score, report_complete),
+            # Phase 4: Test generation with retry loop
+            (test_investigator, test_writer, check_test_compile),
+            (
+                check_test_compile,
+                {
+                    "pass": commit_tests,
+                    "fail": route_on_test_retry,
+                },
+            ),
+            (
+                route_on_test_retry,
+                {
+                    "retry": test_fixer,
+                    "stop": commit_tests,
+                },
+            ),
+            (test_fixer, check_test_compile),
+            # Phase 5: Validation
+            (commit_tests, architect, pentester, compute_validation_score, report_complete),
         ],
     )
 

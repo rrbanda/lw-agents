@@ -277,7 +277,7 @@ flowchart LR
         parseTool["parse_maven_purl\nextracts coordinates"]
         checkTool["check_version_exists\nverifies via Maven Central"]
         bashTool["execute_bash\n(build_bash_tool)\nopencode run / mvn"]
-        diffTool["diff_proof\nsnapshot + verify\n⚠ planned, not yet wired"]
+        diffTool["diff_proof\nsnapshot + verify"]
     end
 
     subgraph agent [Agent Reasoning]
@@ -302,7 +302,7 @@ flowchart LR
     reason --> bashTool
     pomXml --> bashTool
     bashTool --> postGate
-    diffTool -.-|"planned,\nnot yet wired"| postGate
+    diffTool -->|"snapshot +\nverify"| postGate
     reason --> issues
     postGate --> prs
 ```

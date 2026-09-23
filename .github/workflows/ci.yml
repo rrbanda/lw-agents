@@ -36,7 +36,7 @@ jobs:
         run: uv run ruff format --check app/ tests/
 
       - name: Test
-        run: uv run pytest tests/test_pure_functions.py tests/test_eval.py -x -q
+        run: uv run pytest tests/ -x -q
 
   build-image:
     needs: lint-and-test

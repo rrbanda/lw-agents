@@ -27,7 +27,7 @@ POST to the agent service and read the response.
 
 **Pros:** Agent is independently testable and evaluatable, warm service = fast
 calls, can serve multiple pipelines, version upgrades don't touch pipeline YAML,
-ADK eval framework works natively, skills can be hot-reloaded.
+ADK eval framework works natively, skill updates only require a service restart.
 **Cons:** Extra infrastructure (Deployment + Service), workspace files must be
 accessible (mounted or shipped), more complex deployment.
 
@@ -46,8 +46,9 @@ requirements that benefit from a service:
    full pipeline to test agent behavior. With a service, `make eval` runs
    locally in seconds.
 
-2. **Skill hot-reload.** Skills are loaded from the filesystem. A service can
-   pick up skill changes without redeployment (via `load_skill(action='reload')`).
+2. **Skill updates without pipeline changes.** Skills are loaded from the
+   filesystem at service startup via `load_skill_from_dir()`. Updating a skill
+   requires a service restart (or redeployment) but no changes to pipeline YAML.
    In-pod agents would need a new container image for every skill edit.
 
 3. **Multi-pipeline reuse.** The same agent service handles CVE selection,

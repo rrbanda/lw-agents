@@ -48,7 +48,9 @@ Bootstrap happens in `app/__init__.py` before any ADK imports, ensuring the Trac
 ### Risks
 
 - RHOAI MLflow workspace API may change between releases
-- `SimpleSpanProcessor` (synchronous) may need to be replaced with `BatchSpanProcessor` at high throughput
+- `SimpleSpanProcessor` (synchronous) is still in use as of this writing and
+  should be replaced with `BatchSpanProcessor` before high-throughput production
+  deployment to avoid blocking the agent on span export
 
 ## References
 
