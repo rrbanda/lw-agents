@@ -293,9 +293,15 @@ async def extract_structured_results(callback_context) -> None:
         rem_output = str(state.get("remediation_output", "")).lower()
         post_gate = state.get("post_gate_result", {})
 
-        # Check if build succeeded
+        # Check if build succeeded — multiple formats:
+        # 1. BuildResultChecker sets state["build_passed"] = True
+        # 2. remediation_output contains "build_status": "SUCCESS" (JSON)
+        # 3. remediation_output contains natural language success indicators
         build_succeeded = (
             state.get("build_passed")
+            or '"build_status": "success"' in rem_output
+            or '"build_status":"success"' in rem_output
+            or "build_status: success" in rem_output
             or "build success" in rem_output
             or "successfully" in rem_output
             or "fix applied" in rem_output
@@ -319,6 +325,24 @@ async def extract_structured_results(callback_context) -> None:
             or "git push" in rem_text_full
             or "pushed" in rem_text_full
         )
+
+        # Also check ALL output_key fields for build success
+        # (sub-agent output may not land in remediation_output)
+        all_output_lower = output_text.lower()
+        if not build_succeeded:
+            build_succeeded = (
+                '"build_status": "success"' in all_output_lower
+                or '"build_status":"success"' in all_output_lower
+                or "build_status: success" in all_output_lower
+                or "build success" in all_output_lower
+            )
+        if not pr_created:
+            pr_created = (
+                "git push" in all_output_lower
+                or "pushed" in all_output_lower
+                or "merge_request" in all_output_lower
+                or "pull request" in all_output_lower
+            )
 
         if build_succeeded and (has_diff or pr_created):
             structured["CHANGED"] = "1"
