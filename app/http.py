@@ -58,6 +58,17 @@ def close_client() -> None:
 atexit.register(close_client)
 
 
+def _safe_url(url: str) -> str:
+    """Strip credentials and query params from a URL for safe logging."""
+    from urllib.parse import urlparse, urlunparse
+
+    parsed = urlparse(url)
+    safe = parsed._replace(netloc=parsed.hostname or "", query="", fragment="")
+    if parsed.port:
+        safe = safe._replace(netloc=f"{parsed.hostname}:{parsed.port}")
+    return urlunparse(safe)
+
+
 def _parse_retry_after(headers: httpx.Headers) -> float | None:
     """Extract seconds to wait from a Retry-After header.
 
@@ -146,7 +157,7 @@ def fetch_json(
 
         except Exception as exc:
             last_error = f"Unexpected error: {exc}"
-            logger.warning("http_unexpected url=%s error=%s", url, exc)
+            logger.warning("http_unexpected url=%s error=%s", _safe_url(url), exc)
             return 0, {"error": last_error}
 
     logger.warning("http_retry_exhausted url=%s last_error=%s", url, last_error)
