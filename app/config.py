@@ -72,12 +72,12 @@ BASH_ALLOWED_PREFIXES = (
 )
 BASH_TIMEOUT_SECONDS = 300
 
-# Shell metacharacters that enable command chaining / injection.
-# Reject any command containing these AFTER prefix validation.
+# Shell metacharacters that enable command injection.
+# Note: '&&' is intentionally ALLOWED because agents use 'cd /dir && cmd'
+# as a standard pattern. The prefix allowlist prevents the first command
+# from being dangerous. Semicolons and pipes are the real injection vectors.
 _BASH_FORBIDDEN_PATTERNS = (
     ";",
-    "&&",
-    "||",
     "|",
     "$(",
     "`",

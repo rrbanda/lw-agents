@@ -18,7 +18,6 @@ from google.adk.apps import App, ResumabilityConfig
 from app.agents.cve_analysis import create_cve_analysis_agent
 from app.agents.cve_selection import create_cve_selection_agent
 from app.agents.remediation import create_remediation_agent
-from app.agents.test_generation import _create_investigator as _create_test_investigator
 from app.agents.test_generation import create_test_generation_agent
 from app.agents.validation import create_validation_agent
 from app.callbacks import extract_structured_results, init_structured_result
@@ -36,13 +35,21 @@ def _create_cve_test_investigator():
     but does NOT write code. Used by the lw-investigate-cve Tekton task
     when OpenCode handles code writing separately.
     """
-    agent = _create_test_investigator()
-    agent._name = "cve_test_investigator"
-    agent._description = (
-        "Investigates a CVE and produces a test specification (what to test, "
-        "CWE, vulnerable class, attack vector, assertion). Does NOT write code."
+    from app.agents.test_generation import _create_investigator
+
+    # Create a fresh investigator with a distinct name for the coordinator
+    base = _create_investigator()
+    return LlmAgent(
+        name="cve_test_investigator",
+        model=base.model,
+        instruction=base.instruction,
+        description=(
+            "Investigates a CVE and produces a test specification (what to test, "
+            "CWE, vulnerable class, attack vector, assertion). Does NOT write code."
+        ),
+        tools=list(base.tools),
+        output_key="test_spec",
     )
-    return agent
 
 
 def _build_app() -> App:
