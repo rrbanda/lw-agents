@@ -9,7 +9,9 @@ HTTP 404 is returned immediately (not retried).
 
 from __future__ import annotations
 
+import atexit
 import logging
+import threading
 import time
 
 import httpx
@@ -22,29 +24,38 @@ _DEFAULT_TIMEOUT = 15.0
 _MAX_RETRY_AFTER = 60
 
 _client: httpx.Client | None = None
+_client_lock = threading.Lock()
 
 
 def get_client(timeout: float = _DEFAULT_TIMEOUT) -> httpx.Client:
     """Return a module-level httpx.Client for connection pooling.
 
-    The client is lazily created and reused across calls.
+    Thread-safe lazy initialization. The client is reused across calls.
     """
     global _client
-    if _client is None or _client.is_closed:
-        _client = httpx.Client(
-            timeout=timeout,
-            follow_redirects=True,
-            headers={"User-Agent": "lw-agents/1.0"},
-        )
+    if _client is not None and not _client.is_closed:
+        return _client
+    with _client_lock:
+        if _client is None or _client.is_closed:
+            _client = httpx.Client(
+                timeout=timeout,
+                follow_redirects=True,
+                verify=True,
+                headers={"User-Agent": "lw-agents/1.0"},
+            )
     return _client
 
 
 def close_client() -> None:
     """Close the shared client (call on shutdown)."""
     global _client
-    if _client is not None and not _client.is_closed:
-        _client.close()
-        _client = None
+    with _client_lock:
+        if _client is not None and not _client.is_closed:
+            _client.close()
+            _client = None
+
+
+atexit.register(close_client)
 
 
 def _parse_retry_after(headers: httpx.Headers) -> float | None:

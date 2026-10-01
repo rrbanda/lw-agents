@@ -14,14 +14,26 @@ from google.adk.plugins.base_plugin import BasePlugin
 
 # Shape-based patterns (detect by format, not by key name)
 SHAPE_PATTERNS: list[tuple[re.Pattern, str]] = [
+    # URL-embedded credentials (https://user:token@host)
+    (re.compile(r"https?://[^:/?#]+:[^@/?#]+@[^/?#]+"), "[URL_CREDENTIALS]"),
     # GitHub tokens
     (re.compile(r"(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{36,}"), "[GITHUB_TOKEN]"),
+    # GitHub fine-grained PATs
+    (re.compile(r"github_pat_[A-Za-z0-9_]{22,}"), "[GITHUB_PAT]"),
     # GitLab tokens
     (re.compile(r"glpat-[A-Za-z0-9_\-]{20,}"), "[GITLAB_TOKEN]"),
     # Anthropic API keys (must precede generic sk- pattern)
     (re.compile(r"sk-ant-[A-Za-z0-9\-]{20,}"), "[ANTHROPIC_KEY]"),
+    # OpenAI project keys
+    (re.compile(r"sk-proj-[A-Za-z0-9\-]{20,}"), "[OPENAI_PROJECT_KEY]"),
     # OpenAI API keys
     (re.compile(r"sk-[A-Za-z0-9]{20,}"), "[API_KEY]"),
+    # AWS access keys
+    (re.compile(r"AKIA[A-Z0-9]{16}"), "[AWS_ACCESS_KEY]"),
+    # Google API keys
+    (re.compile(r"AIza[A-Za-z0-9_\-]{35}"), "[GOOGLE_API_KEY]"),
+    # Slack tokens
+    (re.compile(r"xox[bpras]-[A-Za-z0-9\-]{10,}"), "[SLACK_TOKEN]"),
     # Bearer tokens
     (re.compile(r"Bearer\s+[A-Za-z0-9._~+/=\-]{20,}"), "[BEARER_TOKEN]"),
     # PEM private keys
@@ -48,8 +60,11 @@ CREDENTIAL_KEYS = frozenset(
         "token",
         "secret",
         "password",
+        "passwd",
+        "pwd",
         "apikey",
         "api_key",
+        "auth",
         "auth_token",
         "authorization",
         "cookie",
@@ -60,7 +75,9 @@ CREDENTIAL_KEYS = frozenset(
         "access_token",
         "refresh_token",
         "client_secret",
-        # L7.3 — Additional credential keys for CVE remediation tools
+        "key",
+        "x_api_key",
+        # CVE remediation tool-specific keys
         "nvd_api_key",
         "bugzilla_api_key",
         "maven_repo_password",
@@ -71,6 +88,8 @@ CREDENTIAL_KEYS = frozenset(
         "gitlab_token",
         "gemini_api_key",
         "maas_api_key",
+        "scm_token",
+        "opencode_server_password",
     }
 )
 
@@ -134,4 +153,13 @@ class RedactionPlugin(BasePlugin):
             return redact_dict(tool_response)
         if isinstance(tool_response, str):
             return redact_text(tool_response)
+        if isinstance(tool_response, list):
+            return [
+                redact_dict(item)
+                if isinstance(item, dict)
+                else redact_text(item)
+                if isinstance(item, str)
+                else item
+                for item in tool_response
+            ]
         return None

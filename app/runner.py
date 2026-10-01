@@ -476,6 +476,16 @@ class PipelineRunner:
                 duration_seconds=time.monotonic() - start,
                 error=str(exc),
             )
+        finally:
+            # Clean up session to prevent memory leak in long-lived processes
+            try:
+                await runner.session_service.delete_session(
+                    app_name=f"lw-pipeline-{name}",
+                    user_id="pipeline",
+                    session_id=session.id,
+                )
+            except Exception:
+                pass
 
         # Extract structured data from session state first
         data = dict(session.state) if hasattr(session, "state") else {}

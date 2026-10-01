@@ -597,10 +597,17 @@ class TestWorkflowTestGenParity:
 
     def test_workflow_has_test_retry(self):
         """Workflow should have test retry routing (equivalent to LoopAgent max=2)."""
-        from app.workflow import _MAX_TEST_RETRIES, route_on_test_retry
+        from app.workflow import _MAX_TEST_RETRIES, _make_retry_router
 
-        assert callable(route_on_test_retry)
+        assert callable(_make_retry_router)
         assert _MAX_TEST_RETRIES == 2
+
+        # Verify the closure works correctly
+        router = _make_retry_router(2)
+        result1 = router("input")
+        assert result1.actions.route == "retry"
+        result2 = router("input")
+        assert result2.actions.route == "stop"
 
     def test_workflow_has_fixer(self):
         """Workflow should have a test fixer agent."""

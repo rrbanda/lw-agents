@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import re
+from pathlib import Path
 from typing import Any
 
 from app.http import fetch_json, github_headers
@@ -128,7 +129,7 @@ def detect_java_version(project_dir: str) -> int | None:
     pom_path = os.path.join(project_dir, "pom.xml")
     if os.path.exists(pom_path):
         try:
-            content = open(pom_path).read()
+            content = Path(pom_path).read_text()
             # <maven.compiler.source>1.8</maven.compiler.source>
             m = re.search(
                 r"<maven\.compiler\.source>\s*(\d[\d.]*)"
@@ -151,7 +152,7 @@ def detect_java_version(project_dir: str) -> int | None:
         gpath = os.path.join(project_dir, gradle_file)
         if os.path.exists(gpath):
             try:
-                content = open(gpath).read()
+                content = Path(gpath).read_text()
                 m = re.search(r"sourceCompatibility\s*=\s*['\"]?(\d+)", content)
                 if m:
                     return int(m.group(1))

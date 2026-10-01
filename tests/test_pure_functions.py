@@ -268,10 +268,16 @@ class TestRedactText:
         assert result["name"] == "safe"
 
     def test_redact_dict_nested(self):
+        data = {"config": {"password": "secret123", "user": "admin"}}
+        result = self.redact_dict(data)
+        assert result["config"]["password"] == "[REDACTED]"
+        assert result["config"]["user"] == "admin"
+
+    def test_redact_dict_credential_key_auth(self):
+        """Keys in CREDENTIAL_KEYS are fully redacted."""
         data = {"auth": {"password": "secret123", "user": "admin"}}
         result = self.redact_dict(data)
-        assert result["auth"]["password"] == "[REDACTED]"
-        assert result["auth"]["user"] == "admin"
+        assert result["auth"] == "[REDACTED]"
 
 
 # ---------------------------------------------------------------------------

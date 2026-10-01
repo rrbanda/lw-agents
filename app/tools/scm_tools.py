@@ -102,41 +102,51 @@ def clone_repository(
         branch: Branch to clone.
         target_dir: Local directory to clone into.
     """
+    # Constrain target_dir to safe locations
+    import shutil
+    from urllib.parse import urlparse
+
+    allowed_roots = ("/tmp/", "/workspace/")
+    if not any(target_dir.startswith(root) for root in allowed_roots):
+        return {"cloned": False, "error": f"target_dir must start with one of {allowed_roots}"}
+
     host = os.environ.get("SCM_HOST", "")
     token = os.environ.get("SCM_TOKEN", "")
     username = os.environ.get("SCM_USERNAME", "oauth2")
-    repo_path = _extract_repo_path(repo_url)
 
     # Clean target dir if it exists
     if os.path.exists(target_dir):
-        import shutil
-
         shutil.rmtree(target_dir)
 
-    # Build authenticated URL — only inject credentials if repo is on SCM_HOST
-    from urllib.parse import urlparse
-
+    # Use GIT_ASKPASS for authentication (never embed tokens in URLs)
     parsed = urlparse(repo_url)
     repo_host = parsed.hostname or ""
+    needs_auth = host and token and (repo_host == host or "github.com" not in repo_host)
 
-    if host and token and (repo_host == host or not repo_host):
-        clone_url = f"https://{username}:{token}@{host}/{repo_path}.git"
-    elif host and token and "github.com" not in repo_host:
-        # Different private host — try with token anyway
-        clone_url = f"https://{username}:{token}@{repo_host}/{repo_path}.git"
-    else:
-        # Public repo or unknown host — clone without credentials
-        clone_url = repo_url
+    clone_url = repo_url
+    askpass_path = None
+    clone_env = dict(os.environ)
+    clone_env["GIT_TERMINAL_PROMPT"] = "0"
+
+    if needs_auth:
+        askpass_path, clone_env = _setup_git_credential_helper(
+            "/tmp", host or repo_host, username, token
+        )
+        repo_path = _extract_repo_path(repo_url)
+        clone_url = f"https://{host or repo_host}/{repo_path}.git"
 
     try:
         result = subprocess.run(
-            ["git", "clone", "--branch", branch, "--depth", "1", clone_url, target_dir],
+            ["git", "clone", "--branch", branch, "--depth", "1", "--", clone_url, target_dir],
             capture_output=True,
             text=True,
             timeout=120,
+            env=clone_env,
         )
         if result.returncode != 0:
-            return {"cloned": False, "error": result.stderr.strip()}
+            # Scrub credentials from stderr before returning
+            stderr = _scrub_credentials(result.stderr.strip())
+            return {"cloned": False, "error": stderr}
         return {"cloned": True, "path": target_dir}
     except FileNotFoundError:
         return {"cloned": False, "error": "git CLI not found"}
@@ -144,6 +154,9 @@ def clone_repository(
         return {"cloned": False, "error": "git clone timed out after 120s"}
     except Exception as e:
         return {"cloned": False, "error": str(e)}
+    finally:
+        if askpass_path and os.path.exists(askpass_path):
+            os.unlink(askpass_path)
 
 
 clone_repository_tool = FunctionTool(clone_repository, require_confirmation=False)
@@ -326,6 +339,13 @@ def _extract_repo_path(url: str) -> str:
     path = re.sub(r"^https?://", "", url)
     path = re.sub(r"^[^/]+/", "", path)
     return re.sub(r"\.git$", "", path)
+
+
+def _scrub_credentials(text: str) -> str:
+    """Remove embedded credentials from git error output."""
+    # Remove https://user:token@host patterns
+    text = re.sub(r"https?://[^:]+:[^@]+@", "https://***@", text)
+    return text
 
 
 def _extract_url(text: str) -> str:

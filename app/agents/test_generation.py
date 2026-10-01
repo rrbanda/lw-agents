@@ -217,10 +217,11 @@ class TestResultChecker(BaseAgent):
         snapshot_path = "/tmp/test_snapshot.txt"
         if os.path.isfile(snapshot_path):
             try:
-                for line in open(snapshot_path).readlines():
-                    parts = line.strip().split(None, 1)
-                    if len(parts) == 2:
-                        old_checksums[parts[1]] = parts[0]
+                with open(snapshot_path) as f:
+                    for line in f.readlines():
+                        parts = line.strip().split(None, 1)
+                        if len(parts) == 2:
+                            old_checksums[parts[1]] = parts[0]
             except OSError:
                 pass
 

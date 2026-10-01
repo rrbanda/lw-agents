@@ -7,6 +7,10 @@ dist/
 
 # Secrets -- MUST NOT be committed
 .env
+*.kc
+.agent-kc
+.pipeline-kc
+*kubeconfig*
 
 # Build artifacts
 artifacts/

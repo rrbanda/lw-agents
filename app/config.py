@@ -71,7 +71,21 @@ BASH_ALLOWED_PREFIXES = (
     "tee ",
 )
 BASH_TIMEOUT_SECONDS = 300
-BASH_MAX_MEMORY_BYTES = 1024 * 1024 * 1024
+
+# Shell metacharacters that enable command chaining / injection.
+# Reject any command containing these AFTER prefix validation.
+_BASH_FORBIDDEN_PATTERNS = (
+    ";",
+    "&&",
+    "||",
+    "|",
+    "$(",
+    "`",
+    "$((",
+    "<(",
+    ">()",
+    "\n",
+)
 
 
 def build_bash_tool(workspace: str | None = None) -> FunctionTool:
@@ -104,6 +118,14 @@ def build_bash_tool(workspace: str | None = None) -> FunctionTool:
         cmd = command.strip()
         if not any(cmd.startswith(prefix) for prefix in allowed):
             return {"error": f"Command not allowed. Must start with one of: {', '.join(allowed)}"}
+
+        # Reject shell metacharacters that enable command chaining / injection
+        for pattern in _BASH_FORBIDDEN_PATTERNS:
+            if pattern in cmd:
+                return {
+                    "error": f"Command contains forbidden pattern '{pattern}'. "
+                    "Shell chaining and subshells are not allowed."
+                }
 
         try:
             # Use the command's target directory if it references an absolute path

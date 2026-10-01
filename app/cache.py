@@ -14,6 +14,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+import threading
 import time
 from pathlib import Path
 
@@ -23,6 +24,7 @@ _CACHE_DIR = Path(os.environ.get("LW_CACHE_DIR", "/tmp/lw-agents-cache"))
 _DEFAULT_TTL_SECONDS = int(os.environ.get("LW_CACHE_TTL_SECONDS", "3600"))
 
 _memory_cache: dict[str, tuple[float, str]] = {}
+_cache_lock = threading.Lock()
 
 
 def _is_disabled() -> bool:
@@ -54,13 +56,14 @@ def cache_get(namespace: str, key: str, ttl: int | None = None) -> str | None:
     cache_key = f"{namespace}:{key.lower()}"
 
     # Memory cache first
-    if cache_key in _memory_cache:
-        ts, val = _memory_cache[cache_key]
-        if time.time() - ts < effective_ttl:
-            logger.debug("cache_hit_memory namespace=%s key=%s", namespace, key)
-            return val
-        else:
-            del _memory_cache[cache_key]
+    with _cache_lock:
+        if cache_key in _memory_cache:
+            ts, val = _memory_cache[cache_key]
+            if time.time() - ts < effective_ttl:
+                logger.debug("cache_hit_memory namespace=%s key=%s", namespace, key)
+                return val
+            else:
+                del _memory_cache[cache_key]
 
     # Disk fallback
     path = _cache_path(namespace, key)
@@ -103,7 +106,8 @@ def cache_put(namespace: str, key: str, value: str) -> None:
         return
 
     cache_key = f"{namespace}:{key.lower()}"
-    _memory_cache[cache_key] = (time.time(), value)
+    with _cache_lock:
+        _memory_cache[cache_key] = (time.time(), value)
 
     path = _cache_path(namespace, key)
     try:

@@ -345,17 +345,22 @@ def route_on_build(node_input: str) -> Event:
     return Event(output=node_input, route="failure")
 
 
-_retry_count = 0
 _MAX_RETRIES = 3
 
 
-def route_on_retry(node_input: str) -> Event:
-    """Route based on retry count."""
-    global _retry_count
-    _retry_count += 1
-    if _retry_count >= _MAX_RETRIES:
-        return Event(output=node_input, route="stop")
-    return Event(output=node_input, route="retry")
+def _make_retry_router(max_retries: int, name: str = "route_on_retry"):
+    """Create a retry routing function with its own counter (not global state)."""
+    counter = {"count": 0}
+
+    def router(node_input: str) -> Event:
+        counter["count"] += 1
+        if counter["count"] >= max_retries:
+            return Event(output=node_input, route="stop")
+        return Event(output=node_input, route="retry")
+
+    router.__name__ = name
+    router.__qualname__ = name
+    return router
 
 
 def compute_validation_score(node_input: str) -> str:
@@ -406,7 +411,6 @@ def compute_validation_score(node_input: str) -> str:
 # (mirrors TestResultChecker + TestCommitter from test_generation.py)
 # ============================================================================
 
-_test_retry_count = 0
 _MAX_TEST_RETRIES = 2
 
 
@@ -429,10 +433,11 @@ def check_test_compile(node_input: str) -> Event:
     snapshot_path = "/tmp/test_snapshot.txt"
     if os.path.isfile(snapshot_path):
         try:
-            for line in open(snapshot_path).readlines():
-                parts = line.strip().split(None, 1)
-                if len(parts) == 2:
-                    old_checksums[parts[1]] = parts[0]
+            with open(snapshot_path) as f:
+                for line in f.readlines():
+                    parts = line.strip().split(None, 1)
+                    if len(parts) == 2:
+                        old_checksums[parts[1]] = parts[0]
         except OSError:
             pass
 
@@ -489,15 +494,6 @@ def check_test_compile(node_input: str) -> Event:
         output=f"{node_input}\nCompile error: {error}\nFiles: {changed_files}",
         route="fail",
     )
-
-
-def route_on_test_retry(node_input: str) -> Event:
-    """Route test gen retry based on counter."""
-    global _test_retry_count
-    _test_retry_count += 1
-    if _test_retry_count >= _MAX_TEST_RETRIES:
-        return Event(output=node_input, route="stop")
-    return Event(output=node_input, route="retry")
 
 
 def commit_tests(node_input: str) -> str:
@@ -593,6 +589,10 @@ def create_pipeline_workflow() -> Workflow:
     test_fixer = _create_test_gen_fixer()
     architect = _create_architect_agent()
     pentester = _create_pentester_agent()
+
+    # Per-run retry routers (closure-based, not global state)
+    route_on_retry = _make_retry_router(_MAX_RETRIES, "route_on_build_retry")
+    route_on_test_retry = _make_retry_router(_MAX_TEST_RETRIES, "route_on_test_retry")
 
     return Workflow(
         name="cve_remediation_pipeline",

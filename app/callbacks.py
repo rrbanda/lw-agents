@@ -290,64 +290,68 @@ async def extract_structured_results(callback_context) -> None:
 
     # CHANGED detection for remediation flow
     if structured.get("CHANGED", "0") == "0":
-        rem_output = str(state.get("remediation_output", "")).lower()
-        post_gate = state.get("post_gate_result", {})
+        # Post-gate rejection overrides everything — never report CHANGED
+        if state.get("post_gate_rejected"):
+            structured["CHANGED"] = "0"
+            structured["JUSTIFICATION"] = state.get("post_gate_reason", "Post-gate rejected")
+        else:
+            rem_output = str(state.get("remediation_output", "")).lower()
+            post_gate = state.get("post_gate_result", {})
 
-        # Check if build succeeded — multiple formats:
-        # 1. BuildResultChecker sets state["build_passed"] = True
-        # 2. remediation_output contains "build_status": "SUCCESS" (JSON)
-        # 3. remediation_output contains natural language success indicators
-        build_succeeded = (
-            state.get("build_passed")
-            or '"build_status": "success"' in rem_output
-            or '"build_status":"success"' in rem_output
-            or "build_status: success" in rem_output
-            or "build success" in rem_output
-            or "successfully" in rem_output
-            or "fix applied" in rem_output
-            or "remediation complete" in rem_output
-            or "version updated" in rem_output
-            or "dependency updated" in rem_output
-            or "file changed" in rem_output
-        )
-
-        # Check if there's actually a diff (post_gate wasn't skipped)
-        has_diff = post_gate and not post_gate.get("skipped", False)
-
-        # Check if PR was created, attempted, or branch was pushed
-        pr_text = str(state.get("pr_result", "")).lower()
-        rem_text_full = str(state.get("remediation_output", "")).lower()
-        pr_created = (
-            "created" in pr_text
-            or "merge_request" in pr_text
-            or "pull" in pr_text
-            or "open a pull request" in pr_text
-            or "git push" in rem_text_full
-            or "pushed" in rem_text_full
-        )
-
-        # Also check ALL output_key fields for build success
-        # (sub-agent output may not land in remediation_output)
-        all_output_lower = output_text.lower()
-        if not build_succeeded:
+            # Check if build succeeded — multiple formats:
+            # 1. BuildResultChecker sets state["build_passed"] = True
+            # 2. remediation_output contains "build_status": "SUCCESS" (JSON)
+            # 3. remediation_output contains natural language success indicators
             build_succeeded = (
-                '"build_status": "success"' in all_output_lower
-                or '"build_status":"success"' in all_output_lower
-                or "build_status: success" in all_output_lower
-                or "build success" in all_output_lower
-            )
-        if not pr_created:
-            pr_created = (
-                "git push" in all_output_lower
-                or "pushed" in all_output_lower
-                or "merge_request" in all_output_lower
-                or "pull request" in all_output_lower
+                state.get("build_passed")
+                or '"build_status": "success"' in rem_output
+                or '"build_status":"success"' in rem_output
+                or "build_status: success" in rem_output
+                or "build success" in rem_output
+                or "successfully" in rem_output
+                or "fix applied" in rem_output
+                or "remediation complete" in rem_output
+                or "version updated" in rem_output
+                or "dependency updated" in rem_output
+                or "file changed" in rem_output
             )
 
-        if build_succeeded and (has_diff or pr_created):
-            structured["CHANGED"] = "1"
-        elif build_succeeded:
-            structured["CHANGED"] = "1"
+            # Check if there's actually a diff (post_gate wasn't skipped)
+            has_diff = post_gate and not post_gate.get("skipped", False)
+
+            # Check if PR was created, attempted, or branch was pushed
+            pr_text = str(state.get("pr_result", "")).lower()
+            rem_text_full = str(state.get("remediation_output", "")).lower()
+            pr_created = (
+                "created" in pr_text
+                or "merge_request" in pr_text
+                or "pull" in pr_text
+                or "open a pull request" in pr_text
+                or "git push" in rem_text_full
+                or "pushed" in rem_text_full
+            )
+
+            # Also check ALL output_key fields for build success
+            all_output_lower = output_text.lower()
+            if not build_succeeded:
+                build_succeeded = (
+                    '"build_status": "success"' in all_output_lower
+                    or '"build_status":"success"' in all_output_lower
+                    or "build_status: success" in all_output_lower
+                    or "build success" in all_output_lower
+                )
+            if not pr_created:
+                pr_created = (
+                    "git push" in all_output_lower
+                    or "pushed" in all_output_lower
+                    or "merge_request" in all_output_lower
+                    or "pull request" in all_output_lower
+                )
+
+            if build_succeeded and (has_diff or pr_created):
+                structured["CHANGED"] = "1"
+            elif build_succeeded:
+                structured["CHANGED"] = "1"
 
     # TESTS_ADDED detection for test-generation flow
     if structured.get("TESTS_ADDED", "0") == "0":

@@ -1,19 +1,20 @@
 """OpenCode integration — coding agent for test generation and build fixing.
 
-OpenCode's strengths:
-  - Reads the full project (understands imports, packages, APIs)
-  - Writes compilable code (resolves dependencies, correct syntax)
-  - Fixes build errors iteratively (reads error, edits, retries)
+Three integration modes (checked in order):
+
+1. **OpenCode Server** (preferred): OpenCode runs as a sidecar pod with
+   `opencode serve`. ADK calls it via HTTP API — no subprocess, no SSE
+   timeout, persistent sessions.
+
+2. **OpenCode CLI** (legacy): OpenCode called via `execute_bash("opencode run")`.
+   Only works in PipelineRunner CLI mode (not via ADK web server SSE).
+
+3. **Tee writer** (fallback): No OpenCode — ADK agent writes code directly
+   via bash `tee`. Works everywhere but less context-aware.
 
 Architecture:
   ADK Agent: Investigates CVE → builds a TEST SPECIFICATION (what to test)
   OpenCode: Receives the specification → generates the actual code
-
-This avoids the telephone game: we pass WHAT to test (specification),
-not HOW to test it (code). OpenCode generates the code from scratch
-using its understanding of the project.
-
-For build errors: OpenCode reads the error + project context and fixes.
 """
 
 from __future__ import annotations
@@ -26,20 +27,29 @@ from google.adk.agents import LlmAgent
 from app.config import MODEL, build_bash_tool
 
 
-def is_opencode_available() -> bool:
-    """Check if OpenCode should be used.
+def _is_opencode_server_available() -> bool:
+    """Check if the OpenCode sidecar server is reachable."""
+    try:
+        from app.tools.opencode_server import is_opencode_server_available
 
-    Requires explicit opt-in via LW_USE_OPENCODE=true because
-    OpenCode takes 60-90s and causes SSE timeouts in the web UI.
-    Pipeline runner and Tekton set this automatically.
-    """
-    if os.environ.get("LW_USE_OPENCODE", "").lower() in (
-        "1",
-        "true",
-        "yes",
-    ):
+        return is_opencode_server_available()
+    except Exception:
+        return False
+
+
+def _is_opencode_cli_available() -> bool:
+    """Check if OpenCode CLI is available (legacy subprocess mode)."""
+    if os.environ.get("LW_USE_OPENCODE", "").lower() in ("1", "true", "yes"):
         return shutil.which("opencode") is not None
     return False
+
+
+def is_opencode_available() -> bool:
+    """Check if any OpenCode integration mode is available.
+
+    Checks server mode first (preferred), then CLI mode (legacy).
+    """
+    return _is_opencode_server_available() or _is_opencode_cli_available()
 
 
 def create_opencode_test_generator(
