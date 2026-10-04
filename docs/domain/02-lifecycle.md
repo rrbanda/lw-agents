@@ -131,7 +131,7 @@ ai: Agents can correlate telemetry and code history at portfolio scale. Poisoned
 | 06 Fix and release | Stay out of customer agents | The library patch, its tests, and its signed build belong to the upstream maintainer or to a supplier like Lightwell |
 | 07 Publish | Stay out | CVE record publication is a CNA responsibility |
 | 08 Repackage | Assist only | An agent can open dependency-update pull requests. Compatibility and ownership gaps remain human problems |
-| 09 Prioritize and remediate | Own a bounded step | Match the advisory to the application, pin the fixed coordinate, open a pull request, and stop for a person |
+| 09 Prioritize and remediate | Own a bounded step | Four agent jobs: (1) select one advisory from the must-fix set, (2) analyze all advisories and open issues, (3) change the manifest to the fixed coordinate and open a PR, (4) generate tests. Each is bounded. A person merges |
 | 10 Observe and learn | Stay out of routine agents | Incident response, postmortems, and record corrections are human-led. Agents that feed back into this loop need governance |
 
 Phase 09 is the only phase where a remediation agent can own a bounded step in routine operation. The execution model pages describe [three ways](04-pipeline-only.html) to [do that](05-pipeline-with-agents.html).

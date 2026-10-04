@@ -86,3 +86,30 @@ Both variants follow the same rules.
 5. The developer reviews the pull request and merges it into the existing path to production.
 
 The developer did not research the advisory, did not hunt for the right version, and did not edit `pom.xml`. The developer approved the change. That approval is the human-in-the-loop step that the architecture preserves.
+
+## Task inventory
+
+The pipeline DAG mixes non-agent tasks (scanner, policy, image checks) with agent tasks (selection, analysis, remediation, test generation). Knowing which is which helps when troubleshooting or when deciding which steps to replace.
+
+| Pipeline step | Task | Agent? | What it does |
+| --- | --- | --- | --- |
+| Clone | `git-clone` | No | Pull the source from Git |
+| Verify commit | `verify-commit` | No | Check the commit signature against TAS |
+| Build | `maven` | No | Compile the application |
+| Container build | `buildah-rhtap` | No | Build the image and generate the SBOM |
+| Upload SBOM | `upload-sbom-to-rhtpa` | No | Send the SBOM to the vulnerability analyzer |
+| Vulnerability analysis | `rhtpa-vulnerability-analysis` | No | Get the vulnerability report from RHTPA |
+| Remediation report | `rhtpa-remediation-report` | No | Get vendor fix recommendations |
+| Policy gate | `conforma-policy-check` | No | Filter to the must-fix set |
+| **Select one CVE** | `ai-select-cve` / `lw-select-cve` | **Yes** | Choose the highest-priority advisory |
+| **Analyze all CVEs** | `ai-analyze-cves` / `lw-analyze-cves` | **Yes** | Produce a decision per fixable CVE |
+| Open issues | `open-cve-issues` | No | Create one GitLab/GitHub issue per CVE |
+| **Change manifest** | `ai-remediate-dependency` / `lw-remediate-dependency` | **Yes** | Edit the dependency version and verify the build |
+| Re-run tests | `maven` | No | Run `mvn verify` on the remediated tree |
+| Open PR | `open-pr-cve` | No | Commit, push, and create the PR/MR |
+| **Generate tests** | `ai-generate-tests` / `lw-generate-tests` | **Yes** | Write JUnit tests and verify they compile |
+| Image scan | `acs-image-scan` | No | Scan the container image |
+| Image check | `acs-image-check` | No | Check image against admission policy |
+| Deploy check | `acs-deploy-check` | No | Check deployment config against policy |
+
+The four agent steps (bold) are the only steps where a model makes a decision. Everything else is deterministic. See [Agent tasks](05a-agent-tasks.html) for the detailed sub-step matrix and the Lightwell tool integration.

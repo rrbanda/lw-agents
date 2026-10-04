@@ -26,6 +26,12 @@ from app.tools.live_cve_tools import (
     lookup_osv,
     search_github_advisory,
 )
+from app.tools.lightwell_tools import (
+    check_lightwell_version_exists,
+    check_version_exists_smart,
+    lookup_lightwell_osv,
+    list_lightwell_advisories,
+)
 from app.tools.upstream_tools import (
     discover_upstream_repo,
     lookup_known_repo,
@@ -60,6 +66,15 @@ def create_cve_selection_agent() -> LlmAgent:
             "best predictor of real-world exploitation\n"
             "- search_github_advisory: Find fix commit URLs and patched versions\n"
             "- discover_upstream_repo: Find the GitHub repo for any component\n\n"
+            "LIGHTWELL TOOLS (use when the fix is a Lightwell backport):\n"
+            "- lookup_lightwell_osv: Fetch the Lightwell advisory and its fixed "
+            "coordinate. This is the VERSION AUTHORITY for a Lightwell pin — "
+            "not Maven Central, not OSV.dev.\n"
+            "- check_lightwell_version_exists: Verify a .rhlw version exists "
+            "in the Lightwell repository (Central does not have these).\n"
+            "- check_version_exists_smart: Auto-routes to Lightwell or Central "
+            "based on the version suffix.\n"
+            "- list_lightwell_advisories: List available Lightwell advisories.\n\n"
             "Use these to enrich your analysis beyond the local RHTPA report. "
             "EPSS score is especially valuable for prioritization — a CVE with "
             "high EPSS (>0.5) should be prioritized over one with higher CVSS but low EPSS.\n\n"
@@ -84,6 +99,11 @@ def create_cve_selection_agent() -> LlmAgent:
             FunctionTool(search_github_advisory),
             FunctionTool(discover_upstream_repo),
             FunctionTool(lookup_known_repo),
+            # Lightwell tools
+            FunctionTool(lookup_lightwell_osv),
+            FunctionTool(check_lightwell_version_exists),
+            FunctionTool(check_version_exists_smart),
+            FunctionTool(list_lightwell_advisories),
         ],
         output_key="selection_result",
     )

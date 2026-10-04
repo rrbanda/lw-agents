@@ -25,6 +25,12 @@ from app.tools.live_cve_tools import (
     lookup_vex,
     search_github_advisory,
 )
+from app.tools.lightwell_tools import (
+    check_lightwell_version_exists,
+    check_version_exists_smart,
+    lookup_lightwell_osv,
+    list_lightwell_advisories,
+)
 from app.tools.upstream_tools import (
     discover_upstream_repo,
     search_fix_commits,
@@ -57,6 +63,14 @@ def create_cve_analysis_agent() -> LlmAgent:
             "- search_github_advisory: Fix commit URLs and patched versions\n"
             "- discover_upstream_repo: Find upstream GitHub repo for a component\n"
             "- search_fix_commits: Search for commits that fix a CVE\n\n"
+            "LIGHTWELL TOOLS (use when the fix is a Lightwell backport):\n"
+            "- lookup_lightwell_osv: Fetch the Lightwell advisory and its fixed "
+            "coordinate. This is the VERSION AUTHORITY for a Lightwell pin.\n"
+            "- check_lightwell_version_exists: Verify a .rhlw version exists "
+            "in the Lightwell repository.\n"
+            "- check_version_exists_smart: Auto-routes to Lightwell or Central "
+            "based on the version suffix.\n"
+            "- list_lightwell_advisories: List available Lightwell advisories.\n\n"
             "For EACH fixable CVE, verify the fixed version exists using "
             "check_version_exists. Use live data sources to find fix versions "
             "when the local report doesn't have them.\n\n"
@@ -85,6 +99,11 @@ def create_cve_analysis_agent() -> LlmAgent:
             FunctionTool(search_github_advisory),
             FunctionTool(discover_upstream_repo),
             FunctionTool(search_fix_commits),
+            # Lightwell tools
+            FunctionTool(lookup_lightwell_osv),
+            FunctionTool(check_lightwell_version_exists),
+            FunctionTool(check_version_exists_smart),
+            FunctionTool(list_lightwell_advisories),
         ],
         output_key="analysis_result",
     )
