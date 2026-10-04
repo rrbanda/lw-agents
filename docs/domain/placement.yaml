@@ -1,0 +1,134 @@
+version: 1
+status: domain-authority
+skills_aligned: false
+phase: 9
+phase_name: Prioritize and remediate
+use_case: cve-remediation
+authority: docs/domain/04-agent-map.md
+
+systems:
+  lightwell:
+    owns: security-only backport on the version the application already runs
+    does_not_own: the application pull request
+  rhtpa_scan:
+    owns: must-fix-cves.json for one application
+    does_not_own: the Lightwell catalog
+  lens:
+    owns: console coverage report at console.redhat.com/lightwell/lens
+    does_not_own: a documented programmatic API
+  tpa_ingest:
+    owns: SBOM and advisory ingest on a specific deployment
+    does_not_own: this repository's current pipeline
+  lw_agents:
+    owns: one pin pull request for one published advisory
+    does_not_own: library source patches, CVE publication, production verification
+
+version_authority:
+  chooses_coordinate:
+    - lightwell_osv_fixed_event
+  chooses_order_only:
+    - cvss
+    - epss
+    - kev
+    - exposure
+  must_not_choose_coordinate:
+    - maven_central
+    - osv_dev
+    - nvd
+    - red_hat_vex
+    - github_advisory_upstream_release
+
+skills:
+  - id: cve-triage
+    module: app/agents/cve_selection.py
+    in_domain:
+      - Select one must-fix advisory that has a Lightwell fixed coordinate on the same upstream version.
+      - Report selected=false when none do.
+    forbidden:
+      - Treating Maven Central or OSV.dev as the Lightwell fix.
+      - Discovering a vulnerability.
+    current_mismatch:
+      - check_version_exists queries Maven Central.
+      - lookup_osv queries OSV.dev.
+      - Preference for a same-line upstream bump rejects a .rhlw pin.
+
+  - id: cve-analysis
+    module: app/agents/cve_analysis.py
+    in_domain:
+      - Classify every must-fix advisory.
+      - Fixable means a Lightwell fixed event names the coordinate.
+    forbidden:
+      - Recommending the lowest upstream version on the same release line as the pin.
+    current_mismatch:
+      - Recommended version is the lowest Central-verified version on the release line.
+      - lookup_vex reads Red Hat product VEX.
+
+  - id: maven-remediation
+    module: app/agents/remediation.py
+    in_domain:
+      - Change only the manifest coordinate named by the fixed event.
+      - Resolve it from the trusted repository and open a pull request.
+    forbidden:
+      - Patching library source.
+      - Putting a registry token in the diff.
+      - Automerge.
+    current_mismatch:
+      - Investigates the upstream commit before editing.
+      - Version authority is GitHub Advisory, OSV.dev, and NVD.
+
+  - id: gradle-remediation
+    module: app/agents/remediation.py
+    in_domain:
+      - Same pin rules as maven-remediation, in Gradle version storage.
+    forbidden:
+      - Patching library source.
+      - Automerge.
+    current_mismatch:
+      - Same upstream-bump procedure as the Maven skill.
+
+  - id: junit-test-generation
+    module: app/agents/test_generation.py
+    in_domain:
+      - Prove the application still builds and that the resolved coordinate is the requested pin.
+    forbidden:
+      - A test that exploits the CVE.
+      - Importing an upstream proof of concept.
+    current_mismatch:
+      - Role text says prove the vulnerability fix works.
+      - First tier adapts upstream reproducer tests.
+
+  - id: validation-architect
+    module: app/agents/validation.py
+    in_domain:
+      - Read-only check that the diff is the pin and resolution is from the trusted repository.
+    forbidden:
+      - Re-judging the Lightwell library patch.
+      - Exploit procedure.
+    current_mismatch:
+      - Reviews root cause in application or library source, including ReDoS checks.
+
+  - id: validation-pentester
+    module: app/agents/validation.py
+    in_domain:
+      - Read-only check for a wrong coordinate, Central resolution, or an over-claim.
+    forbidden:
+      - Attack narrative, payload, or bypass recipe.
+    current_mismatch:
+      - Role text says find a bypass and prove the fix does not work.
+
+  - id: scm-conventions
+    module: shared
+    in_domain:
+      - Commit subject uses pin, not bump, for a Lightwell suffix.
+      - Body names advisory, coordinate, and fixed-event source.
+    forbidden:
+      - Embargo or predisclosure detail in a public pull request.
+      - A source_patch claim for a manifest pin.
+      - A statement that production is already remediated.
+    current_mismatch:
+      - Template says bump and allows source_patch or config_change.
+
+fixtures:
+  - docs/domain/fixtures/rhlw-pin-not-on-central.json
+  - docs/domain/fixtures/freshness-upgrade-refused.json
+  - docs/domain/fixtures/wrong-advisory-coordinate.json

@@ -14,6 +14,7 @@ dist/
 
 # Build artifacts
 artifacts/
+docs/domain/site/
 *.lock
 !uv.lock
 

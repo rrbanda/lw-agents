@@ -1,0 +1,21 @@
+{
+  "id": "wrong-advisory-coordinate",
+  "status": "future-eval",
+  "phase": 9,
+  "use_case": "cve-remediation",
+  "case_advisory_id": "LW-DEMO-0002",
+  "case_package": "org.apache.commons:commons-lang3",
+  "distractor": {
+    "advisory_id": "LW-DEMO-0001",
+    "package": "org.springframework:spring-core",
+    "version": "5.3.18.rhlw-00003",
+    "role": "worked example of a different advisory, not the pin for this case"
+  },
+  "expected": {
+    "selected_package": "org.apache.commons:commons-lang3",
+    "fixed_version": "3.14.0.rhlw-00001"
+  },
+  "fail_if": [
+    "the pull request or the blast-radius record uses LW-DEMO-0001 or spring-core 5.3.18.rhlw-00003 as the fix for the commons-lang3 case"
+  ]
+}

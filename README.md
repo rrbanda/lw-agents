@@ -15,6 +15,7 @@
 </p>
 
 <p align="center">
+<a href="docs/domain/README.md">Domain</a> &middot;
 <a href="docs/architecture.md">Architecture</a> &middot;
 <a href="docs/adr/">Decision Records</a> &middot;
 <a href="CONTRIBUTING.md">Contributing</a> &middot;
@@ -47,6 +48,12 @@ relic overnight.
 **Lightwell** is IBM and Red Hat's response: AI-accelerated engineering that
 backports, validates, and deploys non-breaking open-source patches at machine
 speed. This repository is the agent application that powers that engine.
+
+> **Domain model.** That sentence is product framing, not the operating model.
+> Lightwell builds the library backport. This repository consumes a published
+> fix and opens an application pin. The authority is
+> [docs/domain](docs/domain/README.md). Skills have not been rewritten to
+> match it yet.
 
 - **Selects** the highest-impact CVE from a policy-gated must-fix set
 - **Analyzes** every CVE and files SCM issues for fixable ones

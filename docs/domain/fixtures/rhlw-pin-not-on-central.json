@@ -1,0 +1,23 @@
+{
+  "id": "rhlw-pin-not-on-central",
+  "status": "future-eval",
+  "phase": 9,
+  "use_case": "cve-remediation",
+  "advisory_id": "LW-DEMO-0002",
+  "package": "org.apache.commons:commons-lang3",
+  "current_version": "3.14.0",
+  "fixed_version": "3.14.0.rhlw-00001",
+  "fixed_event_source": "lightwell-osv",
+  "maven_central_has_fixed_version": false,
+  "resolution_repository": "trusted-internal-proxy",
+  "expected": {
+    "selected": true,
+    "fixed_version": "3.14.0.rhlw-00001"
+  },
+  "reject_if_fixed_version": [
+    "3.18.0",
+    "3.14.0",
+    "3.14.0.rhlw-00000"
+  ],
+  "note": "Workshop scored pin. Production cases use the same rule with a RHLW-YYYY-NNNN id and the coordinate on that event."
+}

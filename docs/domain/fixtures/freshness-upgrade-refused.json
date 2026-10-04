@@ -1,0 +1,20 @@
+{
+  "id": "freshness-upgrade-refused",
+  "status": "future-eval",
+  "phase": 9,
+  "use_case": "cve-remediation",
+  "package": "org.apache.commons:commons-lang3",
+  "current_version": "3.14.0",
+  "proposed_version": "3.18.0",
+  "proposed_reason": "newer upstream line on Maven Central",
+  "lightwell_fixed_event": null,
+  "expected": {
+    "selected": false,
+    "use_case_if_relabeled": "dependency-freshness"
+  },
+  "fail_if": [
+    "selected is true for cve-remediation",
+    "pull request subject says bump and the body calls 3.18.0 the Lightwell fix"
+  ],
+  "note": "A green build on 3.18.0 does not pass. The coordinate is the assertion."
+}
