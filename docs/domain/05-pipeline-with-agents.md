@@ -1,28 +1,48 @@
 ---
 title: Pipeline with agents
-summary: Two ways to put agent tasks inside the pipeline. The pipeline owns the DAG. The agent does one bounded step.
+summary: The pipeline is one execution engine. It runs tasks in a declared order. Some tasks use agents. How the agent runs is a deployment choice.
 ---
 
-The pipeline head is the same as [Pipeline only](04-pipeline-only.html): clone, build, SBOM, scan, policy gate. After the gate, an agent task does one of four jobs: select one CVE, analyze all CVEs and open issues, remediate one dependency, or generate tests. The pipeline decides the order. The agent does one step at a time.
+The pipeline is a Tekton DAG that owns the order of work. It runs the same sequence whether agents are involved or not. When agents are added, they replace specific manual steps — triage, manifest editing, test generation — with agent tasks that produce structured results. The pipeline gates every downstream step on those results.
 
-Two variants exist. Both share the same shape and the same rules.
+The `ai-*` tasks run a model inside the Tekton pod. The `lw-*` tasks call a remote ADK service over SSE. Both produce the same structured output. The pipeline does not care which one is behind the task. This is a deployment choice, not a different execution model.
 
-## Variant 1: Inline agent
+## The CVE flow mapped to pipeline tasks
 
-The agent runs inside the Tekton pod. A Python container or a coding-agent container (Claude Code, aider) executes one prompt, writes one structured result, and exits. There is no persistent session.
+The deck's flow is: **Discover → Triage and Log → Remediate → Test and Validate → Deliver**. Each stage maps to pipeline tasks.
 
-### Four pipelines, four jobs
+### Stage 1: Discover what is vulnerable
 
-| Pipeline | What the agent does | Output |
+These tasks produce the inputs. No agent is involved.
+
+| Task | What it does | Maps to |
 | --- | --- | --- |
-| CVE selection | Reads the must-fix set, selects exactly one CVE with the highest priority, and emits a six-field decision | `SELECTED`, `CVE_ID`, `PACKAGE`, `CURRENT_VERSION`, `FIXED_VERSION`, `JUSTIFICATION` |
-| CVE analysis | Reads the must-fix set, produces a decision for every fixable CVE, and opens one issue per CVE in GitLab or GitHub | One issue per fixable CVE, each carrying the six-field decision in a marker |
-| CVE remediation | Takes a decision as input parameters, changes the dependency version in the manifest, runs the build and tests, and opens a pull request | A pull request linked to the issue, with audit data |
-| Test generation | Generates unit tests for the application, runs them, and opens a tests-only pull request | A tests-only pull request |
+| `git-clone` | Pull the application source | Prerequisite |
+| `verify-commit` | Check the commit signature (optional) | Provenance |
+| `maven` (package) | Build the application | Prerequisite |
+| `buildah-rhtap` | Build the container image and generate the SBOM | Discover |
+| `upload-sbom-to-rhtpa` | Send the SBOM to the vulnerability analyzer | Discover |
+| `rhtpa-vulnerability-analysis` | Get the vulnerability report: which CVEs affect this application | Discover |
+| `rhtpa-remediation-report` | Get vendor fix-version recommendations (supplemental) | Discover |
+
+Output: a vulnerability report with CVE IDs, severities, affected PURLs, and fix hints.
+
+### Stage 2: Triage and log
+
+The policy gate filters the report. Then an agent task triages the result.
+
+| Task | Agent? | What it does | Maps to |
+| --- | --- | --- | --- |
+| `conforma-policy-check` | No | Apply policy to produce the must-fix set (e.g. critical and high only) | Triage |
+| `ai-select-cve` / `lw-select-cve` | **Yes** | Choose exactly one CVE from the must-fix set. Emits a six-field decision | Triage |
+| `ai-analyze-cves` / `lw-analyze-cves` | **Yes** | Produce a decision for every fixable CVE. Render one issue file per CVE | Log |
+| `open-cve-issues` | No | Create one GitLab or GitHub issue per fixable CVE | Log |
+
+The selection pipeline and the analysis pipeline share the same head (stage 1) but differ in the tail. Selection picks one CVE for immediate remediation. Analysis triages the full set and creates a backlog.
 
 ### The six-field contract
 
-The selection and analysis pipelines produce these fields. The remediation pipeline consumes them.
+Selection and analysis produce these fields. Remediation consumes them.
 
 | Field | Meaning |
 | --- | --- |
@@ -35,81 +55,64 @@ The selection and analysis pipelines produce these fields. The remediation pipel
 
 ### Human handoff
 
-Selection emits the decision as pipeline results. A person reviews the decision, then starts the remediation pipeline with those values as parameters. This is a deliberate decoupling: a human stands between triage and action.
+A person stands between triage and remediation. For the selection pipeline, the person reviews the decision and starts the remediation pipeline with those values as parameters. For the analysis pipeline, the person reviews an issue and comments `/remediate` to trigger remediation. This decoupling is deliberate.
 
-For the analysis pipeline, the handoff is an issue. Each issue carries the six-field decision in an HTML comment marker. A developer reviews the issue and comments `/remediate` to trigger the remediation pipeline. The trigger reads the fields from the issue body.
+### Stage 3: Remediate one CVE
 
-### Fail-closed
+The remediation pipeline takes the six-field decision as input. It does not scan or triage.
 
-If the agent cannot apply the fix, or the build fails, or the tests fail, the result is `CHANGED=0`. The pipeline skips the pull request. No broken code is shipped. The logback 1.2 to 1.5 example in the demo shows this: the major version jump required an incompatible SLF4J version, the build failed, and the agent correctly returned `CHANGED=0`.
+| Task | Agent? | What it does | Maps to |
+| --- | --- | --- | --- |
+| `git-clone` | No | Clone the source | Prerequisite |
+| `ai-remediate-dependency` / `lw-remediate-dependency` | **Yes** | Edit the manifest to the fixed version, verify the build compiles. Emits `CHANGED=1` or `CHANGED=0` | Remediate |
+| `maven` (re-run tests) | No | Run `mvn verify` on the remediated tree (gated on `CHANGED=1`) | Test |
+| `open-pr-cve` | No | Commit, push a branch, create a PR/MR (gated on `CHANGED=1`) | Deliver handoff |
 
-## Variant 2: Remote agent service
+If the agent cannot apply the fix, or the build fails, the result is `CHANGED=0`. The pipeline skips the PR. No broken code is shipped.
 
-The pipeline head is the same. The agent task calls a remote service instead of running a model in-pod.
+### Stage 4: Test (optional pipeline)
 
-### What changes
+The test generation pipeline runs independently. A developer comments `/generate-tests` on an issue.
 
-| | Inline agent | Remote agent service |
+| Task | Agent? | What it does | Maps to |
+| --- | --- | --- | --- |
+| `git-clone` | No | Clone the source | Prerequisite |
+| `maven` (package) | No | Build the application | Prerequisite |
+| `ai-generate-tests` / `lw-generate-tests` | **Yes** | Generate JUnit tests, run them. Emits `TESTS_ADDED` count | Test |
+| `maven` (re-run) | No | Run all tests including generated ones (gated on `TESTS_ADDED > 0`) | Validate |
+| `open-pr-tests` | No | Commit only tests to a branch, open a tests-only PR (gated on `TESTS_ADDED > 0`) | Deliver handoff |
+
+### Stage 5: Deliver
+
+The pipeline stops at the pull request. A developer reviews and merges. The merge goes into the organization's existing CI/CD path to production. The pipeline does not deploy, does not roll back, and does not claim production is clean.
+
+## How the agent task runs — a deployment choice
+
+| | In-pod (`ai-*` tasks) | Remote service (`lw-*` tasks) |
 | --- | --- | --- |
-| Where the agent runs | Inside the Tekton pod | A separate service on a separate cluster |
-| Session | Stateless. One prompt, one answer | Persistent. The service holds an SSE session, loads skills, retries builds |
-| Communication | The task script runs the model directly | The task sends an HTTP request and reads an SSE stream |
-| What the pipeline sees | The same structured result (`CHANGED=1/0`, six-field decision) | The same structured result |
-| What the service does internally | Nothing. It is a single call | A coordinator delegates to specialist agents. Each specialist loads methodology from a skill file. The remediation agent retries up to three times with classified error feedback |
+| Where the model runs | Inside the Tekton pod. A Python or coding-agent container | A separate ADK service, possibly on a different cluster |
+| Session | Stateless. One prompt, one structured answer | Persistent. SSE session with skills, retry, and multi-step reasoning |
+| What the pipeline sees | The same structured result | The same structured result |
+| When to use | Simpler setup. No service to deploy | Multi-step reasoning, skill loading, retry on build failure, and the ability to serve multiple pipelines |
 
-The pipeline still owns the DAG. The pipeline still gates downstream tasks on the result. The human handoff is the same. Fail-closed is the same.
+The pipeline contract is the same either way: the task writes `SELECTED`, `CHANGED`, or `TESTS_ADDED` to Tekton results. Downstream tasks gate on those values.
 
-The remote service adds multi-step reasoning, skill loading, and retry without changing the pipeline's contract. The pipeline does not know or care how the service reached the answer, only that the answer arrived in the expected shape.
+## Rules
 
-### Two-cluster architecture
-
-The pipeline cluster handles CI/CD with access to the image registry, Git, and the vulnerability analyzer. The agent service cluster handles AI workloads. Communication between them is HTTPS. This separation lets the agent service scale independently and serve multiple pipelines.
-
-## Shared rules
-
-Both variants follow the same rules.
-
-- **One CVE at a time.** Each remediation changes exactly one dependency. Small, discrete changes reduce risk and qualify as standard changes.
-- **Pull requests are never auto-merged.** Every change lands on a branch for human review. The developer merges after reviewing the diff, the build result, and the audit data.
-- **Fail-closed.** Any error, build failure, or uncertainty results in `CHANGED=0`. The pipeline does not open a pull request for a failed fix.
-- **No discovery.** The agent does not find new vulnerabilities. It reads the scanner's output.
-- **No library patching.** The agent changes the application's dependency version. It does not patch library source code. That work belongs to the upstream maintainer or to a supplier like Lightwell.
-- **Secrets are not committed.** Registry tokens, API keys, and SCM credentials are mounted as secrets, never baked into images or written to the pull request.
-- **The agent is pluggable.** The AI provider (Anthropic, OpenAI-compatible, Bedrock, Vertex, IBM Granite via vLLM) and the coding agent (Claude Code, aider) are configuration. The task contract stays the same.
+- **One CVE at a time.** Each remediation changes exactly one dependency. Small changes qualify as standard changes.
+- **Pull requests are never auto-merged.** A developer reviews and merges.
+- **Fail-closed.** Any error or build failure results in `CHANGED=0`. The pipeline does not open a PR for a failed fix.
+- **No discovery.** The agent reads the scanner's output. It does not find new vulnerabilities.
+- **No library patching.** The agent changes the application's dependency version. The library fix belongs to the upstream maintainer or to a supplier like Lightwell.
+- **Secrets are not committed.** Tokens and keys are mounted, never in the diff.
+- **The agent backend is pluggable.** Anthropic, OpenAI-compatible, Bedrock, Vertex, IBM Granite via vLLM. Claude Code or aider as the coding agent. Configuration, not code change.
 
 ## What the developer sees
 
-1. The analysis pipeline ran in the background. It created issues in the backlog, one per fixable CVE.
-2. The developer opens an issue, sees the CVE details, the recommended fix version, and the severity.
+1. The analysis pipeline ran in the background and created issues in the backlog, one per fixable CVE.
+2. The developer opens an issue. It shows the CVE details, the recommended version, and the severity.
 3. The developer comments `/remediate`.
-4. The remediation pipeline runs. If the fix works, a pull request appears, linked to the issue, with the diff and audit data.
-5. The developer reviews the pull request and merges it into the existing path to production.
+4. The remediation pipeline runs. If the fix works, a pull request appears linked to the issue with the diff and audit data.
+5. The developer reviews and merges into the existing path to production.
 
-The developer did not research the advisory, did not hunt for the right version, and did not edit `pom.xml`. The developer approved the change. That approval is the human-in-the-loop step that the architecture preserves.
-
-## Task inventory
-
-The pipeline DAG mixes non-agent tasks (scanner, policy, image checks) with agent tasks (selection, analysis, remediation, test generation). Knowing which is which helps when troubleshooting or when deciding which steps to replace.
-
-| Pipeline step | Task | Agent? | What it does |
-| --- | --- | --- | --- |
-| Clone | `git-clone` | No | Pull the source from Git |
-| Verify commit | `verify-commit` | No | Check the commit signature against TAS |
-| Build | `maven` | No | Compile the application |
-| Container build | `buildah-rhtap` | No | Build the image and generate the SBOM |
-| Upload SBOM | `upload-sbom-to-rhtpa` | No | Send the SBOM to the vulnerability analyzer |
-| Vulnerability analysis | `rhtpa-vulnerability-analysis` | No | Get the vulnerability report from RHTPA |
-| Remediation report | `rhtpa-remediation-report` | No | Get vendor fix recommendations |
-| Policy gate | `conforma-policy-check` | No | Filter to the must-fix set |
-| **Select one CVE** | `ai-select-cve` / `lw-select-cve` | **Yes** | Choose the highest-priority advisory |
-| **Analyze all CVEs** | `ai-analyze-cves` / `lw-analyze-cves` | **Yes** | Produce a decision per fixable CVE |
-| Open issues | `open-cve-issues` | No | Create one GitLab/GitHub issue per CVE |
-| **Change manifest** | `ai-remediate-dependency` / `lw-remediate-dependency` | **Yes** | Edit the dependency version and verify the build |
-| Re-run tests | `maven` | No | Run `mvn verify` on the remediated tree |
-| Open PR | `open-pr-cve` | No | Commit, push, and create the PR/MR |
-| **Generate tests** | `ai-generate-tests` / `lw-generate-tests` | **Yes** | Write JUnit tests and verify they compile |
-| Image scan | `acs-image-scan` | No | Scan the container image |
-| Image check | `acs-image-check` | No | Check image against admission policy |
-| Deploy check | `acs-deploy-check` | No | Check deployment config against policy |
-
-The four agent steps (bold) are the only steps where a model makes a decision. Everything else is deterministic. See [Agent tasks](05a-agent-tasks.html) for the detailed sub-step matrix and the Lightwell tool integration.
+The developer did not research the advisory, did not hunt for the right version, and did not edit `pom.xml`. The developer approved the change.
