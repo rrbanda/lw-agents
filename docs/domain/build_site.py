@@ -22,15 +22,22 @@ OUT = Path(
 ASSETS = DOMAIN / "assets"
 
 PAGES = [
-    ("README.md", "index.html", "Overview", "Start"),
-    ("00-boundaries.md", "00-boundaries.html", "Boundaries", "Start"),
-    ("01-cve-lifecycle.md", "01-cve-lifecycle.html", "CVE lifecycle", "The map"),
-    ("02-lightwell.md", "02-lightwell.html", "Lightwell", "The map"),
-    ("03-customer-clock.md", "03-customer-clock.html", "Customer clock", "The map"),
-    ("04-agent-map.md", "04-agent-map.html", "Agent map", "Agents"),
-    ("05-skill-contract.md", "05-skill-contract.html", "Skill contract", "Agents"),
-    ("sources.md", "sources.html", "Sources", "Start"),
+    ("README.md", "index.html", "Start here", "Decide"),
+    ("01-concerns.md", "01-concerns.html", "Concerns", "Decide"),
+    ("02-lifecycle.md", "02-lifecycle.html", "CVE lifecycle", "Decide"),
+    ("03-solutions.md", "03-solutions.html", "Solutions", "Decide"),
+    ("04-pipeline-only.md", "04-pipeline-only.html", "Pipeline only", "Execute"),
+    ("05-pipeline-with-agents.md", "05-pipeline-with-agents.html", "Pipeline with agents", "Execute"),
+    ("06-fully-agentic.md", "06-fully-agentic.html", "Fully agentic", "Execute"),
+    ("07-how-to-choose.md", "07-how-to-choose.html", "How to choose", "Execute"),
+    ("08-lightwell.md", "08-lightwell.html", "Lightwell", "Lightwell"),
+    ("sources.md", "sources.html", "Sources", "Reference"),
+    ("00-boundaries.md", "00-boundaries.html", "Boundaries", "Reference"),
+    ("04-agent-map.md", "04-agent-map.html", "Agent map", "Reference"),
+    ("05-skill-contract.md", "05-skill-contract.html", "Skill contract", "Reference"),
 ]
+
+REFERENCE_GROUPS = {"Reference"}
 
 CALLOUTS = {
     "in": ("In domain", "callout in"),
@@ -265,7 +272,7 @@ class Renderer:
             self.add_heading(2, f"{number} {title_html}", hid)
             selected = index == 0
             flag = (
-                '<span class="station-flag">This repository</span>'
+                '<span class="station-flag">Agents act here</span>'
                 if number == "09"
                 else ""
             )
@@ -367,6 +374,7 @@ def page_html(
     body: str,
     toc: str,
     current: str,
+    is_reference: bool = False,
 ) -> str:
     nav_groups: list[tuple[str, list[str]]] = []
     for _src, href, label, grp in PAGES:
@@ -428,7 +436,7 @@ def page_html(
         <p class="eyebrow">{html.escape(group)}</p>
         <h1>{html.escape(title)}</h1>
         <p class="lede">{html.escape(summary)}</p>
-        <p class="status">This pack is the authority for a future skill edit. The skills in the repository still describe a Maven Central upgrade.</p>
+        {'<p class="status">Reference page for skill authors. The skills in the repository still describe a Maven Central upgrade.</p>' if is_reference else ''}
         {body}
       </article>
       {toc}
@@ -460,20 +468,21 @@ def build() -> None:
         rendered = renderer.render(body)
         title = meta.get("title", href)
         summary = meta.get("summary", "")
-        page = page_html(title, summary, group, rendered, toc_html(renderer.headings), href)
+        is_ref = group in REFERENCE_GROUPS
+        page = page_html(title, summary, group, rendered, toc_html(renderer.headings), href, is_reference=is_ref)
         (OUT / href).write_text(page, encoding="utf-8")
 
     site = (OUT / "index.html").read_text(encoding="utf-8")
-    lifecycle = (OUT / "01-cve-lifecycle.html").read_text(encoding="utf-8")
-    lightwell = (OUT / "02-lightwell.html").read_text(encoding="utf-8")
+    lifecycle = (OUT / "02-lifecycle.html").read_text(encoding="utf-8")
+    lightwell = (OUT / "08-lightwell.html").read_text(encoding="utf-8")
+    agent_map = (OUT / "04-agent-map.html").read_text(encoding="utf-8")
     required = [
-        "Phase 09",
         "3.14.0.rhlw-00001",
-        "LW-DEMO-0002",
         "Maven Central",
         "cve-triage",
     ]
-    blob = site + lifecycle + lightwell + (OUT / "04-agent-map.html").read_text(encoding="utf-8")
+    blob = site + lifecycle + lightwell + agent_map
+    blob += (OUT / "05-pipeline-with-agents.html").read_text(encoding="utf-8")
     missing = [item for item in required if item not in blob]
     if missing:
         raise SystemExit(f"built site is missing: {missing}")
@@ -501,6 +510,13 @@ def build() -> None:
         raise SystemExit("lifecycle stage did not render ten phases")
     if not (OUT / "slides" / "index.html").exists():
         raise SystemExit("slide deck was not copied")
+    decide_pages = ["index.html", "01-concerns.html", "03-solutions.html",
+                     "04-pipeline-only.html", "05-pipeline-with-agents.html",
+                     "06-fully-agentic.html", "07-how-to-choose.html"]
+    for dp in decide_pages:
+        content = (OUT / dp).read_text(encoding="utf-8")
+        if "Reference page for skill authors" in content:
+            raise SystemExit(f"decide page {dp} has the reference warning")
     print(f"wrote {OUT}")
 
 

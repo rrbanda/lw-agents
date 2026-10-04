@@ -1,52 +1,44 @@
 ---
-title: Agentic CVE response
-summary: What the CVE lifecycle, Lightwell, and this repository each do, before any skill is rewritten.
+title: Start here
+summary: A CVE is a publicly recorded flaw in software. Knowing the number is not the same as being safe.
 ---
 
-Read this pack before changing an agent or a skill. It is the domain authority for `lw-agents`. The files under `skills/` are the current implementation. Where they disagree with this pack, this pack wins, and the skill is waiting to be corrected.
+A **CVE** (Common Vulnerabilities and Exposures) identifier is a public label for a security flaw in software. When a CVE is published, anyone can read its description, including attackers. The flaw exists whether or not the organization knows about it. The number makes it trackable. It does not make it fixed.
+
+Getting from the number to a running application that no longer has the flaw is the actual work. That work crosses several people, several tools, and several approval steps. No single product or agent covers the whole path.
+
+## Who cares, and about what
+
+Different people in the organization own different parts of a CVE response. When someone says they want CVE handling to be agentic, the work they are pointing at depends on who they are.
+
+| Who | What they are stuck with | What they want |
+| --- | --- | --- |
+| Vulnerability management | The queue of findings, false positives, and deciding which advisory to act on first | Faster triage, fewer false positives, clear priority |
+| Application or service owner | Whether this application can absorb a change without breaking | Confidence that the fix does not introduce a new failure |
+| Developer | The manifest, the build, and the pull request | The smallest change that lands the right coordinate |
+| Platform engineering | The pipeline, the trusted repository, signing, and the gates | Agent tasks that fit inside the existing pipeline |
+| Change management | Standard change, change-advisory board, or emergency | Evidence that the change qualifies as standard |
+| SRE and operations | The maintenance window, rollout, and rollback | A pull request that stops before deployment |
+| Risk owner | Exceptions, the service-level agreement, and residual risk | Authority over what an agent may do |
+| Security operations (SOC) | Active exploitation, incidents, and indicators | Agents that stay out of incident response unless explicitly directed |
+
+An agent can help with some of those rows. It cannot own all of them at once.
+
+## What this site covers
 
 :::cards
-Boundaries | Three systems, and the names that keep getting collapsed. | 00-boundaries.html
-CVE lifecycle | Ten phases, the formal record, and the only phase these agents occupy. | 01-cve-lifecycle.html
-Lightwell | Repositories, version suffixes, OSV, Lens, and Trusted Profile Analyzer. | 02-lightwell.html
-Customer clock | The patch-to-production model after a library fix already exists. | 03-customer-clock.html
-Agent map | Each skill's phase, use case, and the mismatch in the current text. | 04-agent-map.html
-Skill contract | The rules the next skill edit has to satisfy. | 05-skill-contract.html
+Concerns | The seven decisions an organization faces when a CVE is published. | 01-concerns.html
+Lifecycle | Ten phases and where agents may assist, own a step, or must stay out. | 02-lifecycle.html
+Solutions | Each kind of response and where it helps. | 03-solutions.html
+Pipeline only | A CI/CD pipeline that finds what is wrong, without any AI. | 04-pipeline-only.html
+Pipeline with agents | Two ways to put agent tasks inside the pipeline. | 05-pipeline-with-agents.html
+Fully agentic | What a system with no fixed pipeline would own, and why it is not built yet. | 06-fully-agentic.html
+How to choose | A table from organizational constraints to execution model. | 07-how-to-choose.html
+Lightwell | When a security-only backport is the right response. | 08-lightwell.html
 :::
 
-## What this repository does
+## How to read the path
 
-`lw-agents` is a phase 09 application. It takes a published advisory that already has a fixed coordinate, and it opens a pull request that pins that coordinate in one application. A person merges it.
+Start with [Concerns](01-concerns.html). Each page answers one question. You can stop after any page and know one more thing. The execution model pages are written in the same shape so they can be compared.
 
-The use case is **CVE remediation**: one advisory, one dependency, the smallest change that lands the fixed coordinate. A newer upstream line, chosen because it is newer, is a different use case called **dependency freshness**. These skills do not do freshness.
-
-## What accurate means
-
-A later skill is accurate when it matches this pack and the sources in [Sources](sources.html). It is not accurate because a model remembers the catalog. Catalog membership changes. The skill reads the fixed event for the case in front of it.
-
-Two future fixtures are already specified in [the skill contract](05-skill-contract.html):
-
-- A `.rhlw` pin that is not on Maven Central, which must still be selected.
-- A freshness upgrade, which the CVE skill must refuse or relabel.
-
-## How to read the code after this
-
-| Read this | For |
-| --- | --- |
-| [Agent map](04-agent-map.html) | Which module and skill own which job |
-| `skills/*/SKILL.md` | What the agent does today |
-| `docs/architecture.md` | How the ADK service is wired today |
-| `docs/adr/` | Why the harness is skills-first |
-
-Do not copy a skill back into this pack. This pack does not absorb the current mismatch.
-
-## Preview
-
-From the repository root:
-
-```
-python3 docs/domain/build_site.py
-python3 -m http.server -d docs/domain/site
-```
-
-GitHub Pages publishes that build. The existing slide deck stays at `slides/`.
+If you are looking for the repository's skill contract or agent map, those are in the Reference section of the sidebar.
