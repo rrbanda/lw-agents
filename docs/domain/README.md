@@ -1,5 +1,5 @@
 ---
-title: Domain knowledge
+title: Agentic CVE response
 summary: What the CVE lifecycle, Lightwell, and this repository each do, before any skill is rewritten.
 ---
 

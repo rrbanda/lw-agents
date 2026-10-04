@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-<a href="docs/domain/README.md">Domain</a> &middot;
+<a href="docs/domain/README.md">CVE response</a> &middot;
 <a href="docs/architecture.md">Architecture</a> &middot;
 <a href="docs/adr/">Decision Records</a> &middot;
 <a href="CONTRIBUTING.md">Contributing</a> &middot;

@@ -323,7 +323,7 @@ def page_html(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{html.escape(title)} · lw-agents domain</title>
+<title>{html.escape(title)} · Agentic CVE response</title>
 <meta name="description" content="{html.escape(summary)}">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23EE0000'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -339,14 +339,14 @@ def page_html(
       <span class="mark" aria-hidden="true"></span>
       <div>
         <strong>lw-agents</strong>
-        <em>Domain</em>
+        <em>CVE response</em>
       </div>
     </div>
     <label class="filter">
       <span class="visually-hidden">Filter pages</span>
       <input id="nav-filter" type="search" placeholder="Filter pages" autocomplete="off">
     </label>
-    <nav class="nav" aria-label="Domain">
+    <nav class="nav" aria-label="CVE response">
       {''.join(nav)}
     </nav>
     <div class="rail-foot">
@@ -370,7 +370,7 @@ def page_html(
       {toc}
     </div>
     <footer>
-      <p>Domain map for lw-agents. The ten phases are a working model, not a CVE Program standard. Lightwell behavior follows the product docs named in Sources.</p>
+      <p>Agentic CVE response for lw-agents. The ten phases are a working model, not a CVE Program standard. Lightwell behavior follows the product docs named in Sources.</p>
     </footer>
   </div>
 </div>
