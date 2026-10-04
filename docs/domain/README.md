@@ -1,5 +1,5 @@
 ---
-title: Agentic CVE response
+title: From advisory to production
 summary: A guide to understanding CVE vulnerabilities, choosing how to respond, and using agents to compress the time from advisory to production fix.
 ---
 
