@@ -123,8 +123,26 @@ class Renderer:
 
             if stripped.startswith(":::"):
                 kind = stripped[3:].strip()
+                if kind == "phase":
+                    phases: list[dict[str, str]] = []
+                    while True:
+                        index += 1
+                        inner: list[str] = []
+                        while index < len(lines) and lines[index].strip() != ":::":
+                            inner.append(lines[index])
+                            index += 1
+                        if index < len(lines) and lines[index].strip() == ":::":
+                            index += 1
+                        phases.append(self.parse_phase_fields("\n".join(inner)))
+                        while index < len(lines) and lines[index].strip() == "":
+                            index += 1
+                        if index < len(lines) and lines[index].strip() == ":::phase":
+                            continue
+                        break
+                    blocks.append(self.lifecycle_stage(phases))
+                    continue
                 index += 1
-                inner: list[str] = []
+                inner = []
                 while index < len(lines) and lines[index].strip() != ":::":
                     inner.append(lines[index])
                     index += 1
@@ -224,18 +242,40 @@ class Renderer:
                 else:
                     bits.append(f"<span>{inline(part)}</span>")
             return f'<p class="equation">{"".join(bits)}</p>'
-        if kind == "phase":
-            fields: dict[str, str] = {}
-            for line in body.splitlines():
-                if ": " not in line:
-                    continue
-                key, value = line.split(": ", 1)
-                fields[key.strip()] = value.strip()
-            number = fields.get("number", "")
+        return f"<pre><code>{html.escape(body)}</code></pre>"
+
+    @staticmethod
+    def parse_phase_fields(body: str) -> dict[str, str]:
+        fields: dict[str, str] = {}
+        for line in body.splitlines():
+            if ": " not in line:
+                continue
+            key, value = line.split(": ", 1)
+            fields[key.strip()] = value.strip()
+        return fields
+
+    def lifecycle_stage(self, phases: list[dict[str, str]]) -> str:
+        tabs: list[str] = []
+        panels: list[str] = []
+        for index, fields in enumerate(phases):
+            number = fields.get("number", f"{index + 1:02d}")
             title = fields.get("title", "")
             hid = self.heading_id(title, f"phase-{number}")
             title_html = inline(title)
             self.add_heading(2, f"{number} {title_html}", hid)
+            selected = index == 0
+            flag = (
+                '<span class="station-flag">This repository</span>'
+                if number == "09"
+                else ""
+            )
+            tabs.append(
+                f'<button type="button" role="tab" id="tab-{hid}" '
+                f'aria-controls="{hid}" aria-selected="{str(selected).lower()}" '
+                f'tabindex="{0 if selected else -1}">'
+                f'<span class="station-num">{html.escape(number)}</span>'
+                f'<span class="station-name">{title_html}</span>{flag}</button>'
+            )
             rows = "".join(
                 f"<div><dt>{html.escape(label)}</dt><dd>{inline(fields.get(key, ''))}</dd></div>"
                 for label, key in (
@@ -245,15 +285,42 @@ class Renderer:
                     ("AI-era pressure", "ai"),
                 )
             )
-            return (
-                f'<article class="phase" id="{hid}">'
-                f'<div class="phase-head"><span class="phase-num">{html.escape(number)}</span>'
-                f"<div><p class=\"kicker\">{inline(fields.get('owner', ''))}</p>"
+            hidden = "" if selected else " hidden"
+            panels.append(
+                f'<article class="phase-panel" id="{hid}" role="tabpanel" '
+                f'aria-labelledby="tab-{hid}"{hidden}>'
+                f'<p class="kicker">{inline(fields.get("owner", ""))}</p>'
                 f"<h2>{title_html}</h2>"
-                f"<p class=\"purpose\">{inline(fields.get('purpose', ''))}</p></div></div>"
+                f'<p class="purpose">{inline(fields.get("purpose", ""))}</p>'
                 f"<dl>{rows}</dl></article>"
             )
-        return f"<pre><code>{html.escape(body)}</code></pre>"
+        record = (
+            '<div class="record-track"><span>Formal CVE record</span><ol>'
+            "<li>No ID</li><li>Reserved</li><li>Published</li>"
+            "<li>Updated or Rejected</li></ol></div>"
+        )
+        script = (
+            "<script>(function(){var id=location.hash.slice(1);if(!id)return;"
+            "var panel=document.getElementById(id);"
+            "if(!panel||!panel.classList.contains('phase-panel'))return;"
+            "document.querySelectorAll('.phase-panel').forEach(function(item){"
+            "item.hidden=item!==panel;});})();</script>"
+        )
+        return (
+            '<section class="lifecycle-stage" aria-roledescription="lifecycle">'
+            f"{record}"
+            '<div class="phase-scroller">'
+            '<button type="button" class="phase-shift" data-dir="-1" aria-label="Earlier phase">‹</button>'
+            '<div class="phase-track" role="tablist" aria-label="Lifecycle phases">'
+            f'{"".join(tabs)}</div>'
+            '<button type="button" class="phase-shift" data-dir="1" aria-label="Later phase">›</button>'
+            "</div>"
+            '<div class="phase-progress" aria-hidden="true"><span></span></div>'
+            f'<div class="phase-panels">{"".join(panels)}</div>'
+            '<p class="loop-note">Exploitation evidence, incomplete fixes, incidents, and postmortems '
+            "update the record and feed prevention back into research and development.</p>"
+            f"{script}</section>"
+        )
 
     @staticmethod
     def table(lines: list[str]) -> str:
@@ -430,6 +497,8 @@ def build() -> None:
     absent = [title for title in titles if title not in lifecycle]
     if absent:
         raise SystemExit(f"lifecycle page missing phases: {absent}")
+    if "lifecycle-stage" not in lifecycle or lifecycle.count('role="tab"') != 10:
+        raise SystemExit("lifecycle stage did not render ten phases")
     if not (OUT / "slides" / "index.html").exists():
         raise SystemExit("slide deck was not copied")
     print(f"wrote {OUT}")
