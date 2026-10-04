@@ -22,7 +22,8 @@ OUT = Path(
 ASSETS = DOMAIN / "assets"
 
 PAGES = [
-    ("README.md", "index.html", "Start here", "Decide"),
+    ("README.md", "index.html", "Overview", "Overview"),
+    ("start-here.md", "start-here.html", "Start here", "Decide"),
     ("01-concerns.md", "01-concerns.html", "Concerns", "Decide"),
     ("02-lifecycle.md", "02-lifecycle.html", "CVE lifecycle", "Decide"),
     ("03-solutions.md", "03-solutions.html", "Solutions", "Decide"),
