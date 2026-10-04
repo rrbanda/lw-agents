@@ -19,6 +19,65 @@ A CVE can sit in different layers of the software stack. The right response depe
 
 Agents do not add a new kind of fix. They are a way to do the work inside one of these responses faster and with less manual effort. The execution model pages describe [three ways](04-pipeline-only.html) to [use agents](05-pipeline-with-agents.html) for that acceleration.
 
+## Scanning and analysis tools that already exist
+
+Before any agent is involved, several products already handle discovery, inventory, and triage across different layers. Understanding what they cover is the prerequisite for understanding what agents add.
+
+### Red Hat Trusted Profile Analyzer (RHTPA)
+
+Part of the Red Hat Trusted Software Supply Chain suite. RHTPA stores, indexes, and analyzes Software Bills of Materials (SBOMs) — CycloneDX and SPDX — for custom, third-party, and open-source components. It cross-references SBOM contents against continuously ingested vulnerability data from Red Hat security advisories, NVD, and other sources, and provides a risk profile for each application.
+
+| What it does | Detail |
+| --- | --- |
+| SBOM storage | Accepts CycloneDX 1.3–1.6 and SPDX 2.2–2.3. SBOMs from source, builds, containers, and packages |
+| Vulnerability analysis | Compares SBOM components against advisories and CVEs. Returns findings with severity and affected PURLs |
+| Remediation recommendations | The `/purl/recommend` endpoint returns vendor fix-version recommendations when Red Hat advisory data is available |
+| VEX and advisory management | Stores and cross-references VEX advisories alongside SBOMs |
+| IDE integration | Red Hat Dependency Analytics plugin uses the RHTPA backend (Exhort) to surface vulnerabilities inside the developer's IDE |
+
+In the pipeline, RHTPA is the source of the vulnerability report and the must-fix list that feeds every later step. The Conforma policy gate filters that list by severity or other rules. RHTPA does not change the application code — it tells the pipeline what is vulnerable.
+
+### Red Hat Advanced Cluster Security (RHACS)
+
+RHACS scans container images running on OpenShift and Kubernetes clusters. Scanner V4, the default scanner, analyzes each image layer for OS packages (apk, dpkg, RPM) and language-level dependencies (Go, Java, JavaScript, Python, Ruby), matching them against Red Hat VEX, NVD, OSV, and OS vulnerability feeds.
+
+| What it does | Detail |
+| --- | --- |
+| Image scanning | Scans active images automatically every four hours. Can scan inactive images and delegate scanning to secured clusters |
+| Deploy-time checks | Enforces security policies before an image is admitted to a cluster. The pipeline uses `acs-image-check` and `acs-deploy-check` tasks |
+| Runtime monitoring | Detects anomalous runtime behavior in running containers |
+| Integration | Works alongside external scanners and registries |
+
+In the pipeline, RHACS checks the built container image. It tells the pipeline whether the image meets security policy before deployment. Like RHTPA, it does not change the application code.
+
+### Red Hat Lightspeed (formerly Red Hat Insights)
+
+Red Hat Lightspeed is included in every Red Hat Enterprise Linux subscription. It continuously assesses connected RHEL systems against Red Hat security advisories.
+
+| What it does | Detail |
+| --- | --- |
+| CVE monitoring | Identifies which connected RHEL systems are exposed to which CVEs. Distinguishes vulnerable from affected-but-not-vulnerable |
+| Prioritization | Categorizes by severity, security rules, and known exploits. Surfaces known-exploit CVEs separately |
+| Triage | Administrators assign business risk and status to CVEs, individually or in bulk |
+| Remediation plans | For CVEs with available Ansible Playbooks, creates remediation plans that can execute directly or hand off to Ansible Automation Platform |
+| Disconnected support | Satellite 6.19 brings the vulnerability service on-premise for air-gapped environments |
+
+Lightspeed covers **RHEL platform vulnerabilities** — the operating system layer. It does not scan application-level dependencies like Maven or Python packages inside the application's source tree. That is where RHTPA and the pipeline's SBOM analysis step cover the gap.
+
+### Other scanners
+
+The architecture is not locked to Red Hat products. Customers can substitute at each step.
+
+| Alternative | What it replaces |
+| --- | --- |
+| JFrog Artifactory X-ray | SBOM analysis and vulnerability scanning for artifacts in Artifactory |
+| Snyk | Developer-focused software composition analysis for application dependencies |
+| Prisma Cloud (Palo Alto) | Container and cloud workload scanning |
+| Wiz | Cloud-native security posture management |
+| Trivy (Aqua Security) | Open-source image and filesystem scanner |
+
+The pipeline tasks that call RHTPA and RHACS are the integration points. Replacing a scanner means replacing the task that calls it, not the pipeline structure.
+
 ## The upstream library problem
 
 Platform patches and base images are delivered through channels the organization already consumes: errata, content views, image streams. The operating system team applies them. The application team does not change application code for a platform patch.
