@@ -315,9 +315,6 @@ def page_html(
         nav.append("".join(links))
     nav.append('<p class="nav-label">Elsewhere</p>')
     nav.append('<a href="slides/index.html">Slide deck</a>')
-    nav.append(
-        '<a href="placement.yaml">placement.yaml</a>'
-    )
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -387,7 +384,6 @@ def build() -> None:
     shutil.copytree(ASSETS, OUT / "assets")
     shutil.copytree(SLIDES, OUT / "slides")
     shutil.copytree(DOMAIN / "fixtures", OUT / "fixtures")
-    shutil.copy2(DOMAIN / "placement.yaml", OUT / "placement.yaml")
     (OUT / ".nojekyll").write_text("", encoding="utf-8")
 
     for source_name, href, _label, group in PAGES:

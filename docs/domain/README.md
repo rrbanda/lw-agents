@@ -34,7 +34,6 @@ Two future fixtures are already specified in [the skill contract](05-skill-contr
 | Read this | For |
 | --- | --- |
 | [Agent map](04-agent-map.html) | Which module and skill own which job |
-| [placement.yaml](placement.yaml) | The same map in a form a later edit can load |
 | `skills/*/SKILL.md` | What the agent does today |
 | `docs/architecture.md` | How the ADK service is wired today |
 | `docs/adr/` | Why the harness is skills-first |

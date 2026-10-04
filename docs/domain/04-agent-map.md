@@ -7,8 +7,6 @@ The pipeline a person sees today is: a scan produces `must-fix-cves.json`, then 
 
 `opencode_writer` writes files when a step asks it to. It has no phase of its own.
 
-Machine-readable copy: [placement.yaml](placement.yaml).
-
 ## cve-triage
 
 | | |
