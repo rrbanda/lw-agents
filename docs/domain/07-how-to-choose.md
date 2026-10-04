@@ -18,6 +18,7 @@ The choice depends on what the organization is stuck with, not on which model so
 | The fix comes from Lightwell | The developer pins the remediated coordinate manually | The agent pins the coordinate from the Lightwell fixed event. See [Lightwell](08-lightwell.html) | Same pin rules. The coordinator does not change the version authority |
 | There is an active exploit | Incident response. The SOC owns this. The pipeline may run as part of the response, but the decision is human | Same. The agent can compress the remediation step, but the SOC decides the priority and the window | Same. The coordinator does not replace incident response |
 | The vulnerability is under embargo | The fix may exist in a private repository. The pull request must not carry the advisory description | Same. The agent must not write embargoed detail to a public branch | Same. Written policy must enforce the boundary |
+| We are fixing CVEs that turn out to be non-exploitable in our app | The person researches exploitability manually or fixes everything reported | Add the assessment layer (exploit-iq) before the pipeline. It answers "is this CVE reachable in my code?" and deprioritizes non-exploitable findings. 77 must-fix CVEs become only the ones that matter | The coordinator can integrate assessment verdicts into its prioritization |
 
 ## Who says yes
 

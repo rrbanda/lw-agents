@@ -78,6 +78,26 @@ The architecture is not locked to Red Hat products. Customers can substitute at 
 
 The pipeline tasks that call RHTPA and RHACS are the integration points. Replacing a scanner means replacing the task that calls it, not the pipeline structure.
 
+### Vulnerability analysis agent (exploit-iq) — exploitability assessment
+
+The tools above tell you **what** is vulnerable. They do not tell you **whether it matters** in your specific application. A scanner reports 77 CVEs, but how many are actually reachable through your code?
+
+The vulnerability analysis agent (based on the NVIDIA AI Blueprint for container security) answers that question. It is an assessment layer, not a scanner and not a fix. It sits between scanning (which finds) and remediation (which fixes).
+
+| What it does | Detail |
+| --- | --- |
+| Intel gathering | Fetches CVE data from NVD, GHSA, EPSS, Red Hat advisories, and other sources |
+| SBOM processing | Verifies the vulnerable package is actually in the application's dependency tree at the affected version |
+| Reachability analysis | Traces call chains to determine whether the vulnerable code path is exercised by the application. Uses Call Chain Analyzer, Function Locator, Function Caller Finder, and Library Version Finder |
+| Code understanding | Analyzes configuration, environment, and version-specific behavior to determine if the vulnerability is triggered in this deployment |
+| Investigation checklist | Generates a structured checklist of questions per CVE, then fans out to specialized sub-agents (reachability and code understanding) |
+| Exploitability verdict | Summarizes findings and produces a justification: exploitable, not exploitable, or insufficient evidence |
+| CVSS generation | Produces a CVSS score adjusted to the application context |
+| VEX generation | Produces a machine-readable VEX document per component |
+| Patch fetching | Retrieves upstream fix patches and commit data |
+
+This assessment is **optional**. Organizations that do not need deep exploitability analysis can use severity-based triage (the policy gate in the pipeline). Organizations that want to reduce false-positive remediation effort add the assessment layer before the remediation pipeline. See [Where agents help](05b-where-agents-help.html) for the full optionality model.
+
 ## The upstream library problem
 
 Platform patches and base images are delivered through channels the organization already consumes: errata, content views, image streams. The operating system team applies them. The application team does not change application code for a platform patch.

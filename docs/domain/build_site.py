@@ -30,6 +30,7 @@ PAGES = [
     ("04-pipeline-only.md", "04-pipeline-only.html", "Pipeline only", "Execute"),
     ("05-pipeline-with-agents.md", "05-pipeline-with-agents.html", "Pipeline with agents", "Execute"),
     ("05a-agent-tasks.md", "05a-agent-tasks.html", "Agent tasks", "Execute"),
+    ("05b-where-agents-help.md", "05b-where-agents-help.html", "Where agents help", "Execute"),
     ("06-fully-agentic.md", "06-fully-agentic.html", "Fully agentic", "Execute"),
     ("07-how-to-choose.md", "07-how-to-choose.html", "How to choose", "Execute"),
     ("08-lightwell.md", "08-lightwell.html", "Lightwell", "Lightwell"),

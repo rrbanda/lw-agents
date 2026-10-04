@@ -96,3 +96,58 @@ Two architectures exist for test generation:
 | Two-step (remote only: `lw-investigate-cve` then `lw-opencode-write-tests`) | The ADK agent investigates the CVE and produces a test specification. OpenCode writes the test code from that specification. Each tool does what it is best at |
 
 The two-step architecture is a pattern for decomposing agent work: separate the reasoning (what tests should exist) from the writing (produce the code). The specification is a workspace file, not a Tekton result, so it avoids the 4KB result-size limit.
+
+## Assessment agent capabilities (exploit-iq — phases 03 and 05)
+
+The phase 09 agents above do not assess whether a CVE is exploitable. They assume the must-fix list is correct and work from it. The vulnerability analysis agent (exploit-iq) covers the earlier phases: validating that the vulnerability is real in this application and assessing its exploitability.
+
+### Assessment pipeline stages
+
+| Stage | What it does | Phase |
+| --- | --- | --- |
+| Fetch intel | Gather CVE data from NVD, GHSA, EPSS, Red Hat Security Advisories, Ubuntu advisories | 05 |
+| Calculate intel score | Score the quality of available intelligence to decide the analysis depth | 05 |
+| Process SBOM | Parse the application SBOM and identify affected components | 05 |
+| Verify vulnerable package | Check if the vulnerable package is in the dependency tree at the affected version, using lockfiles and dependency analysis | 03 |
+| Source acquisition | Clone the application source and install dependencies for code analysis | 03 |
+| Code segmentation | Segment the codebase for efficient tool-based investigation | 03 |
+| Checklist generation | Generate a structured list of investigation questions per CVE | 05 |
+| Agent executor | Fan out to specialized sub-agents (reachability and code understanding) to answer each question | 03, 05 |
+| Summarize | Consolidate findings from all sub-agents into a coherent summary | 05 |
+| Justify | Produce an exploitability verdict: exploitable, not exploitable, or insufficient evidence | 05 |
+| Generate CVSS | Produce a context-adjusted CVSS score | 05 |
+| Generate VEX | Produce a machine-readable VEX document per component | 07 |
+| Fetch patches | Retrieve upstream fix patches and commit data | 05 |
+
+### Assessment sub-agents
+
+| Sub-agent | What it investigates | Tools |
+| --- | --- | --- |
+| Reachability agent | Call chains, code paths, whether vulnerable code is called or reachable, whether untrusted data can reach a function | Call Chain Analyzer (CCA), Function Locator (FL), Function Caller Finder (FCF), Library Version Finder (FLVF), Transitive Code Search |
+| Code understanding agent | Configuration, version, presence, application-level settings, input validation, general behavioral questions | Source Grep, Lexical Search, Configuration Scanner, Import Usage Analyzer, Container Image Analysis |
+
+### Assessment tools
+
+| Tool | What it does |
+| --- | --- |
+| Call Chain Analyzer | Traces call chains from application entry points to vulnerable functions |
+| Function Locator | Finds function definitions in the codebase across Java, Python, Go, JavaScript, C/C++ |
+| Function Caller Finder | Finds all callers of a specific function |
+| Library Version Finder | Determines the installed version of a library in the dependency tree |
+| Transitive Code Search | Searches for code patterns across transitive dependencies |
+| Source Grep | Pattern-based search across the application source tree |
+| Lexical Search | Full-text search with code-aware tokenization |
+| Configuration Scanner | Scans application configuration files for security-relevant settings |
+| Import Usage Analyzer | Analyzes how imported packages are used in the application code |
+| Container Image Analysis | Extracts and analyzes data from container image layers |
+| SERP (web search) | Searches the web for patches, advisories, and exploit information |
+| Local VDB Retriever | Retrieves vulnerability data from a local vector database |
+
+### How assessment connects to remediation
+
+The assessment agent's output is an exploitability verdict per CVE. Today, the remediation pipeline's input is a must-fix list filtered by severity policy. The connection point is the policy gate.
+
+If the assessment layer is deployed, its verdicts can refine the policy: a CVE that is not exploitable in this application can be deprioritized even if it is severity critical. A CVE that is actively exploited and confirmed reachable should be prioritized above one that is merely critical by CVSS score.
+
+This integration is not wired today. The assessment and remediation layers run independently. See [Where agents help](05b-where-agents-help.html) for the full lifecycle mapping and optionality tiers.
+
