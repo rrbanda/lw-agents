@@ -16,16 +16,19 @@ In stage 3 (Remediate), the task "Identify the fixed version" has two paths:
 
 Everything else in the flow — discover, triage, edit the manifest, build, test, review, deliver — is the same regardless of whether the fix comes from upstream or Lightwell.
 
-## What Lightwell is
+## Details
 
+:::tab What Lightwell is
 A supplier of security-only backports for upstream open-source application libraries. Java (Maven) and Python (PyPI). The backport keeps the version the application already runs and adds a Lightwell suffix. It is not a platform patch, not a base image, and not a scanner.
 
 | Offer | What the customer gets |
 | --- | --- |
 | Lightwell Network | The catalog of validated and remediated repositories. Consume what is published |
 | Lightwell Clearing House | Network plus the ability to request remediations for specific upstream libraries at any previous version, including transitive dependencies. Members can submit novel vulnerabilities found through frontier models under an embargo period |
+:::
 
-## The version suffix
+:::tab Version suffix
+The pin keeps the upstream version and adds a Lightwell suffix.
 
 | Ecosystem | Shape | Example |
 | --- | --- | --- |
@@ -33,10 +36,10 @@ A supplier of security-only backports for upstream open-source application libra
 | Python | PEP 440 local, `+rhlw.` plus five digits | `1.0.0+rhlw.00001` |
 
 `3.14.0` to `3.14.0.rhlw-00001` is a CVE remediation. `3.14.0` to `3.18.0` is freshness. Even when `3.18.0` contains the upstream fix, using it is a different change with a different risk profile.
+:::
 
-## The fixed event
-
-The Lightwell OSV feed publishes an advisory document that says: this CVE is fixed at this coordinate. That document is the version authority for the pin. Not Maven Central, not OSV.dev, not NVD.
+:::tab The fixed event
+The Lightwell OSV feed publishes an advisory document that says: this CVE is fixed at this coordinate. That document is the version authority for the pin.
 
 | Source | What it tells the agent | What it does not decide |
 | --- | --- | --- |
@@ -44,27 +47,23 @@ The Lightwell OSV feed publishes an advisory document that says: this CVE is fix
 | OSV.dev, GitHub Advisory | Upstream affected ranges | The Lightwell coordinate |
 | NVD | CVSS, CWE | The coordinate |
 | Maven Central | Whether an upstream version exists | Whether a `.rhlw` version exists (it does not appear on Central) |
+:::
 
-## What tools the agent needs
-
-Without Lightwell tools, the agent cannot find or verify a `.rhlw` version. These tools were added to close that gap.
+:::tab Agent tools
+Without Lightwell tools, the agent cannot find or verify a `.rhlw` version.
 
 | Tool | What it does |
 | --- | --- |
-| `lookup_lightwell_osv(advisory_id)` | Read the Lightwell OSV feed and return the fixed coordinate, affected ranges, and advisory metadata |
+| `lookup_lightwell_osv(advisory_id)` | Read the Lightwell OSV feed and return the fixed coordinate |
 | `check_lightwell_version_exists(group_id, artifact_id, version)` | Verify a `.rhlw` version exists in the Lightwell repository |
 | `check_version_exists_smart(group_id, artifact_id, version)` | Auto-route: `.rhlw` suffix goes to Lightwell, everything else goes to Maven Central |
 | `list_lightwell_advisories()` | List available advisory IDs from the PULP_MANIFEST index |
 
-### Authentication
+Production repositories require `LIGHTWELL_USERNAME` and `LIGHTWELL_TOKEN` environment variables. The public demo feed requires no credentials.
+:::
 
-Production repositories require `LIGHTWELL_USERNAME` and `LIGHTWELL_TOKEN` environment variables (registry service account). The public demo feed requires no credentials:
-
-```
-LIGHTWELL_OSV_BASE_URL=https://packages.redhat.com/api/pulp-content/public-lightwell-demo/osv/java/remediated
-```
-
-## Repository URLs
+:::tab Repository URLs
+Production repositories require a registry service account.
 
 | Use | URL |
 | --- | --- |
@@ -76,14 +75,22 @@ LIGHTWELL_OSV_BASE_URL=https://packages.redhat.com/api/pulp-content/public-light
 
 Applications consume Lightwell through an artifact manager (Artifactory, Nexus) that proxies `packages.redhat.com`. The token stays on the artifact manager, not in the pull request.
 
-## When Lightwell is not the answer
+**Public demo (no credentials):**
 
+| Use | URL |
+| --- | --- |
+| Demo remediated | `https://packages.redhat.com/lightwell/public-lightwell-demo/java/remediated` |
+| Demo OSV | `https://packages.redhat.com/api/pulp-content/public-lightwell-demo/osv/java/remediated/` |
+:::
+
+:::tab When Lightwell is not the answer
 | Situation | Right response |
 | --- | --- |
 | The application can upgrade to a newer upstream version | Upstream upgrade. Simpler, no Lightwell needed |
 | The vulnerability is in the operating system | Platform patch or erratum |
 | The vulnerability is in the container base image | Hardened or minimal base image |
 | The library is not in the Lightwell catalog | Upstream upgrade, private fork, or accept/retire |
+:::
 
 ## What does NOT change when Lightwell is added
 
