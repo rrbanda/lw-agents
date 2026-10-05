@@ -89,8 +89,8 @@ def lookup_lightwell_osv(advisory_id: str) -> dict[str, Any]:
         return {"status": "error", "error": "advisory_id is required"}
 
     advisory_id = advisory_id.strip()
-    cache_key = f"lightwell_osv:{advisory_id}"
-    cached = cache_get(cache_key)
+    cache_key = advisory_id
+    cached = cache_get("lightwell_osv", cache_key)
     if cached:
         try:
             return json.loads(cached)
@@ -131,7 +131,7 @@ def lookup_lightwell_osv(advisory_id: str) -> dict[str, Any]:
         }
 
     result = _parse_lightwell_osv(advisory_id, data)
-    cache_put(cache_key, json.dumps(result))
+    cache_put("lightwell_osv", advisory_id, json.dumps(result))
     return result
 
 
@@ -198,8 +198,8 @@ def list_lightwell_advisories() -> dict[str, Any]:
 
     Returns a list of advisory IDs and their checksums.
     """
-    cache_key = "lightwell_osv:manifest"
-    cached = cache_get(cache_key)
+    cache_key = "manifest"
+    cached = cache_get("lightwell_osv", cache_key)
     if cached:
         try:
             return json.loads(cached)
@@ -243,7 +243,7 @@ def list_lightwell_advisories() -> dict[str, Any]:
         "count": len(advisories),
         "advisories": advisories,
     }
-    cache_put(cache_key, json.dumps(result))
+    cache_put("lightwell_osv", cache_key, json.dumps(result))
     return result
 
 
