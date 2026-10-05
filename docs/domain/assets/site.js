@@ -105,3 +105,34 @@ function initLifecycle() {
 }
 
 initLifecycle();
+
+document.querySelectorAll(".tab-group").forEach((group) => {
+  const tabs = [...group.querySelectorAll('[role="tab"]')];
+  const panels = [...group.querySelectorAll(".tab-panel")];
+  if (!tabs.length) return;
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function selectTab(index) {
+    tabs.forEach((tab, tabIndex) => {
+      const on = tabIndex === index;
+      tab.setAttribute("aria-selected", String(on));
+      tab.tabIndex = on ? 0 : -1;
+    });
+    panels.forEach((panel, panelIndex) => {
+      panel.hidden = panelIndex !== index;
+    });
+  }
+
+  tabs.forEach((tab, index) => {
+    tab.addEventListener("click", () => { selectTab(index); });
+    tab.addEventListener("keydown", (event) => {
+      if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      if (event.key === "ArrowRight") selectTab((index + 1) % tabs.length);
+      if (event.key === "ArrowLeft") selectTab((index - 1 + tabs.length) % tabs.length);
+      if (event.key === "Home") selectTab(0);
+      if (event.key === "End") selectTab(tabs.length - 1);
+      tabs.find((t) => t.getAttribute("aria-selected") === "true")?.focus();
+    });
+  });
+});

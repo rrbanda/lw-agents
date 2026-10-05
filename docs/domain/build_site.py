@@ -148,6 +148,36 @@ class Renderer:
                         break
                     blocks.append(self.lifecycle_stage(phases))
                     continue
+                if kind.startswith("tab "):
+                    tab_items: list[tuple[str, str]] = []
+                    tab_label = kind[4:].strip()
+                    index += 1
+                    inner: list[str] = []
+                    while index < len(lines) and lines[index].strip() != ":::":
+                        inner.append(lines[index])
+                        index += 1
+                    if index < len(lines):
+                        index += 1
+                    tab_items.append((tab_label, "\n".join(inner)))
+                    while index < len(lines) and lines[index].strip() == "":
+                        index += 1
+                    while (
+                        index < len(lines)
+                        and lines[index].strip().startswith(":::tab ")
+                    ):
+                        tab_label = lines[index].strip()[7:].strip()
+                        index += 1
+                        inner = []
+                        while index < len(lines) and lines[index].strip() != ":::":
+                            inner.append(lines[index])
+                            index += 1
+                        if index < len(lines):
+                            index += 1
+                        tab_items.append((tab_label, "\n".join(inner)))
+                        while index < len(lines) and lines[index].strip() == "":
+                            index += 1
+                    blocks.append(self.render_tabs(tab_items))
+                    continue
                 index += 1
                 inner = []
                 while index < len(lines) and lines[index].strip() != ":::":
@@ -250,6 +280,32 @@ class Renderer:
                     bits.append(f"<span>{inline(part)}</span>")
             return f'<p class="equation">{"".join(bits)}</p>'
         return f"<pre><code>{html.escape(body)}</code></pre>"
+
+    def render_tabs(self, items: list[tuple[str, str]]) -> str:
+        """Render a set of :::tab blocks as a tabbed panel."""
+        tab_group_id = self.heading_id("tabs", "tabgroup")
+        buttons: list[str] = []
+        panels: list[str] = []
+        for idx, (label, content) in enumerate(items):
+            selected = idx == 0
+            tab_id = f"{tab_group_id}-t{idx}"
+            panel_id = f"{tab_group_id}-p{idx}"
+            buttons.append(
+                f'<button type="button" role="tab" id="{tab_id}" '
+                f'aria-controls="{panel_id}" aria-selected="{str(selected).lower()}" '
+                f'tabindex="{0 if selected else -1}">{inline(label)}</button>'
+            )
+            inner_html = Renderer().render(content) if content.strip() else ""
+            hidden = "" if selected else " hidden"
+            panels.append(
+                f'<div class="tab-panel" id="{panel_id}" role="tabpanel" '
+                f'aria-labelledby="{tab_id}"{hidden}>{inner_html}</div>'
+            )
+        return (
+            f'<div class="tab-group" id="{tab_group_id}">'
+            f'<div class="tab-bar" role="tablist">{"".join(buttons)}</div>'
+            f'{"".join(panels)}</div>'
+        )
 
     @staticmethod
     def parse_phase_fields(body: str) -> dict[str, str]:
