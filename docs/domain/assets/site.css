@@ -28,7 +28,7 @@
   --mono: "Red Hat Mono", ui-monospace, SFMono-Regular, monospace;
   --rail-w: 16.75rem;
   --toc-w: 13.5rem;
-  --measure: 40rem;
+  --measure: 52rem;
   color-scheme: light;
 }
 
@@ -216,7 +216,7 @@ a:hover { color: var(--accent); }
   max-width: 76rem;
   padding: 2.5rem 2.5rem 4rem;
 }
-.article { max-width: 48rem; min-width: 0; }
+.article { max-width: 64rem; min-width: 0; }
 .article:has(.lifecycle-stage) { max-width: none; }
 .article > h1 {
   font-family: var(--display);
@@ -530,6 +530,7 @@ a:hover { color: var(--accent); }
 .table-wrap { overflow-x: auto; margin: 0.8rem 0 1.2rem; max-width: 100%; }
 table {
   width: 100%;
+  min-width: 36rem;
   border-collapse: collapse;
   font-size: 0.92rem;
   background: var(--bg-elev);
