@@ -22,7 +22,7 @@ No Lightwell here. Lightwell changes where the fixed version comes from — that
 | Assess exploitability | Triage | Yes. Full investigation pipeline | Vulnerability analysis agent (exploit-iq): fetch intel, process SBOM, verify vulnerable package, generate checklist, run sub-agents (reachability + code understanding), summarize, justify, generate CVSS, generate VEX | Yes. This is the assessment layer |
 | Prioritize | Triage | Yes. Combine signals into a ranked list | Selection agent scores by EPSS, CVSS, release-line compatibility, blast radius | Yes. A person can prioritize manually |
 | Log (create issues) | Triage | No. Deterministic from agent output | Pipeline task (`open-cve-issues`) | No, if using agents. The agent produces the issue content |
-| Identify the fixed version | Remediate | Yes. Look up advisories and repositories | Selection and analysis agents. Lightwell tools when the fix is a backport (separate layer) | Yes |
+| Identify the fixed version | Remediate | Yes. Look up advisories and repositories | Selection and analysis agents check upstream advisories and verify versions | Yes |
 | Edit the manifest | Remediate | Yes. Change one dependency version | Remediation agent (`ai-remediate-dependency` / `lw-remediate-dependency`). Supports Maven and Gradle. BOM-aware | Yes. A developer can edit manually |
 | Run the build | Remediate | No. Deterministic | Pipeline task (`maven`) or inside the agent task | No |
 | Run existing tests | Remediate | No. Deterministic | Pipeline task (`maven verify`) | No |
