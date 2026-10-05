@@ -106,6 +106,25 @@ function initLifecycle() {
 
 initLifecycle();
 
+document.querySelectorAll(".main-tab-bar").forEach((bar) => {
+  const mainTabs = [...bar.querySelectorAll(".main-tab")];
+  const subBar = bar.nextElementSibling;
+  if (!subBar) return;
+  const subGroups = [...subBar.querySelectorAll(".sub-tabs")];
+
+  mainTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const group = tab.getAttribute("data-group");
+      mainTabs.forEach((t) => t.setAttribute("aria-selected", String(t === tab)));
+      subGroups.forEach((sg) => { sg.hidden = sg.getAttribute("data-group") !== group; });
+      const firstLink = subBar.querySelector(`.sub-tabs[data-group="${group}"] a`);
+      if (firstLink && !firstLink.getAttribute("aria-current")) {
+        firstLink.click();
+      }
+    });
+  });
+});
+
 document.querySelectorAll(".tab-group").forEach((group) => {
   const tabs = [...group.querySelectorAll('[role="tab"]')];
   const panels = [...group.querySelectorAll(".tab-panel")];

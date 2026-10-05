@@ -446,6 +446,34 @@ def page_html(
         nav.append("".join(links))
     nav.append('<p class="nav-label">Elsewhere</p>')
     nav.append('<a href="slides/index.html">Slide deck</a>')
+    # Build the main-tab / sub-tab navigation
+    main_tabs_html: list[str] = []
+    sub_tabs_html: list[str] = []
+    current_group = group
+    for grp, links in nav_groups:
+        if grp == "Elsewhere":
+            continue
+        active_main = grp == current_group
+        main_tabs_html.append(
+            f'<button type="button" class="main-tab" data-group="{html.escape(grp)}"'
+            f'{" aria-selected=\"true\"" if active_main else ""}>'
+            f'{html.escape(grp)}</button>'
+        )
+        hidden = "" if active_main else " hidden"
+        sub_tabs_html.append(
+            f'<div class="sub-tabs" data-group="{html.escape(grp)}"{hidden}>'
+            + "".join(links)
+            + "</div>"
+        )
+    main_tab_bar = (
+        '<nav class="main-tab-bar" aria-label="Sections">'
+        + "".join(main_tabs_html)
+        + "</nav>"
+        + '<div class="sub-tab-bar">'
+        + "".join(sub_tabs_html)
+        + "</div>"
+    )
+
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -487,6 +515,7 @@ def page_html(
       <button id="nav-toggle" type="button" aria-expanded="false">Contents</button>
       <p class="crumb">{html.escape(group)}</p>
     </header>
+    {main_tab_bar}
     <div class="layout">
       <article id="content" class="article">
         <p class="eyebrow">{html.escape(group)}</p>
