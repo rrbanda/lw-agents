@@ -119,8 +119,9 @@ output: Incidents contained, detections updated, records corrected or rejected w
 ai: Agents can correlate telemetry and code history at portfolio scale. Poisoned feedback, privacy, model drift, and over-automation can make the learning loop worse.
 :::
 
-## Where agents fit
+## Beyond the phases
 
+:::tab Where agents fit
 | Phase | Agent role | Why |
 | --- | --- | --- |
 | 01 Discover | Assist only | More findings and more noise. Isolated validation with auditable evidence is the control |
@@ -134,10 +135,10 @@ ai: Agents can correlate telemetry and code history at portfolio scale. Poisoned
 | 09 Prioritize and remediate | Own a bounded step | Four agent jobs: (1) select one advisory from the must-fix set, (2) analyze all advisories and open issues, (3) change the manifest to the fixed coordinate and open a PR, (4) generate tests. Each is bounded. A person merges |
 | 10 Observe and learn | Stay out of routine agents | Incident response, postmortems, and record corrections are human-led. Agents that feed back into this loop need governance |
 
-Phase 09 is the only phase where a remediation agent can own a bounded step in routine operation. The execution model pages describe [three ways](04-pipeline-only.html) to [do that](05-pipeline-with-agents.html).
+Phase 09 is the only phase where a remediation agent can own a bounded step in routine operation.
+:::
 
-## Four workstreams after validation
-
+:::tab Four workstreams
 Publication may occur before a fix exists. Scoring, exploit analysis, patching, and disclosure planning often run at the same time.
 
 | | Workstream | Typical owners |
@@ -146,23 +147,21 @@ Publication may occur before a fix exists. Scoring, exploit analysis, patching, 
 | B | Exploitability and threat. Reachability, prerequisites, safe reproduction, proofs of concept, detections, EPSS, and observed exploitation | Red teams, researchers, threat intelligence, CISA |
 | C | Fix and release. Root-cause repair, regression tests, backports, signed builds, mitigations, and rollback | Maintainers, engineering, QA, release teams |
 | D | Disclosure coordination. Embargo scope, partner readiness, advisory language, credits, and publication timing | PSIRT, CNA, researchers, downstream vendors |
+:::
 
-## Severity is not priority
-
+:::tab Severity is not priority
 | Signal | What it is |
 | --- | --- |
 | CVSS | Technical severity. Intrinsic characteristics and impact. More than one assessor may publish a vector |
 | Exploit analysis, EPSS, KEV | Likelihood and evidence. Theoretical impact, estimated probability, and confirmed exploitation are different facts |
 | Exposure and business context | The organizational decision. Assets, reachability, criticality, compensating controls, operational risk, and threat evidence |
 
-:::equation
-Remediation priority | = | severity | + | threat evidence | + | environmental context
-:::
+**Remediation priority = severity + threat evidence + environmental context**
 
 Priority decides which advisory to act on first among advisories that have a fix. It does not choose the fix. The fix comes from the advisory's fixed event.
+:::
 
-## What AI changes
-
+:::tab What AI changes
 AI compresses intervals and expands queues. The hard problems move toward validation, authorization, provenance, rollout safety, and governance.
 
 | | Pressure | Control |
@@ -171,3 +170,4 @@ AI compresses intervals and expands queues. The hard problems move toward valida
 | Disclosure | Advisories become inputs for defense and for attack | Synchronize fixes and defensive guidance |
 | Patching | Agents draft fixes, tests, backports, and notes | Trusted builds, human approval, staged rollout, and rollback |
 | Operations | Agents join advisories to inventories | Reliable asset data, bounded authority, and verification |
+:::

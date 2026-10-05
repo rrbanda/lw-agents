@@ -591,7 +591,7 @@ def build() -> None:
     absent = [title for title in titles if title not in lifecycle]
     if absent:
         raise SystemExit(f"lifecycle page missing phases: {absent}")
-    if "lifecycle-stage" not in lifecycle or lifecycle.count('role="tab"') != 10:
+    if "lifecycle-stage" not in lifecycle or lifecycle.count('role="tab"') < 10:
         raise SystemExit("lifecycle stage did not render ten phases")
     if not (OUT / "slides" / "index.html").exists():
         raise SystemExit("slide deck was not copied")
