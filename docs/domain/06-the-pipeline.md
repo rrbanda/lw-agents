@@ -89,16 +89,28 @@ The triage stage produces these fields. The remediation stage consumes them.
 
 For the analysis pipeline, these fields are embedded in the issue body inside an HTML comment marker. The `/remediate` trigger reads them automatically.
 
-## How the agent task runs
+## How the agent tasks work
 
-This is a deployment choice, not a different pipeline.
+The pipeline uses two kinds of agent runtime for different jobs:
 
-| | In-pod (`ai-*` tasks) | Remote service (`lw-*` tasks) |
+### ADK reasoning service (lw-agents)
+
+A Google ADK service runs on a separate cluster. Pipeline tasks call it over HTTPS/SSE. It does the reasoning: select CVEs, analyze advisories, plan remediations, validate fixes. It holds sessions, loads methodology from skill files, and retries on build failure.
+
+Both `ai-*` and `lw-*` pipeline tasks call the same `AGENT_ENDPOINT`. The task name prefix is a naming convention, not a different implementation.
+
+### Coding agent runtimes (file editing)
+
+When the agent needs to edit files (change `pom.xml`, write tests, commit and push), it uses a coding agent CLI that runs inside a Tekton pod:
+
+| Runtime | Image | What it does |
 | --- | --- | --- |
-| Where the model runs | Inside the Tekton pod | A separate ADK service, possibly on a different cluster |
-| Session | Stateless. One prompt, one answer | Persistent. SSE session with skills, retry, multi-step reasoning |
-| What the pipeline sees | `SELECTED`, `CHANGED`, or `TESTS_ADDED` | Same structured result |
-| When to use | Simpler setup | Multi-step reasoning, retry on build failure, serve multiple pipelines |
+| Claude Code | `ai-agent-maven-claude` | Node.js + Claude Code headless. File editing for remediation and test generation. Works with Anthropic, gateway, Bedrock, Vertex |
+| aider | `ai-agent-maven-aider` | Python + aider/litellm. File editing for OpenAI-compatible models (gpt-oss, IBM Granite, vLLM, Ollama) |
+| OpenCode | `ai-agent-maven-opencode` | Used by the two-step test generation flow (`lw-opencode-write-tests`) |
+| ai-python | `ai-python` | Anthropic + OpenAI Python SDKs. Used for the reasoning call in selection and analysis tasks |
+
+The coding agent runtime is selected by `AI_AGENT` in the ConfigMap (`claude-code` or `aider`). The reasoning model is selected by `AI_PROVIDER` and `AI_MODEL`. Both are configuration — no pipeline or task YAML changes needed.
 
 ## Rules
 

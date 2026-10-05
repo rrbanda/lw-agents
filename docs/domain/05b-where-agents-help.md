@@ -17,7 +17,7 @@ Agents are not only a phase 09 feature. Across the ten lifecycle phases, agent c
 | **06 Fix and release** | Propose patches, generate regression tests, backport to older versions, build and sign releases | Lightwell builds the security-only backport. This is not an agent task for the customer | N/A for customer agents | Lightwell's core function: build, test, sign, and publish the backport on the version the application already runs |
 | **07 Publish** | Generate machine-readable advisories, VEX documents, and enrichment data | **Vulnerability analysis agent** (exploit-iq) generates VEX documents (`cve_generate_vex`). Lightwell publishes OSV with fixed events | Yes. CNA responsibility | Lightwell publishes advisory data to the OSV feed at `packages.redhat.com` |
 | **08 Repackage** | Open dependency-update pull requests across dependency graphs, update lockfiles, test downstream applications | Not implemented as a separate phase agent. The Renovate bot in the workshop handles this for the lab | Yes | Lightwell publishes to `packages.redhat.com`. The customer's artifact manager (Artifactory, Nexus) proxies it. The proxy makes the package resolvable |
-| **09 Prioritize and remediate** | Select the highest-priority advisory, analyze all fixable CVEs and open issues, change the application manifest to the fixed version, generate tests, validate the fix, open a pull request | **ssc-demo**: Tekton pipelines with agent tasks (in-pod or remote service — same pipeline, deployment choice). **lw-agents**: Google ADK service with specialist agents and skills. **Lightwell tools**: OSV feed lookup, version verification, smart routing | Core. This is the main execution pipeline | `lookup_lightwell_osv` finds the fixed coordinate. `check_lightwell_version_exists` verifies the `.rhlw` version. `check_version_exists_smart` auto-routes based on the version suffix |
+| **09 Prioritize and remediate** | Select the highest-priority advisory, analyze all fixable CVEs and open issues, change the application manifest to the fixed version, generate tests, validate the fix, open a pull request | **ssc-demo**: Tekton pipelines with agent tasks. **lw-agents**: Google ADK reasoning service called over SSE. Coding agents (Claude Code, aider, OpenCode) handle file editing. **Lightwell tools**: OSV feed lookup, version verification, smart routing | Core. This is the main execution pipeline | `lookup_lightwell_osv` finds the fixed coordinate. `check_lightwell_version_exists` verifies the `.rhlw` version. `check_version_exists_smart` auto-routes based on the version suffix |
 | **10 Observe and learn** | Correlate telemetry and code history at portfolio scale, detect exploitation, identify patch bypasses | Not implemented | Human-led. SOC and incident response own this phase | N/A |
 
 ## Three layers
@@ -49,7 +49,7 @@ The remediation pipeline takes a published advisory with a known fix and opens a
 Three execution models:
 
 - **Pipeline only**: scan, report, human acts
-- **Pipeline with agents**: agent tasks inside the pipeline (the agent can run in-pod or call a remote service — a deployment choice, not a different model)
+- **Pipeline with agents**: the pipeline calls a Google ADK reasoning service for triage and planning, and a coding agent CLI (Claude Code, aider, or OpenCode) for file editing. Both are configured, not coded
 - **Fully agentic**: a coordinator decides the next action without a fixed DAG. Not built
 
 ### Patch source layer
