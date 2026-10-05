@@ -23,17 +23,14 @@ ASSETS = DOMAIN / "assets"
 
 PAGES = [
     ("README.md", "index.html", "Overview", "Overview"),
-    ("start-here.md", "start-here.html", "Start here", "Decide"),
-    ("01-concerns.md", "01-concerns.html", "Concerns", "Decide"),
-    ("02-lifecycle.md", "02-lifecycle.html", "CVE lifecycle", "Decide"),
-    ("03-solutions.md", "03-solutions.html", "Solutions", "Decide"),
-    ("04-pipeline-only.md", "04-pipeline-only.html", "Pipeline only", "Execute"),
-    ("05-pipeline-with-agents.md", "05-pipeline-with-agents.html", "Pipeline with agents", "Execute"),
-    ("05a-agent-tasks.md", "05a-agent-tasks.html", "Agent tasks", "Execute"),
-    ("05b-where-agents-help.md", "05b-where-agents-help.html", "Where agents help", "Execute"),
-    ("06-fully-agentic.md", "06-fully-agentic.html", "Fully agentic", "Execute"),
+    ("start-here.md", "start-here.html", "Start here", "Understand"),
+    ("01-concerns.md", "01-concerns.html", "Concerns", "Understand"),
+    ("02-lifecycle.md", "02-lifecycle.html", "CVE lifecycle", "Understand"),
+    ("03-cve-tasks.md", "03-cve-tasks.html", "What people do", "CVE tasks"),
+    ("04-agent-matrix.md", "04-agent-matrix.html", "Where agents help", "CVE tasks"),
+    ("05-lightwell.md", "05-lightwell.html", "Where Lightwell fits", "CVE tasks"),
+    ("06-the-pipeline.md", "06-the-pipeline.html", "The pipeline", "Execute"),
     ("07-how-to-choose.md", "07-how-to-choose.html", "How to choose", "Execute"),
-    ("08-lightwell.md", "08-lightwell.html", "Lightwell", "Lightwell"),
     ("sources.md", "sources.html", "Sources", "Reference"),
     ("00-boundaries.md", "00-boundaries.html", "Boundaries", "Reference"),
     ("04-agent-map.md", "04-agent-map.html", "Agent map", "Reference"),
@@ -477,15 +474,15 @@ def build() -> None:
 
     site = (OUT / "index.html").read_text(encoding="utf-8")
     lifecycle = (OUT / "02-lifecycle.html").read_text(encoding="utf-8")
-    lightwell = (OUT / "08-lightwell.html").read_text(encoding="utf-8")
-    agent_map = (OUT / "04-agent-map.html").read_text(encoding="utf-8")
+    lightwell = (OUT / "05-lightwell.html").read_text(encoding="utf-8")
+    agent_matrix = (OUT / "04-agent-matrix.html").read_text(encoding="utf-8")
     required = [
         "3.14.0.rhlw-00001",
         "Maven Central",
-        "cve-triage",
     ]
-    blob = site + lifecycle + lightwell + agent_map
-    blob += (OUT / "05-pipeline-with-agents.html").read_text(encoding="utf-8")
+    blob = site + lifecycle + lightwell + agent_matrix
+    pipeline_page = (OUT / "06-the-pipeline.html").read_text(encoding="utf-8")
+    blob += pipeline_page
     missing = [item for item in required if item not in blob]
     if missing:
         raise SystemExit(f"built site is missing: {missing}")
@@ -513,9 +510,9 @@ def build() -> None:
         raise SystemExit("lifecycle stage did not render ten phases")
     if not (OUT / "slides" / "index.html").exists():
         raise SystemExit("slide deck was not copied")
-    decide_pages = ["index.html", "01-concerns.html", "03-solutions.html",
-                     "04-pipeline-only.html", "05-pipeline-with-agents.html",
-                     "06-fully-agentic.html", "07-how-to-choose.html"]
+    decide_pages = ["index.html", "01-concerns.html", "03-cve-tasks.html",
+                     "04-agent-matrix.html", "06-the-pipeline.html",
+                     "07-how-to-choose.html"]
     for dp in decide_pages:
         content = (OUT / dp).read_text(encoding="utf-8")
         if "Reference page for skill authors" in content:
