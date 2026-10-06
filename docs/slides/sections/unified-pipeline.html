@@ -5,270 +5,265 @@
   <div class="rh-section-footer"><span class="rh-fn">7</span><span class="rh-fl"><img class="rh-logo-img" alt="Red Hat"></span></div>
 
   <span class="section-label">Unified Pipeline</span>
-  <h2 style="margin-bottom:2px">From Advisory to Pull Request</h2>
-  <p style="font-size:10px;color:#666;margin-bottom:4px">One logical flow, split at human review points. Agent tasks highlighted in red.</p>
+  <h2 style="margin-bottom:6px">From Advisory to Pull Request</h2>
 
-  <svg viewBox="0 0 1180 490" style="width:100%;max-width:1180px;font-family:'Red Hat Text','Red Hat Display',Arial,sans-serif" xmlns="http://www.w3.org/2000/svg">
+  <svg viewBox="0 0 1152 530" style="width:1152px;height:530px;font-family:'Red Hat Text','Red Hat Display',Arial,sans-serif" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <marker id="a1" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5" fill="#aaa"/></marker>
-      <marker id="a2" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5" fill="#3E8635"/></marker>
-      <marker id="a3" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5" fill="#cc0000"/></marker>
-      <marker id="a4" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5" fill="#c98e00"/></marker>
+      <marker id="a1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#aaa"/></marker>
+      <marker id="a2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#3E8635"/></marker>
+      <marker id="a3" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#cc0000"/></marker>
+      <marker id="a4" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#c98e00"/></marker>
       <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#EE0000"/><stop offset="100%" stop-color="#AA0000"/></linearGradient>
       <linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f0ab00"/><stop offset="100%" stop-color="#d09500"/></linearGradient>
       <linearGradient id="dg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3E8635"/><stop offset="100%" stop-color="#2d6427"/></linearGradient>
-      <filter id="gl"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#EE0000" flood-opacity="0.25"/></filter>
+      <filter id="gl"><feDropShadow dx="0" dy="1" stdDeviation="2.5" flood-color="#EE0000" flood-opacity="0.3"/></filter>
     </defs>
 
-    <!-- ════════ STAGE 1: DISCOVER ════════ -->
-    <rect x="8" y="4" width="1164" height="62" rx="5" fill="#f6f9ff" stroke="#d0ddef" stroke-width="0.8"/>
-    <text x="16" y="16" font-size="8" font-weight="700" fill="#0066CC" letter-spacing="1.2">STAGE 1: DISCOVER</text>
+    <!-- ═══════ STAGE 1: DISCOVER ═══════ -->
+    <rect x="0" y="0" width="1152" height="76" rx="6" fill="#f5f8fd" stroke="#d0ddef" stroke-width="1"/>
+    <text x="12" y="18" font-size="10" font-weight="700" fill="#0066CC" letter-spacing="1.5">STAGE 1: DISCOVER</text>
+    <text x="180" y="18" font-size="8.5" fill="#999">Build, scan, and filter to must-fix set</text>
 
-    <g transform="translate(16,24)">
-      <rect width="68" height="34" rx="3" fill="#fff" stroke="#0066CC" stroke-width="1.2"/>
-      <text x="34" y="20" text-anchor="middle" font-size="8.5" font-weight="600" fill="#0066CC">git-clone</text>
+    <g transform="translate(12,28)">
+      <rect width="90" height="40" rx="4" fill="#fff" stroke="#0066CC" stroke-width="1.5"/>
+      <text x="45" y="24" text-anchor="middle" font-size="10" font-weight="600" fill="#0066CC">git-clone</text>
     </g>
-    <line x1="84" y1="41" x2="98" y2="41" stroke="#aaa" stroke-width="0.8" marker-end="url(#a1)"/>
+    <line x1="102" y1="48" x2="120" y2="48" stroke="#aaa" stroke-width="1" marker-end="url(#a1)"/>
 
-    <g transform="translate(100,24)">
-      <rect width="68" height="34" rx="3" fill="#fff" stroke="#0066CC" stroke-width="1.2"/>
-      <text x="34" y="15" text-anchor="middle" font-size="8.5" font-weight="600" fill="#0066CC">maven</text>
-      <text x="34" y="26" text-anchor="middle" font-size="7" fill="#999">package</text>
+    <g transform="translate(122,28)">
+      <rect width="90" height="40" rx="4" fill="#fff" stroke="#0066CC" stroke-width="1.5"/>
+      <text x="45" y="18" text-anchor="middle" font-size="10" font-weight="600" fill="#0066CC">maven</text>
+      <text x="45" y="32" text-anchor="middle" font-size="8" fill="#999">package</text>
     </g>
-    <line x1="168" y1="41" x2="182" y2="41" stroke="#aaa" stroke-width="0.8" marker-end="url(#a1)"/>
+    <line x1="212" y1="48" x2="230" y2="48" stroke="#aaa" stroke-width="1" marker-end="url(#a1)"/>
 
-    <g transform="translate(184,24)">
-      <rect width="82" height="34" rx="3" fill="#fff" stroke="#009596" stroke-width="1.2"/>
-      <text x="41" y="15" text-anchor="middle" font-size="8.5" font-weight="600" fill="#009596">buildah</text>
-      <text x="41" y="26" text-anchor="middle" font-size="7" fill="#999">container + SBOM</text>
+    <g transform="translate(232,28)">
+      <rect width="100" height="40" rx="4" fill="#fff" stroke="#009596" stroke-width="1.5"/>
+      <text x="50" y="18" text-anchor="middle" font-size="10" font-weight="600" fill="#009596">buildah</text>
+      <text x="50" y="32" text-anchor="middle" font-size="8" fill="#999">container + SBOM</text>
     </g>
-    <line x1="266" y1="41" x2="280" y2="41" stroke="#aaa" stroke-width="0.8" marker-end="url(#a1)"/>
+    <line x1="332" y1="48" x2="350" y2="48" stroke="#aaa" stroke-width="1" marker-end="url(#a1)"/>
 
-    <g transform="translate(282,24)">
-      <rect width="82" height="34" rx="3" fill="#fff" stroke="#009596" stroke-width="1.2"/>
-      <text x="41" y="15" text-anchor="middle" font-size="8" font-weight="600" fill="#009596">upload-sbom</text>
-      <text x="41" y="26" text-anchor="middle" font-size="7" fill="#999">to RHTPA</text>
+    <g transform="translate(352,28)">
+      <rect width="100" height="40" rx="4" fill="#fff" stroke="#009596" stroke-width="1.5"/>
+      <text x="50" y="18" text-anchor="middle" font-size="9.5" font-weight="600" fill="#009596">upload-sbom</text>
+      <text x="50" y="32" text-anchor="middle" font-size="8" fill="#999">to RHTPA</text>
     </g>
-    <line x1="364" y1="41" x2="378" y2="41" stroke="#aaa" stroke-width="0.8" marker-end="url(#a1)"/>
+    <line x1="452" y1="48" x2="470" y2="48" stroke="#aaa" stroke-width="1" marker-end="url(#a1)"/>
 
-    <g transform="translate(380,24)">
-      <rect width="90" height="34" rx="3" fill="#fff" stroke="#5e40be" stroke-width="1.2"/>
-      <text x="45" y="15" text-anchor="middle" font-size="8" font-weight="600" fill="#5e40be">vuln-analysis</text>
-      <text x="45" y="26" text-anchor="middle" font-size="7" fill="#999">RHTPA</text>
+    <g transform="translate(472,28)">
+      <rect width="110" height="40" rx="4" fill="#fff" stroke="#5e40be" stroke-width="1.5"/>
+      <text x="55" y="18" text-anchor="middle" font-size="9.5" font-weight="600" fill="#5e40be">vuln-analysis</text>
+      <text x="55" y="32" text-anchor="middle" font-size="8" fill="#999">RHTPA</text>
     </g>
-    <line x1="470" y1="41" x2="484" y2="41" stroke="#aaa" stroke-width="0.8" marker-end="url(#a1)"/>
+    <line x1="582" y1="48" x2="600" y2="48" stroke="#aaa" stroke-width="1" marker-end="url(#a1)"/>
 
-    <g transform="translate(486,24)">
-      <rect width="90" height="34" rx="3" fill="#fff" stroke="#5e40be" stroke-width="1.2"/>
-      <text x="45" y="15" text-anchor="middle" font-size="8" font-weight="600" fill="#5e40be">remed-report</text>
-      <text x="45" y="26" text-anchor="middle" font-size="7" fill="#999">RHTPA</text>
+    <g transform="translate(602,28)">
+      <rect width="110" height="40" rx="4" fill="#fff" stroke="#5e40be" stroke-width="1.5"/>
+      <text x="55" y="18" text-anchor="middle" font-size="9.5" font-weight="600" fill="#5e40be">remed-report</text>
+      <text x="55" y="32" text-anchor="middle" font-size="8" fill="#999">RHTPA</text>
     </g>
-    <line x1="576" y1="41" x2="590" y2="41" stroke="#aaa" stroke-width="0.8" marker-end="url(#a1)"/>
+    <line x1="712" y1="48" x2="730" y2="48" stroke="#aaa" stroke-width="1" marker-end="url(#a1)"/>
 
-    <g transform="translate(592,24)">
-      <rect width="80" height="34" rx="3" fill="#fff" stroke="#c98e00" stroke-width="1.2"/>
-      <text x="40" y="15" text-anchor="middle" font-size="8" font-weight="600" fill="#c98e00">conforma</text>
-      <text x="40" y="26" text-anchor="middle" font-size="7" fill="#999">policy gate</text>
+    <g transform="translate(732,28)">
+      <rect width="100" height="40" rx="4" fill="#fff" stroke="#c98e00" stroke-width="1.5"/>
+      <text x="50" y="18" text-anchor="middle" font-size="9.5" font-weight="600" fill="#c98e00">conforma</text>
+      <text x="50" y="32" text-anchor="middle" font-size="8" fill="#999">policy gate</text>
     </g>
 
-    <!-- must-fix set output label -->
-    <text x="690" y="46" font-size="7" fill="#888" font-style="italic">must-fix set ↓</text>
+    <text x="850" y="54" font-size="9" fill="#999" font-style="italic">must-fix set ↓</text>
 
-    <!-- ════════ STAGE 2: TRIAGE ════════ -->
-    <rect x="8" y="76" width="700" height="68" rx="5" fill="#fff7f7" stroke="#EE0000" stroke-width="0.6" stroke-dasharray="3,2"/>
-    <text x="16" y="88" font-size="8" font-weight="700" fill="#EE0000" letter-spacing="1.2">STAGE 2: TRIAGE &amp; LOG</text>
+    <!-- ═══════ STAGE 2: TRIAGE ═══════ -->
+    <rect x="0" y="88" width="720" height="82" rx="6" fill="#fff6f6" stroke="#EE0000" stroke-width="0.8" stroke-dasharray="4,2"/>
+    <text x="12" y="104" font-size="10" font-weight="700" fill="#EE0000" letter-spacing="1.5">STAGE 2: TRIAGE &amp; LOG</text>
 
-    <path d="M632,58 L632,68 L60,68 L60,100" stroke="#aaa" stroke-width="0.8" fill="none" marker-end="url(#a1)"/>
+    <path d="M782,68 L782,82 L80,82 L80,116" stroke="#aaa" stroke-width="1" fill="none" marker-end="url(#a1)"/>
 
-    <g transform="translate(16,96)">
-      <rect width="150" height="38" rx="5" fill="url(#ag)" filter="url(#gl)"/>
-      <text x="75" y="17" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">Agent: analyze CVEs</text>
-      <text x="75" y="29" text-anchor="middle" font-size="7" fill="#fcc">per-CVE decision + issue files</text>
+    <!-- Agent: analyze -->
+    <g transform="translate(12,112)">
+      <rect width="180" height="46" rx="6" fill="url(#ag)" filter="url(#gl)"/>
+      <text x="90" y="20" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Agent: analyze CVEs</text>
+      <text x="90" y="34" text-anchor="middle" font-size="8" fill="#fcc">per-CVE decision + issue files</text>
     </g>
-    <line x1="166" y1="115" x2="182" y2="115" stroke="#EE0000" stroke-width="1" marker-end="url(#a1)"/>
+    <line x1="192" y1="135" x2="214" y2="135" stroke="#EE0000" stroke-width="1.2" marker-end="url(#a1)"/>
 
-    <g transform="translate(184,96)">
-      <rect width="110" height="38" rx="3" fill="#fff" stroke="#3E8635" stroke-width="1.2"/>
-      <text x="55" y="17" text-anchor="middle" font-size="8" font-weight="600" fill="#3E8635">open-cve-issues</text>
-      <text x="55" y="29" text-anchor="middle" font-size="7" fill="#999">1 per fixable CVE</text>
+    <g transform="translate(216,112)">
+      <rect width="130" height="46" rx="4" fill="#fff" stroke="#3E8635" stroke-width="1.5"/>
+      <text x="65" y="20" text-anchor="middle" font-size="10" font-weight="600" fill="#3E8635">open-cve-issues</text>
+      <text x="65" y="34" text-anchor="middle" font-size="8" fill="#999">1 per fixable CVE</text>
     </g>
-    <line x1="294" y1="115" x2="320" y2="115" stroke="#aaa" stroke-width="0.8" marker-end="url(#a1)"/>
+    <line x1="346" y1="135" x2="375" y2="135" stroke="#aaa" stroke-width="1" marker-end="url(#a1)"/>
 
     <!-- Human Gate 1 -->
-    <g transform="translate(370,115)">
-      <polygon points="0,-22 45,0 0,22 -45,0" fill="url(#hg)" stroke="#b08500" stroke-width="1"/>
-      <text x="0" y="-4" text-anchor="middle" font-size="8" font-weight="700" fill="#000">HUMAN</text>
-      <text x="0" y="7" text-anchor="middle" font-size="8" font-weight="700" fill="#000">GATE</text>
+    <g transform="translate(430,135)">
+      <polygon points="0,-26 52,0 0,26 -52,0" fill="url(#hg)" stroke="#b08500" stroke-width="1.2"/>
+      <text x="0" y="-5" text-anchor="middle" font-size="9" font-weight="700" fill="#000">HUMAN</text>
+      <text x="0" y="8" text-anchor="middle" font-size="9" font-weight="700" fill="#000">GATE</text>
     </g>
-    <text x="420" y="108" font-size="7" fill="#777">Developer reviews issue</text>
-    <text x="420" y="118" font-size="7" fill="#777">comments <tspan font-weight="600" fill="#555">/remediate</tspan></text>
+    <text x="490" y="126" font-size="8" fill="#777">Developer reviews issue</text>
+    <text x="490" y="138" font-size="8" fill="#777">comments <tspan font-weight="600" fill="#555">/remediate</tspan></text>
 
     <!-- Six-field contract -->
-    <g transform="translate(560,93)">
-      <rect width="130" height="44" rx="3" fill="#fff" stroke="#ddd" stroke-width="0.8"/>
-      <text x="65" y="13" text-anchor="middle" font-size="7" font-weight="600" fill="#444">Six-Field Contract</text>
-      <text x="65" y="24" text-anchor="middle" font-size="6.5" fill="#888">SELECTED · CVE_ID · PACKAGE</text>
-      <text x="65" y="34" text-anchor="middle" font-size="6.5" fill="#888">CURRENT_VER · FIXED_VER · JUSTIFICATION</text>
+    <g transform="translate(490,148)">
+      <rect width="210" height="18" rx="3" fill="#fafafa" stroke="#ddd" stroke-width="0.8"/>
+      <text x="105" y="13" text-anchor="middle" font-size="7" fill="#888">SELECTED · CVE_ID · PACKAGE · CUR_VER · FIX_VER · JUSTIFICATION</text>
     </g>
 
-    <!-- ════════ STAGE 3: REMEDIATE ════════ -->
-    <rect x="8" y="156" width="560" height="100" rx="5" fill="#f6faf6" stroke="#3E8635" stroke-width="0.6" stroke-dasharray="3,2"/>
-    <text x="16" y="168" font-size="8" font-weight="700" fill="#3E8635" letter-spacing="1.2">STAGE 3: REMEDIATE</text>
+    <!-- ═══════ STAGE 3: REMEDIATE ═══════ -->
+    <rect x="0" y="182" width="560" height="120" rx="6" fill="#f5faf5" stroke="#3E8635" stroke-width="0.8" stroke-dasharray="4,2"/>
+    <text x="12" y="198" font-size="10" font-weight="700" fill="#3E8635" letter-spacing="1.5">STAGE 3: REMEDIATE</text>
 
-    <path d="M370,137 L370,150 L55,150 L55,184" stroke="#c98e00" stroke-width="1" fill="none" marker-end="url(#a4)"/>
+    <path d="M430,161 L430,176 L70,176 L70,212" stroke="#c98e00" stroke-width="1.2" fill="none" marker-end="url(#a4)"/>
 
-    <g transform="translate(16,178)">
-      <rect width="68" height="34" rx="3" fill="#fff" stroke="#0066CC" stroke-width="1.2"/>
-      <text x="34" y="20" text-anchor="middle" font-size="8.5" font-weight="600" fill="#0066CC">git-clone</text>
+    <g transform="translate(12,208)">
+      <rect width="90" height="42" rx="4" fill="#fff" stroke="#0066CC" stroke-width="1.5"/>
+      <text x="45" y="25" text-anchor="middle" font-size="10" font-weight="600" fill="#0066CC">git-clone</text>
     </g>
-    <line x1="84" y1="195" x2="98" y2="195" stroke="#aaa" stroke-width="0.8" marker-end="url(#a1)"/>
+    <line x1="102" y1="229" x2="120" y2="229" stroke="#aaa" stroke-width="1" marker-end="url(#a1)"/>
 
-    <g transform="translate(100,174)">
-      <rect width="145" height="42" rx="5" fill="url(#ag)" filter="url(#gl)"/>
-      <text x="72" y="16" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">Agent: pin version</text>
-      <text x="72" y="28" text-anchor="middle" font-size="7" fill="#fcc">upstream or Lightwell .rhlw</text>
-      <text x="72" y="38" text-anchor="middle" font-size="6" fill="#faa" font-style="italic">uses Lightwell OSV + smart check</text>
+    <!-- Agent: pin version -->
+    <g transform="translate(122,204)">
+      <rect width="170" height="50" rx="6" fill="url(#ag)" filter="url(#gl)"/>
+      <text x="85" y="19" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Agent: pin version</text>
+      <text x="85" y="33" text-anchor="middle" font-size="8" fill="#fcc">upstream or Lightwell .rhlw</text>
+      <text x="85" y="44" text-anchor="middle" font-size="7" fill="#f99" font-style="italic">Lightwell OSV + smart version check</text>
     </g>
 
-    <!-- Decision: CHANGED -->
-    <line x1="245" y1="195" x2="262" y2="195" stroke="#333" stroke-width="0.8"/>
-    <g transform="translate(280,195)">
-      <polygon points="0,-16 20,0 0,16 -20,0" fill="#fff" stroke="#333" stroke-width="1"/>
-      <text x="0" y="4" text-anchor="middle" font-size="7" font-weight="700" fill="#333">?</text>
+    <!-- Decision diamond -->
+    <line x1="292" y1="229" x2="316" y2="229" stroke="#444" stroke-width="1"/>
+    <g transform="translate(338,229)">
+      <polygon points="0,-18 24,0 0,18 -24,0" fill="#fff" stroke="#444" stroke-width="1.2"/>
+      <text x="0" y="4" text-anchor="middle" font-size="8" font-weight="700" fill="#444">?</text>
     </g>
 
     <!-- CHANGED=1 -->
-    <line x1="300" y1="195" x2="320" y2="195" stroke="#3E8635" stroke-width="1" marker-end="url(#a2)"/>
-    <text x="310" y="188" font-size="6.5" fill="#3E8635" font-weight="600">1</text>
+    <line x1="362" y1="229" x2="386" y2="229" stroke="#3E8635" stroke-width="1.2" marker-end="url(#a2)"/>
+    <text x="374" y="220" font-size="8" fill="#3E8635" font-weight="700">1</text>
 
-    <g transform="translate(322,178)">
-      <rect width="90" height="34" rx="3" fill="#fff" stroke="#3E8635" stroke-width="1.2"/>
-      <text x="45" y="15" text-anchor="middle" font-size="8" font-weight="600" fill="#3E8635">maven verify</text>
-      <text x="45" y="26" text-anchor="middle" font-size="7" fill="#999">re-run tests</text>
+    <g transform="translate(388,208)">
+      <rect width="100" height="42" rx="4" fill="#fff" stroke="#3E8635" stroke-width="1.5"/>
+      <text x="50" y="18" text-anchor="middle" font-size="10" font-weight="600" fill="#3E8635">maven verify</text>
+      <text x="50" y="32" text-anchor="middle" font-size="8" fill="#999">re-run tests</text>
     </g>
-    <line x1="412" y1="195" x2="428" y2="195" stroke="#3E8635" stroke-width="0.8" marker-end="url(#a2)"/>
+    <line x1="488" y1="229" x2="500" y2="229" stroke="#3E8635" stroke-width="1" marker-end="url(#a2)"/>
 
-    <g transform="translate(430,178)">
-      <rect width="78" height="34" rx="3" fill="#fff" stroke="#3E8635" stroke-width="1.2"/>
-      <text x="39" y="20" text-anchor="middle" font-size="8.5" font-weight="600" fill="#3E8635">open-pr</text>
+    <g transform="translate(502,210)">
+      <rect width="46" height="38" rx="4" fill="#f0f8f0" stroke="#3E8635" stroke-width="1.5"/>
+      <text x="23" y="22" text-anchor="middle" font-size="9" font-weight="700" fill="#3E8635">PR</text>
     </g>
 
     <!-- CHANGED=0 -->
-    <line x1="280" y1="211" x2="280" y2="232" stroke="#cc0000" stroke-width="0.8" marker-end="url(#a3)"/>
-    <text x="290" y="226" font-size="6.5" fill="#cc0000" font-weight="600">0</text>
-    <g transform="translate(248,234)">
-      <rect width="64" height="20" rx="3" fill="#fff1f1" stroke="#cc0000" stroke-width="0.8"/>
-      <text x="32" y="14" text-anchor="middle" font-size="7.5" font-weight="600" fill="#cc0000">No PR</text>
+    <line x1="338" y1="247" x2="338" y2="272" stroke="#cc0000" stroke-width="1" marker-end="url(#a3)"/>
+    <text x="350" y="264" font-size="8" fill="#cc0000" font-weight="700">0</text>
+    <g transform="translate(306,274)">
+      <rect width="64" height="22" rx="3" fill="#fff1f1" stroke="#cc0000" stroke-width="1"/>
+      <text x="32" y="15" text-anchor="middle" font-size="9" font-weight="600" fill="#cc0000">No PR</text>
     </g>
 
-    <!-- ════════ STAGE 4: TEST ════════ -->
-    <rect x="580" y="156" width="590" height="100" rx="5" fill="#faf7ff" stroke="#c9190b" stroke-width="0.6" stroke-dasharray="3,2" opacity="0.9"/>
-    <text x="588" y="168" font-size="8" font-weight="700" fill="#c9190b" letter-spacing="1.2">STAGE 4: TEST</text>
-    <text x="658" y="168" font-size="7" fill="#aaa">(optional, parallel)</text>
+    <!-- ═══════ STAGE 4: TEST ═══════ -->
+    <rect x="580" y="182" width="572" height="120" rx="6" fill="#f8f5ff" stroke="#c9190b" stroke-width="0.8" stroke-dasharray="4,2" opacity="0.92"/>
+    <text x="592" y="198" font-size="10" font-weight="700" fill="#c9190b" letter-spacing="1.5">STAGE 4: TEST</text>
+    <text x="680" y="198" font-size="8.5" fill="#aaa">(optional, parallel)</text>
 
-    <!-- Dashed connector from issues to test -->
-    <path d="M239,134 L239,150 L640,150 L640,184" stroke="#aaa" stroke-width="0.8" stroke-dasharray="4,2" fill="none" marker-end="url(#a1)"/>
+    <path d="M281,158 L281,176 L660,176 L660,212" stroke="#aaa" stroke-width="1" stroke-dasharray="4,2" fill="none" marker-end="url(#a1)"/>
 
-    <g transform="translate(588,178)">
-      <rect width="68" height="34" rx="3" fill="#fff" stroke="#0066CC" stroke-width="1.2"/>
-      <text x="34" y="20" text-anchor="middle" font-size="8.5" font-weight="600" fill="#0066CC">git-clone</text>
+    <g transform="translate(592,208)">
+      <rect width="90" height="42" rx="4" fill="#fff" stroke="#0066CC" stroke-width="1.5"/>
+      <text x="45" y="18" text-anchor="middle" font-size="10" font-weight="600" fill="#0066CC">git-clone</text>
+      <text x="45" y="32" text-anchor="middle" font-size="8" fill="#999">+ maven</text>
     </g>
-    <line x1="656" y1="195" x2="668" y2="195" stroke="#aaa" stroke-width="0.8" marker-end="url(#a1)"/>
+    <line x1="682" y1="229" x2="700" y2="229" stroke="#aaa" stroke-width="1" marker-end="url(#a1)"/>
 
-    <g transform="translate(670,178)">
-      <rect width="68" height="34" rx="3" fill="#fff" stroke="#0066CC" stroke-width="1.2"/>
-      <text x="34" y="15" text-anchor="middle" font-size="8.5" font-weight="600" fill="#0066CC">maven</text>
-      <text x="34" y="26" text-anchor="middle" font-size="7" fill="#999">package</text>
-    </g>
-    <line x1="738" y1="195" x2="752" y2="195" stroke="#aaa" stroke-width="0.8" marker-end="url(#a1)"/>
-
-    <g transform="translate(754,174)">
-      <rect width="120" height="42" rx="5" fill="url(#ag)" filter="url(#gl)"/>
-      <text x="60" y="18" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">Agent: gen tests</text>
-      <text x="60" y="30" text-anchor="middle" font-size="7" fill="#fcc">JUnit 5 scaffolding</text>
+    <!-- Agent: gen tests -->
+    <g transform="translate(702,204)">
+      <rect width="150" height="50" rx="6" fill="url(#ag)" filter="url(#gl)"/>
+      <text x="75" y="21" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Agent: gen tests</text>
+      <text x="75" y="36" text-anchor="middle" font-size="8" fill="#fcc">JUnit 5 scaffolding</text>
     </g>
 
-    <!-- Decision: TESTS_ADDED -->
-    <line x1="874" y1="195" x2="890" y2="195" stroke="#333" stroke-width="0.8"/>
-    <g transform="translate(908,195)">
-      <polygon points="0,-16 20,0 0,16 -20,0" fill="#fff" stroke="#333" stroke-width="1"/>
-      <text x="0" y="4" text-anchor="middle" font-size="7" font-weight="700" fill="#333">?</text>
+    <!-- Decision -->
+    <line x1="852" y1="229" x2="876" y2="229" stroke="#444" stroke-width="1"/>
+    <g transform="translate(898,229)">
+      <polygon points="0,-18 24,0 0,18 -24,0" fill="#fff" stroke="#444" stroke-width="1.2"/>
+      <text x="0" y="4" text-anchor="middle" font-size="8" font-weight="700" fill="#444">?</text>
     </g>
 
-    <line x1="928" y1="195" x2="948" y2="195" stroke="#3E8635" stroke-width="1" marker-end="url(#a2)"/>
-    <text x="938" y="188" font-size="6.5" fill="#3E8635" font-weight="600">&gt;0</text>
+    <line x1="922" y1="229" x2="946" y2="229" stroke="#3E8635" stroke-width="1.2" marker-end="url(#a2)"/>
+    <text x="934" y="220" font-size="8" fill="#3E8635" font-weight="700">&gt;0</text>
 
-    <g transform="translate(950,178)">
-      <rect width="78" height="34" rx="3" fill="#fff" stroke="#3E8635" stroke-width="1.2"/>
-      <text x="39" y="15" text-anchor="middle" font-size="8" font-weight="600" fill="#3E8635">open-pr</text>
-      <text x="39" y="26" text-anchor="middle" font-size="7" fill="#999">tests only</text>
+    <g transform="translate(948,208)">
+      <rect width="90" height="42" rx="4" fill="#fff" stroke="#3E8635" stroke-width="1.5"/>
+      <text x="45" y="18" text-anchor="middle" font-size="9.5" font-weight="600" fill="#3E8635">open-pr</text>
+      <text x="45" y="32" text-anchor="middle" font-size="8" fill="#999">tests only</text>
     </g>
 
-    <line x1="908" y1="211" x2="908" y2="232" stroke="#999" stroke-width="0.6"/>
-    <text x="908" y="242" text-anchor="middle" font-size="6.5" fill="#999">=0: No PR</text>
+    <line x1="898" y1="247" x2="898" y2="268" stroke="#999" stroke-width="0.8"/>
+    <text x="898" y="280" text-anchor="middle" font-size="8" fill="#999">=0: No PR</text>
 
-    <!-- ════════ STAGE 5: DELIVER ════════ -->
-    <rect x="8" y="272" width="1164" height="60" rx="5" fill="#f0f8f0" stroke="#3E8635" stroke-width="0.6"/>
-    <text x="16" y="284" font-size="8" font-weight="700" fill="#3E8635" letter-spacing="1.2">STAGE 5: DELIVER</text>
+    <!-- ═══════ STAGE 5: DELIVER ═══════ -->
+    <rect x="0" y="316" width="1152" height="72" rx="6" fill="#eef6ee" stroke="#3E8635" stroke-width="0.8"/>
+    <text x="12" y="332" font-size="10" font-weight="700" fill="#3E8635" letter-spacing="1.5">STAGE 5: DELIVER</text>
 
-    <path d="M469,212 L469,260 L120,260 L120,292" stroke="#3E8635" stroke-width="1" fill="none" marker-end="url(#a2)"/>
+    <path d="M525,248 L525,310 L140,310 L140,348" stroke="#3E8635" stroke-width="1.2" fill="none" marker-end="url(#a2)"/>
 
     <!-- Human Gate 2 -->
-    <g transform="translate(120,308)">
-      <polygon points="0,-18 38,0 0,18 -38,0" fill="url(#hg)" stroke="#b08500" stroke-width="1"/>
-      <text x="0" y="-2" text-anchor="middle" font-size="7.5" font-weight="700" fill="#000">HUMAN</text>
-      <text x="0" y="9" text-anchor="middle" font-size="7.5" font-weight="700" fill="#000">GATE</text>
+    <g transform="translate(140,362)">
+      <polygon points="0,-22 45,0 0,22 -45,0" fill="url(#hg)" stroke="#b08500" stroke-width="1.2"/>
+      <text x="0" y="-4" text-anchor="middle" font-size="8.5" font-weight="700" fill="#000">HUMAN</text>
+      <text x="0" y="8" text-anchor="middle" font-size="8.5" font-weight="700" fill="#000">GATE</text>
     </g>
-    <text x="165" y="304" font-size="7" fill="#777">Developer reviews PR, merges</text>
+    <text x="195" y="356" font-size="8.5" fill="#777">Developer reviews PR, merges to main</text>
 
-    <line x1="158" y1="308" x2="220" y2="308" stroke="#c98e00" stroke-width="1" marker-end="url(#a4)"/>
+    <line x1="185" y1="362" x2="268" y2="362" stroke="#c98e00" stroke-width="1.2" marker-end="url(#a4)"/>
 
-    <g transform="translate(222,290)">
-      <rect width="180" height="36" rx="5" fill="url(#dg)"/>
-      <text x="90" y="16" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">Existing CI/CD</text>
-      <text x="90" y="28" text-anchor="middle" font-size="7.5" fill="#c0e8bc">path to production</text>
+    <g transform="translate(270,344)">
+      <rect width="220" height="42" rx="6" fill="url(#dg)"/>
+      <text x="110" y="18" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Existing CI/CD</text>
+      <text x="110" y="32" text-anchor="middle" font-size="8.5" fill="#c0e8bc">path to production</text>
     </g>
 
-    <!-- ════════ LEGEND ════════ -->
-    <g transform="translate(8,345)">
-      <rect width="1164" height="60" rx="5" fill="#fafafa" stroke="#eee" stroke-width="0.8"/>
+    <!-- ═══════ LEGEND ═══════ -->
+    <g transform="translate(0,402)">
+      <rect width="1152" height="65" rx="5" fill="#fafafa" stroke="#eee" stroke-width="0.8"/>
 
-      <rect x="12" y="10" width="12" height="12" rx="2" fill="url(#ag)"/>
-      <text x="30" y="20" font-size="7.5" fill="#555">Agent task (LLM)</text>
+      <rect x="14" y="10" width="14" height="14" rx="3" fill="url(#ag)"/>
+      <text x="34" y="21" font-size="8.5" fill="#555">Agent task (LLM)</text>
 
-      <polygon points="130,10 140,16 130,22 120,16" fill="url(#hg)"/>
-      <text x="148" y="20" font-size="7.5" fill="#555">Human gate</text>
+      <polygon points="155,10 167,17 155,24 143,17" fill="url(#hg)"/>
+      <text x="175" y="21" font-size="8.5" fill="#555">Human gate</text>
 
-      <rect x="240" y="10" width="12" height="12" rx="2" fill="#fff" stroke="#0066CC" stroke-width="1"/>
-      <text x="258" y="20" font-size="7.5" fill="#555">Pipeline task</text>
+      <rect x="278" y="10" width="14" height="14" rx="3" fill="#fff" stroke="#0066CC" stroke-width="1.2"/>
+      <text x="298" y="21" font-size="8.5" fill="#555">Pipeline task</text>
 
-      <polygon points="355,10 365,16 355,22 345,16" fill="#fff" stroke="#333" stroke-width="0.8"/>
-      <text x="373" y="20" font-size="7.5" fill="#555">Decision (fail-closed)</text>
+      <polygon points="415,10 427,17 415,24 403,17" fill="#fff" stroke="#444" stroke-width="1"/>
+      <text x="435" y="21" font-size="8.5" fill="#555">Decision (fail-closed)</text>
 
-      <!-- External systems row -->
-      <text x="12" y="44" font-size="7.5" font-weight="600" fill="#444">External Systems:</text>
+      <text x="14" y="48" font-size="8.5" font-weight="600" fill="#444">External Systems:</text>
 
-      <rect x="100" y="34" width="48" height="16" rx="2" fill="#fff" stroke="#5e40be" stroke-width="0.8"/>
-      <text x="124" y="45" text-anchor="middle" font-size="6.5" fill="#5e40be">RHTPA</text>
+      <rect x="120" y="36" width="56" height="20" rx="3" fill="#fff" stroke="#5e40be" stroke-width="1"/>
+      <text x="148" y="50" text-anchor="middle" font-size="8" fill="#5e40be">RHTPA</text>
 
-      <rect x="154" y="34" width="56" height="16" rx="2" fill="#fff" stroke="#c98e00" stroke-width="0.8"/>
-      <text x="182" y="45" text-anchor="middle" font-size="6.5" fill="#c98e00">Conforma</text>
+      <rect x="182" y="36" width="66" height="20" rx="3" fill="#fff" stroke="#c98e00" stroke-width="1"/>
+      <text x="215" y="50" text-anchor="middle" font-size="8" fill="#c98e00">Conforma</text>
 
-      <rect x="216" y="34" width="70" height="16" rx="2" fill="#fff" stroke="#EE0000" stroke-width="0.8"/>
-      <text x="251" y="45" text-anchor="middle" font-size="6.5" fill="#EE0000">Lightwell OSV</text>
+      <rect x="254" y="36" width="80" height="20" rx="3" fill="#fff" stroke="#EE0000" stroke-width="1"/>
+      <text x="294" y="50" text-anchor="middle" font-size="8" fill="#EE0000">Lightwell OSV</text>
 
-      <rect x="292" y="34" width="74" height="16" rx="2" fill="#fff" stroke="#EE0000" stroke-width="0.8"/>
-      <text x="329" y="45" text-anchor="middle" font-size="6.5" fill="#EE0000">Lightwell Repo</text>
+      <rect x="340" y="36" width="82" height="20" rx="3" fill="#fff" stroke="#EE0000" stroke-width="1"/>
+      <text x="381" y="50" text-anchor="middle" font-size="8" fill="#EE0000">Lightwell Repo</text>
 
-      <rect x="372" y="34" width="72" height="16" rx="2" fill="#fff" stroke="#0066CC" stroke-width="0.8"/>
-      <text x="408" y="45" text-anchor="middle" font-size="6.5" fill="#0066CC">Maven Central</text>
+      <rect x="428" y="36" width="82" height="20" rx="3" fill="#fff" stroke="#0066CC" stroke-width="1"/>
+      <text x="469" y="50" text-anchor="middle" font-size="8" fill="#0066CC">Maven Central</text>
 
-      <rect x="450" y="34" width="76" height="16" rx="2" fill="#fff" stroke="#3E8635" stroke-width="0.8"/>
-      <text x="488" y="45" text-anchor="middle" font-size="6.5" fill="#3E8635">GitLab / GitHub</text>
+      <rect x="516" y="36" width="84" height="20" rx="3" fill="#fff" stroke="#3E8635" stroke-width="1"/>
+      <text x="558" y="50" text-anchor="middle" font-size="8" fill="#3E8635">GitLab / GitHub</text>
 
-      <rect x="532" y="34" width="66" height="16" rx="2" fill="#fff" stroke="#5e40be" stroke-width="0.8"/>
-      <text x="565" y="45" text-anchor="middle" font-size="6.5" fill="#5e40be">LLM Provider</text>
+      <rect x="606" y="36" width="76" height="20" rx="3" fill="#fff" stroke="#5e40be" stroke-width="1"/>
+      <text x="644" y="50" text-anchor="middle" font-size="8" fill="#5e40be">LLM Provider</text>
 
-      <text x="620" y="44" font-size="6.5" fill="#aaa" font-style="italic">Implementation: 4 Tekton pipelines split at the human gates</text>
+      <text x="700" y="50" font-size="7.5" fill="#bbb" font-style="italic">4 Tekton pipelines split at the human gates</text>
     </g>
+
+    <!-- Subtle watermark -->
+    <text x="1140" y="525" text-anchor="end" font-size="7" fill="#ddd">From advisory to production — CVE remediation at scale</text>
   </svg>
