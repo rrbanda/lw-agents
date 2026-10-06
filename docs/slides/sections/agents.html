@@ -40,6 +40,9 @@
         <li><code>lookup_cve_detail</code></li>
         <li><code>parse_maven_purl</code></li>
         <li><code>check_version_exists</code></li>
+        <li><code>lookup_lightwell_osv</code></li>
+        <li><code>check_lightwell_version_exists</code></li>
+        <li><code>check_version_exists_smart</code></li>
       </ul>
       <p><strong>Callback:</strong> <code>fail_closed_selection_callback</code> (after)</p>
       <p><strong>Output:</strong> <code>selection_result</code></p>
@@ -59,6 +62,9 @@
         <li><code>lookup_cve_detail</code></li>
         <li><code>parse_maven_purl</code></li>
         <li><code>check_version_exists</code></li>
+        <li><code>lookup_lightwell_osv</code></li>
+        <li><code>check_lightwell_version_exists</code></li>
+        <li><code>check_version_exists_smart</code></li>
       </ul>
       <p><strong>Output:</strong> <code>analysis_result</code></p>
     </div>
@@ -66,7 +72,7 @@
     <!-- Remediation -->
     <div class="card" style="border-top: 3px solid var(--d3-routing)">
       <h4>Remediation <span style="opacity:.6">(SequentialAgent)</span></h4>
-      <p>Plans and applies a Maven dependency version bump, verifies with Maven build (up to 3 retries), and opens a PR.</p>
+      <p>Plans and applies a dependency version pin (to an upstream release or a Lightwell <code>.rhlw</code> backport), verifies with Maven build (up to 3 retries), and opens a PR.</p>
 
       <div class="flow-diagram" style="font-size: .85em; margin: .75em 0;">
         <div class="flow-node" style="border-color: var(--d3-routing)">initial_remediation_planner</div>

@@ -20,8 +20,6 @@
     <div class="flow-arrow">→</div>
     <div class="flow-node" style="border-color: var(--d3-routing)">Conforma Policy</div>
     <div class="flow-arrow">→</div>
-    <div class="flow-node" style="border-color: var(--d5-loop)">EvalHub Gate</div>
-    <div class="flow-arrow">→</div>
     <div class="flow-node" style="border-color: var(--rh-red)">Agent Service</div>
     <div class="flow-arrow">→</div>
     <div class="flow-node" style="border-color: var(--green)">Open PR</div>
@@ -36,11 +34,11 @@
     </div>
     <div class="card" style="border-top: 3px solid var(--d2-tools)">
       <h4>EvalHub on RHOAI 3.5</h4>
-      <p>Two eval gates run <strong>before</strong> the agent: model-level safety (truthfulqa, toxigen, ethics, bbq, OWASP Top 10, CWE) and agent-level regression (38 test cases). Both must PASS for the agent task to execute.</p>
+      <p>Runs as a <strong>separate continuous eval pipeline</strong>, not as an inline gate in the CVE pipeline. Two layers: model-level safety (truthfulqa, toxigen, ethics, bbq, OWASP Top 10, CWE) and agent-level regression test cases. Both must PASS on every code push.</p>
     </div>
     <div class="card" style="border-top: 3px solid var(--d3-routing)">
       <h4>External Systems</h4>
-      <p>RHTPA / Trustify for vulnerability reports. GitLab / GitHub for issues and PRs. Maven Central for version verification. LLM providers (Gemini / OpenAI-compatible) for inference.</p>
+      <p>RHTPA / Trustify for vulnerability reports. GitLab / GitHub for issues and PRs. Maven Central for upstream version verification. <strong>Lightwell OSV feed</strong> for fixed coordinates. <strong>Lightwell repository</strong> for <code>.rhlw</code> version verification. LLM providers (Gemini / OpenAI-compatible) for inference.</p>
     </div>
     <div class="card" style="border-top: 3px solid var(--rh-red)">
       <h4>ADK Agent Service</h4>

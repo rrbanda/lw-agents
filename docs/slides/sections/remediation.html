@@ -10,6 +10,9 @@
     The remediation agent is a <strong>SequentialAgent</strong> that orchestrates three phases:
     initial planning, iterative build verification, and PR creation.
     Each phase is a distinct sub-agent wired together by ADK&rsquo;s sequential execution model.
+    The agent changes the dependency <strong>version string</strong> in the manifest &mdash;
+    it does not patch library source code. The fix already exists as a published version
+    (upstream release or Lightwell <code>.rhlw</code> backport).
   </p>
 
   <!-- Pipeline Architecture -->
