@@ -45,7 +45,7 @@
     "Lightwell Lens",
     "The AI Engine",
     "The Technical Challenge",
-    "Agentic CVE Remediation",
+    "Art of the Possible",
     "The Pipeline",
     "OpenShift AI Platform",
     "System Context",
