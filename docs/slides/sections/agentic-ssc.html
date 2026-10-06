@@ -7,7 +7,7 @@
   <span class="section-label">Agentic CVE Remediation</span>
   <h2 style="margin-bottom:2px">Where Agents Act in the Secure Software Supply Chain</h2>
 
-  <svg viewBox="0 0 1152 540" style="width:1152px;height:540px;font-family:'Red Hat Text','Red Hat Display',Arial,sans-serif" xmlns="http://www.w3.org/2000/svg">
+  <svg viewBox="0 0 1152 560" style="width:1152px;height:560px;font-family:'Red Hat Text','Red Hat Display',Arial,sans-serif" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="m1" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5" fill="#bbb"/></marker>
       <marker id="m2" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5" fill="#3E8635"/></marker>
@@ -16,7 +16,8 @@
       <filter id="agGlow"><feDropShadow dx="0" dy="1" stdDeviation="3" flood-color="#EE0000" flood-opacity="0.35"/></filter>
     </defs>
 
-    <!-- ═══ COLUMN HEADERS ═══ -->
+    <!-- Scale content to fill the full slide height -->
+    <g transform="scale(1, 1.35) translate(0, -5)">
     <text x="30" y="16" font-size="8" font-weight="600" fill="#999" letter-spacing="1">EXTERNAL</text>
     <line x1="100" y1="0" x2="100" y2="480" stroke="#ddd" stroke-width="0.5" stroke-dasharray="2,2"/>
     <text x="110" y="16" font-size="8" font-weight="600" fill="#999" letter-spacing="1">INTERNAL</text>
@@ -231,4 +232,5 @@
 
       <text x="14" y="42" font-size="8" fill="#888">Lightwell provides the .rhlw fixed version through the Internal Artifact Repository. Agents triage, pin, test, and open the PR. Everything from step 5 onward is the customer's existing path.</text>
     </g>
+    </g> <!-- end scale group -->
   </svg>
