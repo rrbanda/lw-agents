@@ -283,10 +283,22 @@ class BuildResultChecker(BaseAgent):
             ctx.session.state["hopeless_reason"] = (
                 f"Too many errors ({error_count} compile, {missing_count} missing symbols)"
             )
-            # Escalate to stop the loop — no point retrying
+            ctx.session.state["structured_result"] = {
+                "CHANGED": "0",
+                "BUILD_STATUS": "FAILURE",
+                "FAILURE_DIAGNOSIS": {
+                    "category": "HOPELESS",
+                    "reason": f"Too many errors ({error_count} compile, {missing_count} missing symbols)",
+                    "retries_exhausted": False,
+                    "actionable": False,
+                },
+            }
             yield Event(
                 author=self.name,
-                actions=EventActions(escalate=True),
+                actions=EventActions(
+                    escalate=True,
+                    state_delta={"structured_result": ctx.session.state["structured_result"]},
+                ),
             )
             return
 
@@ -295,9 +307,22 @@ class BuildResultChecker(BaseAgent):
         if category in ("NETWORK_ERROR", "PRE_EXISTING"):
             ctx.session.state["non_retryable"] = True
             ctx.session.state["non_retryable_reason"] = classification.get("description", category)
+            ctx.session.state["structured_result"] = {
+                "CHANGED": "0",
+                "BUILD_STATUS": "FAILURE",
+                "FAILURE_DIAGNOSIS": {
+                    "category": category,
+                    "reason": classification.get("description", category),
+                    "retries_exhausted": False,
+                    "actionable": category == "PRE_EXISTING",
+                },
+            }
             yield Event(
                 author=self.name,
-                actions=EventActions(escalate=True),
+                actions=EventActions(
+                    escalate=True,
+                    state_delta={"structured_result": ctx.session.state["structured_result"]},
+                ),
             )
             return
 
@@ -322,6 +347,22 @@ class BuildResultChecker(BaseAgent):
                 "the compilation output and adjust the fix."
             )
         ctx.session.state["build_feedback"] = "\n".join(feedback_lines)
+        ctx.session.state["structured_result"] = {
+            "CHANGED": "0",
+            "BUILD_STATUS": "FAILURE",
+            "FAILURE_DIAGNOSIS": {
+                "category": category,
+                "reason": classification.get("description", ""),
+                "retry_attempt": retry_count,
+                "retries_exhausted": retry_count >= 3,
+                "actionable": True,
+                "suggestion": (
+                    "Environment or config issue — check build plugins and JDK version"
+                    if category == "ENVIRONMENT_ERROR"
+                    else "The applied change caused a build error — review compilation output"
+                ),
+            },
+        }
 
         yield Event(author=self.name)
 
