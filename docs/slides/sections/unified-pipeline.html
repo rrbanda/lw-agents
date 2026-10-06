@@ -1,0 +1,195 @@
+
+  <div class="rh-bar-t"></div>
+  <div class="rh-bar-b"></div>
+  <div class="rh-privacy">Confidential: Red Hat associate and NDA partner use only. No further distribution.</div>
+  <div class="rh-section-footer"><span class="rh-fn">7</span><span class="rh-fl"><img class="rh-logo-img" alt="Red Hat"></span></div>
+
+  <span class="section-label">Unified Pipeline</span>
+  <h2>From Advisory to Pull Request</h2>
+
+  <p>One logical flow, split at human review points. Four pipelines in implementation, one path in practice. Agent tasks are highlighted. Everything else is deterministic.</p>
+
+  <!-- STAGE 1: DISCOVER -->
+  <h3 style="margin-top:12px; margin-bottom:4px; color:var(--d1-isolation)">Stage 1: Discover</h3>
+  <div class="flow-diagram">
+    <div class="flow-node" style="border-color:var(--d1-isolation)">
+      <strong>git-clone</strong>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--d1-isolation)">
+      <strong>maven</strong>
+      <small>package</small>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--d2-tools)">
+      <strong>buildah</strong>
+      <small>container + SBOM</small>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--d2-tools)">
+      <strong>upload-sbom</strong>
+      <small>to RHTPA</small>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--d3-routing)">
+      <strong>rhtpa-vuln</strong>
+      <small>analysis</small>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--d3-routing)">
+      <strong>rhtpa-remed</strong>
+      <small>report</small>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--d5-loop)">
+      <strong>conforma</strong>
+      <small>policy gate</small>
+    </div>
+  </div>
+
+  <!-- STAGE 2: TRIAGE -->
+  <h3 style="margin-top:10px; margin-bottom:4px; color:var(--rh-red)">Stage 2: Triage &amp; Log</h3>
+  <div class="flow-diagram">
+    <div class="flow-node filled red" style="border:2px solid var(--rh-red)">
+      <strong>Agent: analyze CVEs</strong>
+      <small>per-CVE decision + issue files</small>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--green)">
+      <strong>open-cve-issues</strong>
+      <small>one issue per fixable CVE</small>
+    </div>
+    <div class="flow-arrow" style="font-size:16px; color:var(--rh-red)">&xrarr;</div>
+    <div class="flow-node" style="border-color:var(--amber); background:var(--amber); color:#000; font-weight:600; min-width:140px">
+      <strong>Human Gate</strong>
+      <small>Developer reviews issue</small>
+      <small>comments /remediate</small>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:6px; margin:4px 0 2px; align-items:start">
+    <!-- STAGE 3: REMEDIATE -->
+    <div style="flex:1.3">
+      <h3 style="margin-bottom:4px; color:var(--d3-routing)">Stage 3: Remediate</h3>
+      <div class="flow-diagram" style="flex-wrap:wrap">
+        <div class="flow-node" style="border-color:var(--d1-isolation)">
+          <strong>git-clone</strong>
+        </div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-node filled red" style="border:2px solid var(--rh-red); min-width:120px">
+          <strong>Agent: pin version</strong>
+          <small>upstream or .rhlw</small>
+        </div>
+        <div class="flow-arrow">&rarr;</div>
+        <div style="display:flex; flex-direction:column; gap:2px; align-items:flex-start">
+          <div style="display:flex; align-items:center; gap:3px">
+            <span style="font-size:8px; color:var(--green); font-weight:600">CHANGED=1</span>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-node" style="border-color:var(--green)">
+              <strong>maven verify</strong>
+            </div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-node" style="border-color:var(--green)">
+              <strong>open-pr</strong>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:3px">
+            <span style="font-size:8px; color:var(--rh-red); font-weight:600">CHANGED=0</span>
+            <div class="flow-arrow">&rarr;</div>
+            <span style="font-size:9px; color:#888">No PR (fail-closed)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAGE 4: TEST (optional) -->
+    <div style="flex:1; opacity:0.85; border-left:1px dashed #ddd; padding-left:6px">
+      <h3 style="margin-bottom:4px; color:var(--d4-identity)">Stage 4: Test <span style="font-size:9px; font-weight:400; opacity:.7">(optional)</span></h3>
+      <div class="flow-diagram" style="flex-wrap:wrap">
+        <div class="flow-node" style="border-color:var(--d1-isolation)">
+          <strong>git-clone</strong>
+        </div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-node" style="border-color:var(--d1-isolation)">
+          <strong>maven</strong>
+          <small>package</small>
+        </div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-node filled red" style="border:2px solid var(--rh-red)">
+          <strong>Agent: gen tests</strong>
+        </div>
+        <div class="flow-arrow">&rarr;</div>
+        <div style="display:flex; flex-direction:column; gap:2px">
+          <div style="display:flex; align-items:center; gap:3px">
+            <span style="font-size:8px; color:var(--green); font-weight:600">ADDED&gt;0</span>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-node" style="border-color:var(--green)">
+              <strong>open-pr</strong>
+              <small>tests only</small>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:3px">
+            <span style="font-size:8px; color:#888">ADDED=0</span>
+            <div class="flow-arrow">&rarr;</div>
+            <span style="font-size:9px; color:#888">No PR</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAGE 5: DELIVER -->
+  <div class="flow-diagram" style="margin-top:6px">
+    <div class="flow-node" style="border-color:var(--amber); background:var(--amber); color:#000; font-weight:600">
+      <strong>Human Gate</strong>
+      <small>Developer reviews + merges PR</small>
+    </div>
+    <div class="flow-arrow" style="font-size:16px">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--green); min-width:160px">
+      <strong>Stage 5: Deliver</strong>
+      <small>Existing CI/CD path to production</small>
+    </div>
+  </div>
+
+  <!-- LEGEND -->
+  <div style="display:flex; gap:12px; margin-top:10px; flex-wrap:wrap">
+    <div style="display:flex; align-items:center; gap:4px">
+      <div style="width:12px; height:12px; background:var(--rh-red); border-radius:2px"></div>
+      <span style="font-size:8.5px; color:#666">Agent task (LLM reasoning)</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:4px">
+      <div style="width:12px; height:12px; background:var(--amber); border-radius:2px"></div>
+      <span style="font-size:8.5px; color:#666">Human review gate</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:4px">
+      <div style="width:12px; height:12px; border:1.5px solid var(--d1-isolation); border-radius:2px"></div>
+      <span style="font-size:8.5px; color:#666">Deterministic pipeline task</span>
+    </div>
+  </div>
+
+  <!-- SIX-FIELD CONTRACT + EXTERNAL SYSTEMS -->
+  <div class="grid-2" style="margin-top:6px">
+    <div class="card" style="border-top:2px solid var(--rh-red); padding:6px 8px">
+      <h4 style="font-size:10px">Six-Field Contract (Triage &rarr; Remediate)</h4>
+      <div class="component-pills" style="margin-top:3px">
+        <span class="component-pill" style="font-size:8px">SELECTED</span>
+        <span class="component-pill" style="font-size:8px">CVE_ID</span>
+        <span class="component-pill" style="font-size:8px">PACKAGE</span>
+        <span class="component-pill" style="font-size:8px">CURRENT_VERSION</span>
+        <span class="component-pill" style="font-size:8px">FIXED_VERSION</span>
+        <span class="component-pill" style="font-size:8px">JUSTIFICATION</span>
+      </div>
+    </div>
+    <div class="card" style="border-top:2px solid var(--d2-tools); padding:6px 8px">
+      <h4 style="font-size:10px">External Systems</h4>
+      <div class="component-pills" style="margin-top:3px">
+        <span class="component-pill" style="font-size:8px">RHTPA</span>
+        <span class="component-pill" style="font-size:8px">Conforma</span>
+        <span class="component-pill" style="font-size:8px">Lightwell OSV</span>
+        <span class="component-pill" style="font-size:8px">Lightwell Repo</span>
+        <span class="component-pill" style="font-size:8px">Maven Central</span>
+        <span class="component-pill" style="font-size:8px">GitLab / GitHub</span>
+        <span class="component-pill" style="font-size:8px">LLM Provider</span>
+      </div>
+    </div>
+  </div>

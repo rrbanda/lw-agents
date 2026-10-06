@@ -7,23 +7,7 @@
   <p class="section-label">System Context</p>
   <h2>Where the Agent Service Fits</h2>
 
-  <p>The ADK agent service is one component in a Tekton CI/CD pipeline. It receives work from a thin HTTP caller task and interacts with external systems for vulnerability data, version verification, and source control.</p>
-
-  <h3>End-to-End Pipeline</h3>
-
-  <div class="flow-diagram">
-    <div class="flow-node" style="border-color: var(--d1-isolation)">Clone Repo</div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-node" style="border-color: var(--d1-isolation)">Build / Package</div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-node" style="border-color: var(--d2-tools)">SBOM Scan</div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-node" style="border-color: var(--d3-routing)">Conforma Policy</div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-node" style="border-color: var(--rh-red)">Agent Service</div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-node" style="border-color: var(--green)">Open PR</div>
-  </div>
+  <p>The ADK agent service is one component in the pipeline. It receives work from Tekton tasks and interacts with external systems for vulnerability data, version verification, and source control. See the <strong>Unified Pipeline</strong> slide for the full end-to-end flow.</p>
 
   <h3>Four Integration Points</h3>
 
