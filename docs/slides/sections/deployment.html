@@ -26,7 +26,7 @@
       <span class="component-pill" >ADK Agent Service</span>
     </div>
     <p style="margin-top:1rem">
-      <strong>Entry point:</strong> <code>python -m google.adk.cli web --host 0.0.0.0 --port 8080 /sandbox</code><br>
+      <strong>Entry point:</strong> <code>adk api_server</code><br>
       <strong>Build:</strong> <code>podman build --platform linux/amd64 -t &lt;image&gt; -f Dockerfile .</code>
     </p>
   </div>
@@ -59,7 +59,7 @@
   <div class="grid-2">
 
     <div class="card" style="border-top:3px solid var(--d1-isolation)">
-      <h4><code>call-ssc-agent</code></h4>
+      <h4>Agent Tasks (ai-* / lw-*)</h4>
       <p>Thin HTTP caller that POSTs task type + workspace to the agent service via <code>curl</code>. Maps agent responses to Tekton results. Supports <code>select-cve</code>, <code>analyze-cves</code>, <code>remediate</code>, and <code>generate-tests</code> task types.</p>
     </div>
 

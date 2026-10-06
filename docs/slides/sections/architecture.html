@@ -14,7 +14,7 @@
   <div class="grid-2">
     <div class="card" style="border-top: 3px solid var(--d1-isolation)">
       <h4>Tekton CI/CD Pipeline</h4>
-      <p>Pipeline orchestrates the full build. <code>call-ssc-agent</code> is a thin Tekton Task that POSTs to the agent's HTTP API. Agent returns structured results (<code>SELECTED</code>, <code>CVE_ID</code>, <code>PR_URL</code>) mapped to Tekton result fields.</p>
+      <p>Pipeline orchestrates the full build. Tekton Tasks call the ADK agent service over HTTPS/SSE. Agent returns structured results (<code>SELECTED</code>, <code>CVE_ID</code>, <code>CHANGED</code>) mapped to Tekton result fields.</p>
     </div>
     <div class="card" style="border-top: 3px solid var(--d2-tools)">
       <h4>EvalHub on RHOAI 3.5</h4>
@@ -22,11 +22,11 @@
     </div>
     <div class="card" style="border-top: 3px solid var(--d3-routing)">
       <h4>External Systems</h4>
-      <p>RHTPA / Trustify for vulnerability reports. GitLab / GitHub for issues and PRs. Maven Central for upstream version verification. <strong>Lightwell OSV feed</strong> for fixed coordinates. <strong>Lightwell repository</strong> for <code>.rhlw</code> version verification. LLM providers (Gemini / OpenAI-compatible) for inference.</p>
+      <p>RHTPA / Trustify for vulnerability reports. GitLab / GitHub for issues and PRs. Internal Artifact Repository for dependency resolution (proxies Lightwell + upstream). <strong>Lightwell OSV feed</strong> for fixed coordinates. <strong>Lightwell repository</strong> for <code>.rhlw</code> version verification. LLM providers (Gemini / OpenAI-compatible) for inference.</p>
     </div>
     <div class="card" style="border-top: 3px solid var(--rh-red)">
       <h4>ADK Agent Service</h4>
-      <p>Long-lived service on port 8080. Root coordinator delegates to 5 specialists. Plugins (SafetyPlugin + RedactionPlugin) wrap all agents. Resumable sessions via ADK <code>ResumabilityConfig</code>.</p>
+      <p>Long-lived ADK agent service. Root coordinator delegates to 5 specialists. Plugins (SafetyPlugin + RedactionPlugin) wrap all agents. Resumable sessions via ADK <code>ResumabilityConfig</code>.</p>
     </div>
   </div>
 

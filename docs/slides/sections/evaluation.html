@@ -8,14 +8,14 @@
 
   <p>
     Every code push and every 6&nbsp;hours, the full eval pipeline runs automatically.
-    Two independent layers must <strong>PASS</strong> before the agent service processes real work.
+    Two independent layers run continuously. Both must <strong>PASS</strong> for the agent service to be trusted with real work.
   </p>
 
   <!-- Layer 1: Model Safety -->
   <h3>Layer 1: Model Safety (EvalHub)</h3>
 
   <div class="card" style="border-top:3px solid var(--d4-identity)">
-    <p>Verifies the underlying LLM is safe before any agent runs. Submitted via <code>evalhub eval run</code> and gated by the <code>evalhub-eval-gate</code> Tekton Task.</p>
+    <p>Verifies the underlying LLM is safe. Runs as a separate continuous eval pipeline on every code push and on a 6-hour schedule. Submitted via <code>evalhub eval run</code>.</p>
 
     <table style="width:100%; border-collapse:collapse; margin-top:1rem; font-size:0.95rem">
       <thead>
