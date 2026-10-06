@@ -1,0 +1,270 @@
+
+  <div class="rh-bar-t"></div>
+  <div class="rh-bar-b"></div>
+  <div class="rh-privacy">Confidential: Red Hat associate and NDA partner use only. No further distribution.</div>
+  <div class="rh-section-footer"><span class="rh-fn">8</span><span class="rh-fl"><img class="rh-logo-img" alt="Red Hat"></span></div>
+
+  <span class="section-label">Platform</span>
+  <h2 style="margin-bottom:2px">Running CVE Agents on Red Hat OpenShift AI</h2>
+
+  <svg viewBox="0 0 1152 550" style="width:1152px;height:550px;font-family:'Red Hat Text','Red Hat Display',Arial,sans-serif" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="p1" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5" fill="#aaa"/></marker>
+      <marker id="p2" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5" fill="#EE0000"/></marker>
+      <linearGradient id="pag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#EE0000"/><stop offset="100%" stop-color="#AA0000"/></linearGradient>
+      <linearGradient id="plat" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0066CC"/><stop offset="100%" stop-color="#004499"/></linearGradient>
+      <linearGradient id="psec" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#5e40be"/><stop offset="100%" stop-color="#442d8f"/></linearGradient>
+      <filter id="pgl"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#EE0000" flood-opacity="0.25"/></filter>
+    </defs>
+
+    <!-- ═══ TITLE BAR: RED HAT OPENSHIFT AI ═══ -->
+    <rect x="0" y="0" width="1152" height="32" rx="5" fill="url(#plat)"/>
+    <text x="576" y="20" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" letter-spacing="1">RED HAT OPENSHIFT AI</text>
+    <text x="1140" y="20" text-anchor="end" font-size="8" fill="#99ccff">Model serving · Sandboxing · Guardrails · Evaluation · Tracing</text>
+
+    <!-- ═══ LEFT COLUMN: TEKTON PIPELINE CLUSTER ═══ -->
+    <rect x="0" y="42" width="440" height="360" rx="6" fill="#f5f8fd" stroke="#0066CC" stroke-width="1"/>
+    <rect x="0" y="42" width="440" height="28" rx="6" fill="url(#plat)"/>
+    <rect x="0" y="56" width="440" height="14" fill="url(#plat)"/>
+    <text x="220" y="60" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">TEKTON PIPELINE CLUSTER</text>
+
+    <text x="14" y="88" font-size="8.5" font-weight="600" fill="#0066CC">CI/CD Pipelines (OpenShift Pipelines)</text>
+
+    <!-- Pipeline tasks -->
+    <g transform="translate(14,96)">
+      <rect width="196" height="30" rx="3" fill="#fff" stroke="#0066CC" stroke-width="1"/>
+      <text x="98" y="13" text-anchor="middle" font-size="8" font-weight="600" fill="#0066CC">Build → SBOM → RHTPA Scan</text>
+      <text x="98" y="24" text-anchor="middle" font-size="7" fill="#999">clone, maven, buildah, upload-sbom</text>
+    </g>
+
+    <g transform="translate(14,132)">
+      <rect width="196" height="30" rx="3" fill="#fff" stroke="#c98e00" stroke-width="1"/>
+      <text x="98" y="13" text-anchor="middle" font-size="8" font-weight="600" fill="#c98e00">Conforma Policy Gate</text>
+      <text x="98" y="24" text-anchor="middle" font-size="7" fill="#999">must-fix set filtering</text>
+    </g>
+
+    <g transform="translate(14,168)">
+      <rect width="196" height="38" rx="4" fill="url(#pag)" filter="url(#pgl)"/>
+      <text x="98" y="15" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">Agent Tasks</text>
+      <text x="98" y="27" text-anchor="middle" font-size="7" fill="#fcc">analyze · pin version · gen tests</text>
+      <text x="98" y="36" text-anchor="middle" font-size="6.5" fill="#f99">call ADK service over SSE</text>
+    </g>
+
+    <g transform="translate(14,212)">
+      <rect width="196" height="30" rx="3" fill="#fff" stroke="#3E8635" stroke-width="1"/>
+      <text x="98" y="13" text-anchor="middle" font-size="8" font-weight="600" fill="#3E8635">maven verify → open-pr</text>
+      <text x="98" y="24" text-anchor="middle" font-size="7" fill="#999">gated on CHANGED=1</text>
+    </g>
+
+    <!-- SSC Security Components -->
+    <text x="226" y="88" font-size="8.5" font-weight="600" fill="#009596">SSC Security Components</text>
+
+    <g transform="translate(226,96)">
+      <rect width="196" height="30" rx="3" fill="#fff" stroke="#009596" stroke-width="1"/>
+      <text x="98" y="13" text-anchor="middle" font-size="8" font-weight="600" fill="#009596">RHTPA (Trustify)</text>
+      <text x="98" y="24" text-anchor="middle" font-size="7" fill="#999">SBOM analysis + vuln correlation</text>
+    </g>
+
+    <g transform="translate(226,132)">
+      <rect width="196" height="30" rx="3" fill="#fff" stroke="#009596" stroke-width="1"/>
+      <text x="98" y="13" text-anchor="middle" font-size="8" font-weight="600" fill="#009596">RHTAS (Sigstore)</text>
+      <text x="98" y="24" text-anchor="middle" font-size="7" fill="#999">artifact + commit signing</text>
+    </g>
+
+    <g transform="translate(226,168)">
+      <rect width="196" height="30" rx="3" fill="#fff" stroke="#009596" stroke-width="1"/>
+      <text x="98" y="13" text-anchor="middle" font-size="8" font-weight="600" fill="#009596">RHACS (ACS)</text>
+      <text x="98" y="24" text-anchor="middle" font-size="7" fill="#999">image scan + deploy check</text>
+    </g>
+
+    <g transform="translate(226,204)">
+      <rect width="196" height="38" rx="3" fill="#fff" stroke="#EE0000" stroke-width="1.2"/>
+      <text x="98" y="14" text-anchor="middle" font-size="8" font-weight="600" fill="#EE0000">Lightwell Integration</text>
+      <text x="98" y="26" text-anchor="middle" font-size="7" fill="#999">OSV feed + .rhlw version check</text>
+      <text x="98" y="36" text-anchor="middle" font-size="6.5" fill="#999">via Internal Artifact Repository</text>
+    </g>
+
+    <!-- GitLab/GitHub + Issue Tracker -->
+    <g transform="translate(14,256)">
+      <rect width="408" height="30" rx="3" fill="#fff" stroke="#3E8635" stroke-width="1"/>
+      <text x="204" y="13" text-anchor="middle" font-size="8.5" font-weight="600" fill="#3E8635">GitLab / GitHub — Issues, PRs, /remediate trigger</text>
+      <text x="204" y="24" text-anchor="middle" font-size="7" fill="#999">SCM + issue tracker + webhook triggers</text>
+    </g>
+
+    <!-- Tekton Triggers -->
+    <g transform="translate(14,292)">
+      <rect width="408" height="26" rx="3" fill="#f0f8f0" stroke="#3E8635" stroke-width="0.8"/>
+      <text x="204" y="17" text-anchor="middle" font-size="8" fill="#3E8635">Tekton Triggers: EventListener + /remediate webhook → pipeline start</text>
+    </g>
+
+    <!-- ═══ RIGHT COLUMN: ADK AGENT SERVICE ═══ -->
+    <rect x="460" y="42" width="340" height="360" rx="6" fill="#fff6f6" stroke="#EE0000" stroke-width="1"/>
+    <rect x="460" y="42" width="340" height="28" rx="6" fill="url(#pag)"/>
+    <rect x="460" y="56" width="340" height="14" fill="url(#pag)"/>
+    <text x="630" y="60" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">ADK AGENT SERVICE (Google ADK 2.0)</text>
+
+    <text x="474" y="88" font-size="8.5" font-weight="600" fill="#EE0000">Agent Hierarchy</text>
+
+    <!-- Root coordinator -->
+    <g transform="translate(474,96)">
+      <rect width="310" height="28" rx="4" fill="url(#pag)"/>
+      <text x="155" y="18" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">ssc_coordinator (LlmAgent) — routes by task type</text>
+    </g>
+
+    <!-- Specialist agents -->
+    <g transform="translate(474,130)">
+      <rect width="148" height="32" rx="3" fill="#fff" stroke="#EE0000" stroke-width="1"/>
+      <text x="74" y="14" text-anchor="middle" font-size="8" font-weight="600" fill="#EE0000">CVE Selection</text>
+      <text x="74" y="26" text-anchor="middle" font-size="7" fill="#999">cve-triage skill</text>
+    </g>
+
+    <g transform="translate(636,130)">
+      <rect width="148" height="32" rx="3" fill="#fff" stroke="#EE0000" stroke-width="1"/>
+      <text x="74" y="14" text-anchor="middle" font-size="8" font-weight="600" fill="#EE0000">CVE Analysis</text>
+      <text x="74" y="26" text-anchor="middle" font-size="7" fill="#999">cve-analysis skill</text>
+    </g>
+
+    <g transform="translate(474,168)">
+      <rect width="148" height="32" rx="3" fill="#fff" stroke="#EE0000" stroke-width="1"/>
+      <text x="74" y="14" text-anchor="middle" font-size="8" font-weight="600" fill="#EE0000">Remediation</text>
+      <text x="74" y="26" text-anchor="middle" font-size="7" fill="#999">maven-remediation skill</text>
+    </g>
+
+    <g transform="translate(636,168)">
+      <rect width="148" height="32" rx="3" fill="#fff" stroke="#EE0000" stroke-width="1"/>
+      <text x="74" y="14" text-anchor="middle" font-size="8" font-weight="600" fill="#EE0000">Test Generation</text>
+      <text x="74" y="26" text-anchor="middle" font-size="7" fill="#999">junit-test-gen skill</text>
+    </g>
+
+    <g transform="translate(474,206)">
+      <rect width="310" height="28" rx="3" fill="#fff" stroke="#999" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="155" y="18" text-anchor="middle" font-size="8" fill="#999">Validation (architect + pentester) — not yet wired in pipeline</text>
+    </g>
+
+    <!-- Tools -->
+    <text x="474" y="250" font-size="8.5" font-weight="600" fill="#5e40be">Tools &amp; Integrations</text>
+
+    <g transform="translate(474,258)">
+      <rect width="310" height="50" rx="3" fill="#f8f5ff" stroke="#5e40be" stroke-width="0.8"/>
+      <text x="155" y="14" text-anchor="middle" font-size="7.5" fill="#5e40be" font-weight="600">Lightwell: lookup_lightwell_osv · check_version_exists_smart</text>
+      <text x="155" y="27" text-anchor="middle" font-size="7.5" fill="#5e40be">Upstream: lookup_osv · lookup_nvd · lookup_epss · search_github_advisory</text>
+      <text x="155" y="40" text-anchor="middle" font-size="7.5" fill="#5e40be">Build: execute_bash · clone_repository · create_pull_request</text>
+    </g>
+
+    <!-- Coding agents -->
+    <text x="474" y="324" font-size="8.5" font-weight="600" fill="#333">Coding Agent Runtimes</text>
+
+    <g transform="translate(474,332)">
+      <rect width="100" height="24" rx="3" fill="#fff" stroke="#333" stroke-width="1"/>
+      <text x="50" y="16" text-anchor="middle" font-size="7.5" font-weight="600" fill="#333">Claude Code</text>
+    </g>
+    <g transform="translate(582,332)">
+      <rect width="68" height="24" rx="3" fill="#fff" stroke="#333" stroke-width="1"/>
+      <text x="34" y="16" text-anchor="middle" font-size="7.5" font-weight="600" fill="#333">aider</text>
+    </g>
+    <g transform="translate(658,332)">
+      <rect width="80" height="24" rx="3" fill="#fff" stroke="#333" stroke-width="1"/>
+      <text x="40" y="16" text-anchor="middle" font-size="7.5" font-weight="600" fill="#333">OpenCode</text>
+    </g>
+
+    <!-- SSE connection arrow -->
+    <line x1="210" y1="187" x2="460" y2="110" stroke="#EE0000" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#p2)"/>
+    <text x="330" y="140" font-size="8" fill="#EE0000" font-weight="600" transform="rotate(-12, 330, 140)">HTTPS / SSE</text>
+
+    <!-- ═══ TOP RIGHT: OPENSHIFT AI CONTROLS ═══ -->
+    <rect x="820" y="42" width="332" height="360" rx="6" fill="#f8f5ff" stroke="#5e40be" stroke-width="1"/>
+    <rect x="820" y="42" width="332" height="28" rx="6" fill="url(#psec)"/>
+    <rect x="820" y="56" width="332" height="14" fill="url(#psec)"/>
+    <text x="986" y="60" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">OPENSHIFT AI CONTROLS</text>
+
+    <!-- Sandboxing -->
+    <text x="834" y="88" font-size="8.5" font-weight="600" fill="#5e40be">Sandboxing</text>
+    <g transform="translate(834,96)">
+      <rect width="148" height="38" rx="3" fill="#fff" stroke="#5e40be" stroke-width="1"/>
+      <text x="74" y="14" text-anchor="middle" font-size="8" font-weight="600" fill="#5e40be">OpenShell</text>
+      <text x="74" y="26" text-anchor="middle" font-size="7" fill="#999">per-agent sandbox</text>
+      <text x="74" y="36" text-anchor="middle" font-size="6.5" fill="#999">syscall · fs · network</text>
+    </g>
+    <g transform="translate(990,96)">
+      <rect width="148" height="38" rx="3" fill="#fff" stroke="#5e40be" stroke-width="1"/>
+      <text x="74" y="14" text-anchor="middle" font-size="8" font-weight="600" fill="#5e40be">Sandboxed Containers</text>
+      <text x="74" y="26" text-anchor="middle" font-size="7" fill="#999">Kata VM isolation</text>
+      <text x="74" y="36" text-anchor="middle" font-size="6.5" fill="#999">per-pod VM boundary</text>
+    </g>
+
+    <!-- Guardrails -->
+    <text x="834" y="150" font-size="8.5" font-weight="600" fill="#5e40be">Guardrails</text>
+    <g transform="translate(834,158)">
+      <rect width="148" height="38" rx="3" fill="#fff" stroke="#5e40be" stroke-width="1"/>
+      <text x="74" y="14" text-anchor="middle" font-size="8" font-weight="600" fill="#5e40be">NeMo Guardrails</text>
+      <text x="74" y="26" text-anchor="middle" font-size="7" fill="#999">input/output filtering</text>
+      <text x="74" y="36" text-anchor="middle" font-size="6.5" fill="#999">via TrustyAI Operator</text>
+    </g>
+    <g transform="translate(990,158)">
+      <rect width="148" height="38" rx="3" fill="#fff" stroke="#5e40be" stroke-width="1"/>
+      <text x="74" y="14" text-anchor="middle" font-size="8" font-weight="600" fill="#5e40be">MCP Gateway</text>
+      <text x="74" y="26" text-anchor="middle" font-size="7" fill="#999">tool governance</text>
+      <text x="74" y="36" text-anchor="middle" font-size="6.5" fill="#999">Kuadrant-based</text>
+    </g>
+
+    <!-- Evaluation -->
+    <text x="834" y="212" font-size="8.5" font-weight="600" fill="#5e40be">Evaluation &amp; Red Teaming</text>
+    <g transform="translate(834,220)">
+      <rect width="148" height="38" rx="3" fill="#fff" stroke="#5e40be" stroke-width="1"/>
+      <text x="74" y="14" text-anchor="middle" font-size="8" font-weight="600" fill="#5e40be">EvalHub</text>
+      <text x="74" y="26" text-anchor="middle" font-size="7" fill="#999">release gate</text>
+      <text x="74" y="36" text-anchor="middle" font-size="6.5" fill="#999">pass/fail thresholds</text>
+    </g>
+    <g transform="translate(990,220)">
+      <rect width="148" height="38" rx="3" fill="#fff" stroke="#5e40be" stroke-width="1"/>
+      <text x="74" y="14" text-anchor="middle" font-size="8" font-weight="600" fill="#5e40be">Garak</text>
+      <text x="74" y="26" text-anchor="middle" font-size="7" fill="#999">AI vuln scanner</text>
+      <text x="74" y="36" text-anchor="middle" font-size="6.5" fill="#999">120+ attack probes</text>
+    </g>
+
+    <!-- Observability -->
+    <text x="834" y="274" font-size="8.5" font-weight="600" fill="#5e40be">Observability &amp; Identity</text>
+    <g transform="translate(834,282)">
+      <rect width="148" height="38" rx="3" fill="#fff" stroke="#5e40be" stroke-width="1"/>
+      <text x="74" y="14" text-anchor="middle" font-size="8" font-weight="600" fill="#5e40be">MLflow Tracing</text>
+      <text x="74" y="26" text-anchor="middle" font-size="7" fill="#999">every agent step</text>
+      <text x="74" y="36" text-anchor="middle" font-size="6.5" fill="#999">OpenTelemetry spans</text>
+    </g>
+    <g transform="translate(990,282)">
+      <rect width="148" height="38" rx="3" fill="#fff" stroke="#5e40be" stroke-width="1"/>
+      <text x="74" y="14" text-anchor="middle" font-size="8" font-weight="600" fill="#5e40be">SPIFFE / SPIRE</text>
+      <text x="74" y="26" text-anchor="middle" font-size="7" fill="#999">agent identity</text>
+      <text x="74" y="36" text-anchor="middle" font-size="6.5" fill="#999">non-human identity</text>
+    </g>
+
+    <!-- Model Serving -->
+    <text x="834" y="336" font-size="8.5" font-weight="600" fill="#5e40be">Model Serving</text>
+    <g transform="translate(834,344)">
+      <rect width="304" height="38" rx="3" fill="#fff" stroke="#5e40be" stroke-width="1"/>
+      <text x="152" y="14" text-anchor="middle" font-size="9" font-weight="600" fill="#5e40be">vLLM + llm-d on Red Hat OpenShift AI</text>
+      <text x="152" y="28" text-anchor="middle" font-size="7.5" fill="#999">Anthropic · OpenAI-compatible · Bedrock · Vertex · IBM Granite · gpt-oss</text>
+    </g>
+
+    <!-- ═══ LEGEND ═══ -->
+    <g transform="translate(0,416)">
+      <rect width="1152" height="66" rx="5" fill="#fafafa" stroke="#eee" stroke-width="0.8"/>
+
+      <rect x="14" y="10" width="14" height="14" rx="3" fill="url(#pag)"/>
+      <text x="34" y="21" font-size="8.5" fill="#555">Agent service (Google ADK)</text>
+
+      <rect x="210" y="10" width="14" height="14" rx="3" fill="url(#plat)"/>
+      <text x="230" y="21" font-size="8.5" fill="#555">Pipeline cluster (Tekton)</text>
+
+      <rect x="410" y="10" width="14" height="14" rx="3" fill="url(#psec)"/>
+      <text x="430" y="21" font-size="8.5" fill="#555">OpenShift AI controls</text>
+
+      <rect x="620" y="10" width="14" height="14" rx="3" fill="#fff" stroke="#009596" stroke-width="1"/>
+      <text x="640" y="21" font-size="8.5" fill="#555">SSC security components</text>
+
+      <text x="14" y="46" font-size="8" fill="#888">Pipeline calls the ADK agent service over HTTPS/SSE. The agent reasons about the CVE, then uses a coding agent (Claude Code, aider, or OpenCode) to edit files.</text>
+      <text x="14" y="58" font-size="8" fill="#888">OpenShift AI provides sandboxing, guardrails, evaluation gates, model serving, and full tracing. Agent backend is pluggable via ConfigMap.</text>
+    </g>
+
+    <!-- Watermark -->
+    <text x="1140" y="495" text-anchor="end" font-size="7" fill="#ddd">Red Hat OpenShift AI — Agentic CVE Remediation Platform</text>
+  </svg>
