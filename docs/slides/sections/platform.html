@@ -17,6 +17,9 @@
       <filter id="pgl"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#EE0000" flood-opacity="0.25"/></filter>
     </defs>
 
+    <!-- Scale content vertically to fill slide -->
+    <g transform="scale(1, 1.25) translate(0, -3)">
+
     <!-- ═══ TITLE BAR: RED HAT OPENSHIFT AI ═══ -->
     <rect x="0" y="0" width="1152" height="32" rx="5" fill="url(#plat)"/>
     <text x="576" y="20" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" letter-spacing="1">RED HAT OPENSHIFT AI</text>
@@ -167,9 +170,9 @@
       <text x="40" y="16" text-anchor="middle" font-size="7.5" font-weight="600" fill="#333">OpenCode</text>
     </g>
 
-    <!-- SSE connection arrow -->
-    <line x1="210" y1="187" x2="460" y2="110" stroke="#EE0000" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#p2)"/>
-    <text x="330" y="140" font-size="8" fill="#EE0000" font-weight="600" transform="rotate(-12, 330, 140)">HTTPS / SSE</text>
+    <!-- SSE connection arrow — horizontal -->
+    <line x1="440" y1="186" x2="460" y2="186" stroke="#EE0000" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#p2)"/>
+    <text x="442" y="178" font-size="7.5" fill="#EE0000" font-weight="600">HTTPS / SSE</text>
 
     <!-- ═══ TOP RIGHT: OPENSHIFT AI CONTROLS ═══ -->
     <rect x="820" y="42" width="332" height="360" rx="6" fill="#f8f5ff" stroke="#5e40be" stroke-width="1"/>
@@ -267,4 +270,5 @@
 
     <!-- Watermark -->
     <text x="1140" y="495" text-anchor="end" font-size="7" fill="#ddd">Red Hat OpenShift AI — Agentic CVE Remediation Platform</text>
+    </g> <!-- end scale group -->
   </svg>
