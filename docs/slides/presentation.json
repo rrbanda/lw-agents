@@ -8,6 +8,7 @@
     { "id": "lightwell-lens",      "file": "sections/lightwell-lens.html",      "navLabel": "Lightwell Lens" },
     { "id": "lightwell-agents",    "file": "sections/lightwell-agents.html",    "navLabel": "The AI Engine" },
     { "id": "problem",             "file": "sections/problem.html",             "navLabel": "The Challenge" },
+    { "id": "agentic-ssc",         "file": "sections/agentic-ssc.html",         "navLabel": "Agents in SSC" },
     { "id": "unified-pipeline",    "file": "sections/unified-pipeline.html",    "navLabel": "The Pipeline" },
     { "id": "architecture",        "file": "sections/architecture.html",        "navLabel": "System Context" },
     { "id": "agents",              "file": "sections/agents.html",              "navLabel": "Agent Hierarchy" },
@@ -32,7 +33,7 @@
   ],
   "presenterGroups": [
     ["lightwell-landscape", "lightwell-lens", "lightwell-agents"],
-    ["problem", "unified-pipeline", "architecture"],
+    ["problem", "agentic-ssc", "unified-pipeline", "architecture"],
     ["agents", "skills"],
     ["remediation", "testing", "validation"],
     ["gates", "evaluation", "observability", "deployment"]
