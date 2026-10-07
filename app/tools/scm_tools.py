@@ -212,7 +212,13 @@ def create_pull_request(
             token,
         )
         try:
-            _git(local_repo_path, ["push", push_remote, branch], check=True, env=push_env)
+            _git(
+                local_repo_path,
+                ["push", push_remote, branch],
+                check=True,
+                env=push_env,
+                timeout=120,
+            )
         finally:
             if askpass_path:
                 os.unlink(askpass_path)
@@ -285,13 +291,14 @@ def _git(
     *,
     check: bool = False,
     env: dict[str, str] | None = None,
+    timeout: int = 60,
 ) -> subprocess.CompletedProcess:
     result = subprocess.run(
         ["git"] + args,
         cwd=repo,
         capture_output=True,
         text=True,
-        timeout=30,
+        timeout=timeout,
         env=env,
     )
     if check and result.returncode != 0:
