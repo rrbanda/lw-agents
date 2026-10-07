@@ -133,7 +133,7 @@ def clone_repository(
             "/tmp", host or repo_host, username, token
         )
         repo_path = _extract_repo_path(repo_url)
-        clone_url = f"https://{host or repo_host}/{repo_path}.git"
+        clone_url = f"https://{username}@{host or repo_host}/{repo_path}.git"
 
     try:
         result = subprocess.run(
@@ -204,7 +204,7 @@ def create_pull_request(
         _git(local_repo_path, ["commit", "-m", title], check=True)
 
         scm_path = _extract_repo_path(repo_url)
-        push_remote = f"https://{host}/{scm_path}.git"
+        push_remote = f"https://{username}@{host}/{scm_path}.git"
         askpass_path, push_env = _setup_git_credential_helper(
             local_repo_path,
             host,
