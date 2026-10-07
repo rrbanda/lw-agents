@@ -6,9 +6,6 @@ import json
 import os
 from unittest.mock import patch
 
-import pytest
-
-
 # ---------------------------------------------------------------------------
 # Helpers: sample OSV data matching real Lightwell OSV format
 # ---------------------------------------------------------------------------
@@ -352,7 +349,10 @@ class TestCheckLightwellVersionExists:
         assert result["exists"] is False
         assert result["status"] == "checked"
 
-    @patch("app.tools.lightwell_tools._auth_headers", return_value={"Authorization": "Basic dGVzdDp0b2tlbg=="})
+    @patch(
+        "app.tools.lightwell_tools._auth_headers",
+        return_value={"Authorization": "Basic dGVzdDp0b2tlbg=="},
+    )
     def test_version_exists_with_auth(self, mock_auth):
         """When auth headers are present, uses httpx.Client directly."""
         from unittest.mock import MagicMock
@@ -443,7 +443,8 @@ class TestAuthHeaders:
     def test_with_env_vars(self):
         from app.tools.lightwell_tools import _auth_headers
 
-        with patch.dict(os.environ, {"LIGHTWELL_USERNAME": "12345|sa", "LIGHTWELL_TOKEN": "secret"}):
+        env = {"LIGHTWELL_USERNAME": "12345|sa", "LIGHTWELL_TOKEN": "secret"}
+        with patch.dict(os.environ, env):
             headers = _auth_headers()
             assert "Authorization" in headers
             assert headers["Authorization"].startswith("Basic ")
