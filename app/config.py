@@ -133,12 +133,31 @@ def build_bash_tool(workspace: str | None = None) -> FunctionTool:
             if "/tmp/workspace" in cmd and os.path.isdir("/tmp/workspace"):
                 run_cwd = "/tmp/workspace"
 
+            # Configure git credentials for push operations
+            env = dict(os.environ)
+            scm_token = os.environ.get("SCM_TOKEN", "")
+            scm_host = os.environ.get("SCM_HOST", "")
+            if scm_token and scm_host and "git" in cmd:
+                import shlex
+                import stat
+                import tempfile
+
+                askpass = tempfile.NamedTemporaryFile(
+                    mode="w", prefix="bash-askpass-", suffix=".sh", delete=False
+                )
+                askpass.write(f"#!/bin/sh\necho {shlex.quote(scm_token)}\n")
+                askpass.close()
+                os.chmod(askpass.name, stat.S_IRWXU)
+                env["GIT_ASKPASS"] = askpass.name
+                env["GIT_TERMINAL_PROMPT"] = "0"
+
             result = subprocess.run(
                 ["bash", "-c", cmd],
                 cwd=run_cwd,
                 capture_output=True,
                 text=True,
                 timeout=timeout,
+                env=env,
             )
             output = result.stdout
             if result.returncode != 0:
