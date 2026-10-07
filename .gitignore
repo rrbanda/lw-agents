@@ -33,3 +33,4 @@ htmlcov/
 Thumbs.db
 *.png
 app/.adk/
+test_all_prompts.py

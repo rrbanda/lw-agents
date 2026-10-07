@@ -14,6 +14,8 @@ from __future__ import annotations
 
 from google.adk.agents import LlmAgent
 from google.adk.apps import App, ResumabilityConfig
+from google.adk.skills import load_skill_from_dir
+from google.adk.tools.skill_toolset import SkillToolset
 
 from app.agents.cve_analysis import create_cve_analysis_agent
 from app.agents.cve_selection import create_cve_selection_agent
@@ -21,7 +23,7 @@ from app.agents.remediation import create_remediation_agent
 from app.agents.test_generation import create_test_generation_agent
 from app.agents.validation import create_validation_agent
 from app.callbacks import extract_structured_results, init_structured_result
-from app.config import MODEL
+from app.config import MODEL, SKILLS_DIR
 from app.plugins.redaction import RedactionPlugin
 from app.plugins.safety import SafetyPlugin
 
@@ -53,6 +55,14 @@ def _create_cve_test_investigator():
 
 
 def _build_app() -> App:
+    # Domain knowledge skill — lets the coordinator answer conceptual
+    # questions about CVE lifecycle, Lightwell, CVSS vs EPSS, etc.
+    domain_skill_dir = SKILLS_DIR / "domain-knowledge"
+    domain_skills = [load_skill_from_dir(domain_skill_dir)] if domain_skill_dir.exists() else []
+    domain_toolset = SkillToolset(skills=domain_skills) if domain_skills else None
+
+    coordinator_tools = [domain_toolset] if domain_toolset else []
+
     root_agent = LlmAgent(
         name="ssc_coordinator",
         model=MODEL,
@@ -67,12 +77,17 @@ def _build_app() -> App:
             "- For **test generation** (generate JUnit tests, write code, open PR): "
             "delegate to test_generation\n"
             "- For fix **validation** (adversarial review of a fix): delegate to fix_validation\n\n"
-            "Always delegate — never attempt the task yourself. Pass the full "
-            "request context (workspace path, CVE details, etc.) to the specialist."
+            "For **domain questions** about CVE lifecycle, Lightwell, CVSS vs EPSS, "
+            "severity vs priority, CWE classifications, or how the agents work: "
+            "call load_skill to read the domain-knowledge skill, then answer "
+            "using the skill's content. Do NOT delegate domain questions to specialists.\n\n"
+            "For task requests, always delegate — never attempt the task yourself. "
+            "Pass the full request context (workspace path, CVE details, etc.) to the specialist."
         ),
         description="Routes software supply chain security tasks to specialist agents.",
         before_agent_callback=init_structured_result,
         after_agent_callback=extract_structured_results,
+        tools=coordinator_tools,
         sub_agents=[
             create_cve_selection_agent(),
             create_cve_analysis_agent(),
