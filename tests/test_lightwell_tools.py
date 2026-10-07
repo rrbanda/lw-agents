@@ -377,8 +377,10 @@ class TestCheckLightwellVersionExists:
     def test_url_construction(self):
         from app.tools.lightwell_tools import check_lightwell_version_exists
 
-        with patch("app.tools.lightwell_tools._auth_headers", return_value={}), \
-             patch("app.tools.lightwell_tools.head_check", return_value=(404, False)):
+        with (
+            patch("app.tools.lightwell_tools._auth_headers", return_value={}),
+            patch("app.tools.lightwell_tools.head_check", return_value=(404, False)),
+        ):
             result = check_lightwell_version_exists(
                 "org.apache.commons", "commons-lang3", "3.14.0.rhlw-00001"
             )
@@ -419,9 +421,7 @@ class TestCheckVersionExistsSmart:
         from app.tools.lightwell_tools import check_version_exists_smart
 
         mock_head.return_value = (200, True)
-        result = check_version_exists_smart(
-            "org.apache.commons", "commons-lang3", "3.18.0"
-        )
+        result = check_version_exists_smart("org.apache.commons", "commons-lang3", "3.18.0")
 
         assert result["exists"] is True
         assert "repo1.maven.org" in result.get("checked_url", "")

@@ -289,8 +289,7 @@ class BuildResultChecker(BaseAgent):
                 "FAILURE_DIAGNOSIS": {
                     "category": "HOPELESS",
                     "reason": (
-                        f"Too many errors ({error_count} compile,"
-                        f" {missing_count} missing symbols)"
+                        f"Too many errors ({error_count} compile, {missing_count} missing symbols)"
                     ),
                     "retries_exhausted": False,
                     "actionable": False,

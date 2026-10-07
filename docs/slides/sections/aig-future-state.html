@@ -1,0 +1,249 @@
+
+  <meta charset="utf-8">
+  <div class="rh-bar-t"></div>
+  <div class="rh-bar-b"></div>
+  <div class="rh-section-footer"><span class="rh-fn"></span><span class="rh-fl"><img class="rh-logo-img" alt="Red Hat"></span></div>
+
+  <span class="section-label">Future State</span>
+  <h2 style="margin-bottom:2px">Code Remediation Process - With Agentic Acceleration</h2>
+
+  <svg viewBox="0 0 1152 560" style="width:1152px;height:560px;font-family:'Red Hat Text','Red Hat Display',Arial,sans-serif" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="f1" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5" fill="#aaa"/></marker>
+      <marker id="f2" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5" fill="#3E8635"/></marker>
+      <marker id="f3" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5" fill="#EE0000"/></marker>
+      <linearGradient id="fag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#EE0000"/><stop offset="100%" stop-color="#AA0000"/></linearGradient>
+      <linearGradient id="fhg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f0ab00"/><stop offset="100%" stop-color="#d09500"/></linearGradient>
+      <linearGradient id="fdg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a3a5c"/><stop offset="100%" stop-color="#0d2240"/></linearGradient>
+      <filter id="fgl"><feDropShadow dx="0" dy="1" stdDeviation="2.5" flood-color="#EE0000" flood-opacity="0.3"/></filter>
+    </defs>
+
+    <!-- ═══ HEADER: CURRENT vs FUTURE ═══ -->
+    <rect x="0" y="0" width="380" height="28" rx="5" fill="#1a3a5c"/>
+    <text x="190" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">CURRENT STATE</text>
+    <rect x="400" y="0" width="752" height="28" rx="5" fill="url(#fag)"/>
+    <text x="776" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">FUTURE STATE — WITH AGENTIC ACCELERATION</text>
+
+    <!-- ═══ LEFT: CURRENT TIMELINE ═══ -->
+    <rect x="0" y="36" width="380" height="470" rx="6" fill="#f5f7fa" stroke="#1a3a5c" stroke-width="0.8"/>
+
+    <text x="16" y="58" font-size="9" font-weight="700" fill="#1a3a5c">Current GEAR SLA</text>
+
+    <!-- SLA bars -->
+    <g transform="translate(16,68)">
+      <rect width="340" height="24" rx="3" fill="#cc0000" opacity="0.15"/>
+      <rect width="300" height="24" rx="3" fill="#cc0000" opacity="0.3"/>
+      <text x="8" y="16" font-size="9" font-weight="600" fill="#cc0000">High: 3 months</text>
+    </g>
+    <g transform="translate(16,96)">
+      <rect width="340" height="24" rx="3" fill="#c98e00" opacity="0.15"/>
+      <rect width="250" height="24" rx="3" fill="#c98e00" opacity="0.3"/>
+      <text x="8" y="16" font-size="9" font-weight="600" fill="#c98e00">Elevated: 6 months</text>
+    </g>
+    <g transform="translate(16,124)">
+      <rect width="340" height="24" rx="3" fill="#0066CC" opacity="0.15"/>
+      <rect width="200" height="24" rx="3" fill="#0066CC" opacity="0.2"/>
+      <text x="8" y="16" font-size="9" font-weight="600" fill="#0066CC">Moderate: 9 months</text>
+    </g>
+    <g transform="translate(16,152)">
+      <rect width="340" height="24" rx="3" fill="#999" opacity="0.15"/>
+      <rect width="150" height="24" rx="3" fill="#999" opacity="0.2"/>
+      <text x="8" y="16" font-size="9" font-weight="600" fill="#888">Low: 12 months</text>
+    </g>
+
+    <!-- Current flow -->
+    <text x="16" y="202" font-size="9" font-weight="700" fill="#1a3a5c">Current Manual Flow</text>
+
+    <g transform="translate(16,210)">
+      <rect width="348" height="34" rx="4" fill="url(#fdg)"/>
+      <text x="174" y="14" text-anchor="middle" font-size="8.5" font-weight="600" fill="#fff">1. Initiate code scans per scan frequency</text>
+      <text x="174" y="26" text-anchor="middle" font-size="7" fill="#99bbdd">Veracode, Wiz, Phylum</text>
+    </g>
+
+    <line x1="190" y1="244" x2="190" y2="254" stroke="#aaa" stroke-width="1" marker-end="url(#f1)"/>
+
+    <g transform="translate(16,256)">
+      <rect width="348" height="28" rx="4" fill="#fff" stroke="#1a3a5c" stroke-width="1"/>
+      <text x="174" y="18" text-anchor="middle" font-size="8.5" font-weight="600" fill="#1a3a5c">2. ADM analyzes reported vulnerabilities</text>
+    </g>
+
+    <line x1="190" y1="284" x2="190" y2="294" stroke="#aaa" stroke-width="1" marker-end="url(#f1)"/>
+
+    <!-- FP decision -->
+    <g transform="translate(190,310)">
+      <polygon points="0,-16 70,0 0,16 -70,0" fill="#fff" stroke="#1a3a5c" stroke-width="1"/>
+      <text x="0" y="4" text-anchor="middle" font-size="8" font-weight="600" fill="#1a3a5c">False Positives?</text>
+    </g>
+
+    <text x="268" y="303" font-size="8" fill="#c98e00" font-weight="600">Yes</text>
+    <line x1="260" y1="310" x2="360" y2="310" stroke="#c98e00" stroke-width="0.8"/>
+    <text x="270" y="340" font-size="7" fill="#888">FP evidence for</text>
+    <text x="270" y="350" font-size="7" fill="#888">ISO team review</text>
+
+    <text x="198" y="335" font-size="8" fill="#3E8635" font-weight="600">No</text>
+    <line x1="190" y1="326" x2="190" y2="342" stroke="#3E8635" stroke-width="1" marker-end="url(#f2)"/>
+
+    <g transform="translate(16,344)">
+      <rect width="348" height="28" rx="4" fill="#ffebee" stroke="#cc0000" stroke-width="1"/>
+      <text x="174" y="18" text-anchor="middle" font-size="8.5" font-weight="600" fill="#cc0000">3. Remediate code in dev — MANUAL</text>
+    </g>
+
+    <line x1="190" y1="372" x2="190" y2="382" stroke="#aaa" stroke-width="1" marker-end="url(#f1)"/>
+
+    <g transform="translate(16,384)">
+      <rect width="348" height="28" rx="4" fill="#fff" stroke="#1a3a5c" stroke-width="1"/>
+      <text x="174" y="18" text-anchor="middle" font-size="8.5" font-weight="600" fill="#1a3a5c">4. Unit Test + Verify</text>
+    </g>
+
+    <!-- Time callout -->
+    <g transform="translate(40,424)">
+      <rect width="300" height="36" rx="4" fill="#ffebee" stroke="#cc0000" stroke-width="1.5"/>
+      <text x="150" y="16" text-anchor="middle" font-size="11" font-weight="700" fill="#cc0000">3–12 months per CVE</text>
+      <text x="150" y="30" text-anchor="middle" font-size="8" fill="#cc0000">10 manual steps · Developer pulled from feature work</text>
+    </g>
+
+    <!-- ═══ RIGHT: FUTURE STATE ═══ -->
+    <rect x="400" y="36" width="752" height="470" rx="6" fill="#fff6f6" stroke="#EE0000" stroke-width="0.8"/>
+
+    <text x="416" y="58" font-size="9" font-weight="700" fill="#EE0000">Future Target SLA (with agents)</text>
+
+    <!-- Future SLA bars -->
+    <g transform="translate(416,68)">
+      <rect width="720" height="24" rx="3" fill="#3E8635" opacity="0.1"/>
+      <rect width="60" height="24" rx="3" fill="#3E8635" opacity="0.4"/>
+      <text x="8" y="16" font-size="9" font-weight="700" fill="#3E8635">High: &lt; 8 hours</text>
+      <text x="300" y="16" font-size="8" fill="#999">was 3 months</text>
+    </g>
+    <g transform="translate(416,96)">
+      <rect width="720" height="24" rx="3" fill="#3E8635" opacity="0.1"/>
+      <rect width="90" height="24" rx="3" fill="#3E8635" opacity="0.3"/>
+      <text x="8" y="16" font-size="9" font-weight="600" fill="#3E8635">Elevated: &lt; 30 days</text>
+      <text x="300" y="16" font-size="8" fill="#999">was 6 months</text>
+    </g>
+
+    <!-- Future flow -->
+    <text x="416" y="142" font-size="9" font-weight="700" fill="#EE0000">Future Agentic Flow</text>
+
+    <!-- Scan (same) -->
+    <g transform="translate(416,150)">
+      <rect width="320" height="34" rx="4" fill="url(#fdg)"/>
+      <text x="160" y="14" text-anchor="middle" font-size="8.5" font-weight="600" fill="#fff">1. Existing scans (Veracode, Wiz, Phylum)</text>
+      <text x="160" y="26" text-anchor="middle" font-size="7" fill="#99bbdd">Same scanners — no change</text>
+    </g>
+
+    <line x1="576" y1="184" x2="576" y2="194" stroke="#aaa" stroke-width="1" marker-end="url(#f1)"/>
+
+    <!-- Agent: Triage -->
+    <g transform="translate(416,196)">
+      <rect width="320" height="42" rx="6" fill="url(#fag)" filter="url(#fgl)"/>
+      <text x="160" y="17" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">Agent: Triage &amp; Analyze</text>
+      <text x="160" y="31" text-anchor="middle" font-size="7.5" fill="#fcc">Auto-prioritize by EPSS + CVSS · Filter false positives</text>
+      <text x="160" y="40" text-anchor="middle" font-size="7" fill="#f99">exploit-iq reachability analysis (optional)</text>
+    </g>
+
+    <line x1="576" y1="238" x2="576" y2="248" stroke="#EE0000" stroke-width="1" marker-end="url(#f3)"/>
+
+    <!-- Agent: Remediate -->
+    <g transform="translate(416,250)">
+      <rect width="320" height="42" rx="6" fill="url(#fag)" filter="url(#fgl)"/>
+      <text x="160" y="17" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">Agent: Pin Fixed Version</text>
+      <text x="160" y="31" text-anchor="middle" font-size="7.5" fill="#fcc">Lightwell .rhlw backport or upstream upgrade</text>
+      <text x="160" y="40" text-anchor="middle" font-size="7" fill="#f99">Pull from AIG Artifactory · maven verify · fail-closed</text>
+    </g>
+
+    <line x1="576" y1="292" x2="576" y2="302" stroke="#EE0000" stroke-width="1" marker-end="url(#f3)"/>
+
+    <!-- Agent: Test -->
+    <g transform="translate(416,304)">
+      <rect width="320" height="34" rx="6" fill="url(#fag)" filter="url(#fgl)" opacity="0.85"/>
+      <text x="160" y="15" text-anchor="middle" font-size="9.5" font-weight="700" fill="#fff">Agent: Generate Tests (optional)</text>
+      <text x="160" y="27" text-anchor="middle" font-size="7.5" fill="#fcc">JUnit scaffolding · run existing suite</text>
+    </g>
+
+    <line x1="576" y1="338" x2="576" y2="348" stroke="#aaa" stroke-width="1" marker-end="url(#f1)"/>
+
+    <!-- Open PR -->
+    <g transform="translate(416,350)">
+      <rect width="150" height="30" rx="4" fill="#f0f8f0" stroke="#3E8635" stroke-width="1.5"/>
+      <text x="75" y="19" text-anchor="middle" font-size="9.5" font-weight="700" fill="#3E8635">Open PR</text>
+    </g>
+
+    <line x1="566" y1="365" x2="582" y2="365" stroke="#aaa" stroke-width="1" marker-end="url(#f1)"/>
+
+    <!-- Human Gate -->
+    <g transform="translate(630,365)">
+      <polygon points="0,-18 40,0 0,18 -40,0" fill="url(#fhg)" stroke="#b08500" stroke-width="1"/>
+      <text x="0" y="-2" text-anchor="middle" font-size="7.5" font-weight="700" fill="#000">HUMAN</text>
+      <text x="0" y="8" text-anchor="middle" font-size="7.5" font-weight="700" fill="#000">GATE</text>
+    </g>
+
+    <text x="680" y="360" font-size="7.5" fill="#777">Developer reviews PR</text>
+    <text x="680" y="372" font-size="7.5" fill="#777">merges to main</text>
+
+    <!-- Existing SDLC -->
+    <line x1="670" y1="365" x2="760" y2="365" stroke="#c98e00" stroke-width="1" marker-end="url(#f1)"/>
+
+    <g transform="translate(762,350)">
+      <rect width="180" height="30" rx="4" fill="#e8f0fe" stroke="#0066CC" stroke-width="1"/>
+      <text x="90" y="12" text-anchor="middle" font-size="8.5" font-weight="600" fill="#0066CC">Existing AIG SDLC</text>
+      <text x="90" y="24" text-anchor="middle" font-size="7" fill="#999">QA → Model Val → Prod</text>
+    </g>
+
+    <!-- Right side: what plugs in -->
+    <text x="760" y="150" font-size="9" font-weight="700" fill="#5e40be">What Plugs In</text>
+
+    <g transform="translate(760,158)">
+      <rect width="370" height="28" rx="3" fill="#fff" stroke="#EE0000" stroke-width="1"/>
+      <text x="185" y="18" text-anchor="middle" font-size="8.5" font-weight="600" fill="#EE0000">Lightwell — .rhlw backports via AIG Artifactory</text>
+    </g>
+
+    <g transform="translate(760,192)">
+      <rect width="370" height="28" rx="3" fill="#fff" stroke="#5e40be" stroke-width="1"/>
+      <text x="185" y="18" text-anchor="middle" font-size="8.5" font-weight="600" fill="#5e40be">exploit-iq — reachability analysis for FP filtering</text>
+    </g>
+
+    <g transform="translate(760,226)">
+      <rect width="370" height="28" rx="3" fill="#fff" stroke="#0066CC" stroke-width="1"/>
+      <text x="185" y="18" text-anchor="middle" font-size="8.5" font-weight="600" fill="#0066CC">ADK Agent Service on OpenShift AI</text>
+    </g>
+
+    <g transform="translate(760,260)">
+      <rect width="370" height="28" rx="3" fill="#fff" stroke="#3E8635" stroke-width="1"/>
+      <text x="185" y="18" text-anchor="middle" font-size="8.5" font-weight="600" fill="#3E8635">AIG Artifactory — already in place, proxies Lightwell</text>
+    </g>
+
+    <g transform="translate(760,294)">
+      <rect width="370" height="28" rx="3" fill="#fff" stroke="#c98e00" stroke-width="1"/>
+      <text x="185" y="18" text-anchor="middle" font-size="8.5" font-weight="600" fill="#c98e00">Veracode / Wiz / Phylum — unchanged</text>
+    </g>
+
+    <!-- Future time callout -->
+    <g transform="translate(430,398)">
+      <rect width="300" height="42" rx="4" fill="#e8f8e8" stroke="#3E8635" stroke-width="1.5"/>
+      <text x="150" y="16" text-anchor="middle" font-size="12" font-weight="700" fill="#3E8635">&lt; 8 hours for High severity</text>
+      <text x="150" y="32" text-anchor="middle" font-size="8.5" fill="#3E8635">3 agent tasks · 1 human review · fail-closed</text>
+    </g>
+
+    <!-- What does NOT change callout -->
+    <g transform="translate(760,338)">
+      <rect width="370" height="40" rx="3" fill="#fafafa" stroke="#ddd" stroke-width="0.8"/>
+      <text x="185" y="16" text-anchor="middle" font-size="8" font-weight="600" fill="#444">What does NOT change</text>
+      <text x="185" y="30" text-anchor="middle" font-size="7.5" fill="#888">AIG Artifactory · GEAR risk ratings · ISO team · QA · Model Val · Prod promotion</text>
+    </g>
+
+    <!-- ═══ LEGEND ═══ -->
+    <g transform="translate(0,470)">
+      <rect width="1152" height="36" rx="5" fill="#fafafa" stroke="#eee" stroke-width="0.8"/>
+
+      <rect x="14" y="8" width="14" height="14" rx="3" fill="url(#fag)"/>
+      <text x="34" y="19" font-size="8.5" fill="#555">Agent task (replaces manual triage + remediation)</text>
+
+      <polygon points="230,8 242,15 230,22 218,15" fill="url(#fhg)"/>
+      <text x="250" y="19" font-size="8.5" fill="#555">Human gate (developer reviews PR)</text>
+
+      <rect x="430" y="8" width="14" height="14" rx="3" fill="url(#fdg)"/>
+      <text x="450" y="19" font-size="8.5" fill="#555">Existing AIG process (unchanged)</text>
+
+      <text x="650" y="19" font-size="8" fill="#888" font-style="italic">Scanners, Artifactory, GEAR ratings, ISO team, QA, and prod promotion stay as-is</text>
+    </g>
+  </svg>

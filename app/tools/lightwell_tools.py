@@ -31,8 +31,7 @@ logger = logging.getLogger(__name__)
 _DEFAULT_OSV_BASE = "https://packages.redhat.com/lightwell/osv/java/remediated"
 _DEFAULT_REPO_BASE = "https://packages.redhat.com/lightwell/java/remediated"
 _DEMO_OSV_BASE = (
-    "https://packages.redhat.com/api/pulp-content/"
-    "public-lightwell-demo/osv/java/remediated"
+    "https://packages.redhat.com/api/pulp-content/public-lightwell-demo/osv/java/remediated"
 )
 
 
@@ -64,8 +63,7 @@ def _is_lightwell_version(version: str) -> bool:
 def _is_lightwell_advisory_id(advisory_id: str) -> bool:
     """Return True if the advisory ID matches Lightwell patterns."""
     return bool(
-        re.match(r"^RHLW-\d{4}-\d+$", advisory_id)
-        or re.match(r"^LW-DEMO-\d+$", advisory_id)
+        re.match(r"^RHLW-\d{4}-\d+$", advisory_id) or re.match(r"^LW-DEMO-\d+$", advisory_id)
     )
 
 
@@ -269,10 +267,7 @@ def check_lightwell_version_exists(
     """
     repo_base = _repo_base()
     group_path = group_id.replace(".", "/")
-    url = (
-        f"{repo_base}/{group_path}/{artifact_id}/{version}/"
-        f"{artifact_id}-{version}.pom"
-    )
+    url = f"{repo_base}/{group_path}/{artifact_id}/{version}/{artifact_id}-{version}.pom"
 
     headers = _auth_headers()
     if headers:
@@ -302,11 +297,7 @@ def check_lightwell_version_exists(
         "version": version,
         "exists": exists,
         "status": (
-            "checked"
-            if status_code > 0
-            else "auth_required"
-            if status_code == 0
-            else "error"
+            "checked" if status_code > 0 else "auth_required" if status_code == 0 else "error"
         ),
         "repository": "lightwell",
         "checked_url": url,
