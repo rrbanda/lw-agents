@@ -198,10 +198,18 @@ def create_pull_request(
 
         diff = _git(local_repo_path, ["diff", "--cached", "--quiet"])
         if diff.returncode == 0:
-            return {"created": False, "pr_url": "", "reason": "No changes to submit"}
-
-        _git(local_repo_path, ["checkout", "-b", branch], check=True)
-        _git(local_repo_path, ["commit", "-m", title], check=True)
+            # Check if changes were already committed and pushed by a prior agent
+            current_branch = _git(
+                local_repo_path, ["rev-parse", "--abbrev-ref", "HEAD"]
+            ).stdout.strip()
+            if current_branch != base and current_branch != "HEAD":
+                # Already on a feature branch with commits — skip to MR
+                branch = current_branch
+            else:
+                return {"created": False, "pr_url": "", "reason": "No changes to submit"}
+        else:
+            _git(local_repo_path, ["checkout", "-b", branch], check=True)
+            _git(local_repo_path, ["commit", "-m", title], check=True)
 
         scm_path = _extract_repo_path(repo_url)
         push_remote = f"https://{username}@{host}/{scm_path}.git"
@@ -212,13 +220,22 @@ def create_pull_request(
             token,
         )
         try:
-            _git(
+            # Check if branch already exists on remote (prior agent pushed)
+            ls_remote = _git(
                 local_repo_path,
-                ["push", push_remote, branch],
-                check=True,
+                ["ls-remote", "--heads", push_remote, branch],
                 env=push_env,
-                timeout=120,
+                timeout=30,
             )
+            already_pushed = branch in ls_remote.stdout
+            if not already_pushed:
+                _git(
+                    local_repo_path,
+                    ["push", push_remote, branch],
+                    check=True,
+                    env=push_env,
+                    timeout=120,
+                )
         finally:
             if askpass_path:
                 os.unlink(askpass_path)
