@@ -38,12 +38,11 @@ RUN curl -fsSL "https://repo1.maven.org/maven2/org/apache/maven/apache-maven/${M
     && tar -xzf /tmp/maven.tar.gz -C /opt \
     && rm /tmp/maven.tar.gz
 
-# OpenCode — coding agent called via ExecuteBashTool as a subprocess
+# OpenCode — coding agent (optional, may fail if installer is down)
 RUN curl -fsSL https://opencode.ai/install | bash; \
     OPENCODE_BIN=$(find / -name opencode -type f -executable 2>/dev/null | head -1); \
-    if [ -z "$OPENCODE_BIN" ]; then echo "ERROR: opencode not found" && exit 1; fi; \
-    cp "$OPENCODE_BIN" /usr/local/bin/opencode && \
-    opencode --version
+    if [ -n "$OPENCODE_BIN" ]; then cp "$OPENCODE_BIN" /usr/local/bin/opencode && opencode --version; \
+    else echo "WARN: opencode not available — skipping"; fi
 
 # glab (GitLab CLI) for opening MRs and issues
 RUN ARCH=$(uname -m | sed 's/x86_64/amd64/; s/aarch64/arm64/') \
