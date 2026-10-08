@@ -92,6 +92,6 @@ ENV PORT=8080 \
     GLAB_CONFIG_DIR=/tmp/glab-config \
     PATH="/opt/apache-maven-3.9.9/bin:/opt/app-root/bin:/usr/local/bin:${PATH}"
 
-# Production entry point — multiple uvicorn workers for reliability
-# adk web is single-process and can't serve health checks during long tool ops
+# Production entry point — matches ADK samples pattern (get_fast_api_app + uvicorn)
+# timeout_keep_alive=300 prevents proxy/browser SSE drops during long tool ops
 CMD ["python", "-m", "app.main"]
