@@ -101,7 +101,9 @@ class SSEKeepaliveMiddleware:
                     pass
 
 
-app.add_middleware(SSEKeepaliveMiddleware)
+# Wrap at ASGI level — more reliable than app.add_middleware()
+_inner_app = app
+app = SSEKeepaliveMiddleware(_inner_app)
 
 
 if __name__ == "__main__":
