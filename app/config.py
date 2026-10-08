@@ -72,10 +72,42 @@ BASH_ALLOWED_PREFIXES = (
 )
 BASH_TIMEOUT_SECONDS = 300
 
+
 # Shell metacharacters that enable command injection.
 # Note: '&&' is intentionally ALLOWED because agents use 'cd /dir && cmd'
 # as a standard pattern. The prefix allowlist prevents the first command
 # from being dangerous. Semicolons and pipes are the real injection vectors.
+def _run_with_heartbeat(
+    args: list[str],
+    *,
+    cwd: str,
+    timeout: int,
+    env: dict[str, str],
+) -> subprocess.CompletedProcess:
+    """Run a subprocess with periodic yields so the event loop stays responsive.
+
+    Uses Popen + poll instead of blocking run(). Sleeps 0.5s between polls
+    which lets the Python thread handle other work (health checks, SSE).
+    """
+    import time
+
+    proc = subprocess.Popen(
+        args, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env
+    )
+    start = time.monotonic()
+    while proc.poll() is None:
+        elapsed = time.monotonic() - start
+        if elapsed > timeout:
+            proc.kill()
+            proc.wait()
+            raise subprocess.TimeoutExpired(args, timeout)
+        time.sleep(0.5)
+
+    stdout = proc.stdout.read() if proc.stdout else ""
+    stderr = proc.stderr.read() if proc.stderr else ""
+    return subprocess.CompletedProcess(args, proc.returncode, stdout, stderr)
+
+
 _BASH_FORBIDDEN_PATTERNS = (
     ";",
     "|",
@@ -151,11 +183,9 @@ def build_bash_tool(workspace: str | None = None) -> FunctionTool:
                 env["GIT_ASKPASS"] = askpass.name
                 env["GIT_TERMINAL_PROMPT"] = "0"
 
-            result = subprocess.run(
+            result = _run_with_heartbeat(
                 ["bash", "-c", cmd],
                 cwd=run_cwd,
-                capture_output=True,
-                text=True,
                 timeout=timeout,
                 env=env,
             )
