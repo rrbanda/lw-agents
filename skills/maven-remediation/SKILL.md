@@ -74,21 +74,22 @@ For BOM overrides:
 cd /tmp/workspace && sed -i '/<properties>/a\    <logback.version>1.5.18</logback.version>' pom.xml
 ```
 
-### Step 5 — Build
+### Step 5 — Build and Test
 
-Run: `cd /tmp/workspace && mvn -B -q -DskipTests install`
-- **Success**: proceed to Step 6.
+Run: `cd /tmp/workspace && mvn -B -q install`
+
+This runs compile, test, and package in a single command.
+- **Success**: proceed to Step 7.
 - **Failure**: analyze the error. Common issues:
   - Version conflict → check if BOM also needs updating
   - API change → beyond simple bump; report and stop
+  - Test failure from the version change → report and stop
+  - Pre-existing test failures → proceed
 - Retry up to 3 times with corrected approach.
 
-### Step 6 — Test
-
-Run: `cd /tmp/workspace && mvn -B -q verify`
-- If tests pass, proceed.
-- If tests fail from the version change, report and stop.
-- If pre-existing failures, proceed.
+Do NOT run `mvn verify` as a separate command — the `install` phase
+already runs tests. Running verify separately creates an unnecessary
+long-running operation.
 
 ### Step 7 — Commit and push
 
