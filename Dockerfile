@@ -92,6 +92,6 @@ ENV PORT=8080 \
     GLAB_CONFIG_DIR=/tmp/glab-config \
     PATH="/opt/apache-maven-3.9.9/bin:/opt/app-root/bin:/usr/local/bin:${PATH}"
 
-# ADK web serves both the playground UI + API — single entry point for everything
-# OpenShell supervisor overrides CMD at runtime
-CMD ["python", "-m", "google.adk.cli", "web", "--host", "0.0.0.0", "--port", "8080", "/sandbox"]
+# Production entry point — multiple uvicorn workers for reliability
+# adk web is single-process and can't serve health checks during long tool ops
+CMD ["python", "-m", "app.main"]
