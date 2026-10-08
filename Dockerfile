@@ -89,6 +89,7 @@ EXPOSE 8080
 ENV PORT=8080 \
     PYTHONPATH=/sandbox \
     JAVA_HOME=/usr/lib/jvm/java-17-openjdk \
+    GLAB_CONFIG_DIR=/tmp/glab-config \
     PATH="/opt/apache-maven-3.9.9/bin:/opt/app-root/bin:/usr/local/bin:${PATH}"
 
 # ADK web serves both the playground UI + API — single entry point for everything
