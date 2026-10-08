@@ -6,6 +6,7 @@ in every agent module. All values are read at import time from env vars.
 
 from __future__ import annotations
 
+import asyncio as _asyncio
 import os
 import pathlib
 import subprocess
@@ -77,34 +78,36 @@ BASH_TIMEOUT_SECONDS = 300
 # Note: '&&' is intentionally ALLOWED because agents use 'cd /dir && cmd'
 # as a standard pattern. The prefix allowlist prevents the first command
 # from being dangerous. Semicolons and pipes are the real injection vectors.
-def _run_with_heartbeat(
+
+
+async def _run_async_subprocess(
     args: list[str],
     *,
     cwd: str,
     timeout: int,
     env: dict[str, str],
 ) -> subprocess.CompletedProcess:
-    """Run a subprocess with periodic yields so the event loop stays responsive.
+    """Run a subprocess without blocking the async event loop.
 
-    Uses Popen + poll instead of blocking run(). Sleeps 0.5s between polls
-    which lets the Python thread handle other work (health checks, SSE).
+    Uses asyncio.create_subprocess_exec so the event loop stays responsive
+    for health checks, SSE keepalives, and other requests while Maven runs.
     """
-    import time
-
-    proc = subprocess.Popen(
-        args, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env
+    proc = await _asyncio.create_subprocess_exec(
+        *args,
+        cwd=cwd,
+        stdout=_asyncio.subprocess.PIPE,
+        stderr=_asyncio.subprocess.PIPE,
+        env=env,
     )
-    start = time.monotonic()
-    while proc.poll() is None:
-        elapsed = time.monotonic() - start
-        if elapsed > timeout:
-            proc.kill()
-            proc.wait()
-            raise subprocess.TimeoutExpired(args, timeout)
-        time.sleep(0.5)
+    try:
+        stdout_bytes, stderr_bytes = await _asyncio.wait_for(proc.communicate(), timeout=timeout)
+    except _asyncio.TimeoutError:
+        proc.kill()
+        await proc.wait()
+        raise subprocess.TimeoutExpired(args, timeout)
 
-    stdout = proc.stdout.read() if proc.stdout else ""
-    stderr = proc.stderr.read() if proc.stderr else ""
+    stdout = stdout_bytes.decode("utf-8", errors="replace") if stdout_bytes else ""
+    stderr = stderr_bytes.decode("utf-8", errors="replace") if stderr_bytes else ""
     return subprocess.CompletedProcess(args, proc.returncode, stdout, stderr)
 
 
@@ -183,12 +186,24 @@ def build_bash_tool(workspace: str | None = None) -> FunctionTool:
                 env["GIT_ASKPASS"] = askpass.name
                 env["GIT_TERMINAL_PROMPT"] = "0"
 
-            result = _run_with_heartbeat(
-                ["bash", "-c", cmd],
-                cwd=run_cwd,
-                timeout=timeout,
-                env=env,
-            )
+            # Run subprocess asynchronously — keeps the event loop responsive
+            # ADK runs sync tool functions in a thread via to_thread(),
+            # so we use asyncio.run_coroutine_threadsafe to call back into the loop
+            loop = _asyncio.get_event_loop()
+            if loop.is_running():
+                future = _asyncio.run_coroutine_threadsafe(
+                    _run_async_subprocess(
+                        ["bash", "-c", cmd], cwd=run_cwd, timeout=timeout, env=env
+                    ),
+                    loop,
+                )
+                result = future.result(timeout=timeout + 10)
+            else:
+                result = loop.run_until_complete(
+                    _run_async_subprocess(
+                        ["bash", "-c", cmd], cwd=run_cwd, timeout=timeout, env=env
+                    )
+                )
             output = result.stdout
             if result.returncode != 0:
                 output += f"\nSTDERR: {result.stderr}" if result.stderr else ""
