@@ -173,6 +173,13 @@ def create_pull_request(
 ) -> dict[str, Any]:
     """Stage files, commit, push, and create a PR/MR.
 
+    Handles three scenarios:
+    1. Normal: unstaged changes exist → stage, commit, push, create MR
+    2. Pre-committed: a prior agent already committed to a local feature branch
+       → push that branch, create MR
+    3. Pre-pushed: a prior agent already pushed via HEAD:<remote-ref>
+       → skip push, create MR directly
+
     Args:
         repo_url: HTTPS URL of the repository.
         local_repo_path: Local filesystem path to the cloned repository.
@@ -188,88 +195,82 @@ def create_pull_request(
     username = os.environ.get("SCM_USERNAME", "oauth2")
     env = _scm_env(provider, host, token)
 
+    scm_path = _extract_repo_path(repo_url)
+    push_remote = f"https://{username}@{host}/{scm_path}.git"
+
+    need_push = False
+
     try:
         _git(local_repo_path, ["config", "safe.directory", local_repo_path])
         _git(local_repo_path, ["config", "user.email", f"tekton-bot@{host}"])
         _git(local_repo_path, ["config", "user.name", "TSSC Remediation Bot"])
 
+        # --- Determine what work is needed ---
+
+        # Stage files
         for pathspec in files_to_stage.split():
             _git(local_repo_path, ["add", "-A", "--", pathspec])
 
         diff = _git(local_repo_path, ["diff", "--cached", "--quiet"])
-        if diff.returncode == 0:
-            # Check if changes were already committed and pushed by a prior agent
-            current_branch = _git(
-                local_repo_path, ["rev-parse", "--abbrev-ref", "HEAD"]
-            ).stdout.strip()
-            if current_branch != base and current_branch != "HEAD":
-                # Already on a feature branch with commits — skip to MR
-                branch = current_branch
-            else:
-                # Local is on base branch — check if remote branch already exists
-                # (planner may have pushed via HEAD:<remote-ref>)
-                scm_path = _extract_repo_path(repo_url)
-                check_remote = f"https://{username}@{host}/{scm_path}.git"
-                askpass_tmp, check_env = _setup_git_credential_helper(
-                    local_repo_path, host, username, token
-                )
-                try:
-                    ls = _git(
-                        local_repo_path,
-                        ["ls-remote", "--heads", check_remote, branch],
-                        env=check_env,
-                        timeout=30,
-                    )
-                finally:
-                    if askpass_tmp:
-                        os.unlink(askpass_tmp)
-                if branch in ls.stdout:
-                    # Remote branch exists — skip commit+push, go straight to MR
-                    pass
-                else:
-                    return {
-                        "created": False,
-                        "pr_url": "",
-                        "reason": "No changes to submit",
-                    }
-        else:
-            _git(local_repo_path, ["checkout", "-b", branch], check=True)
-            _git(local_repo_path, ["commit", "-m", title], check=True)
+        has_staged = diff.returncode != 0
 
-        scm_path = _extract_repo_path(repo_url)
-        push_remote = f"https://{username}@{host}/{scm_path}.git"
+        current_branch = _git(local_repo_path, ["rev-parse", "--abbrev-ref", "HEAD"]).stdout.strip()
+        on_feature_branch = current_branch != base and current_branch != "HEAD"
+
+        # Check if remote branch already exists
         askpass_path, push_env = _setup_git_credential_helper(
-            local_repo_path,
-            host,
-            username,
-            token,
+            local_repo_path, host, username, token
         )
         try:
-            # Check if branch already exists on remote (prior agent pushed)
-            ls_remote = _git(
+            ls = _git(
                 local_repo_path,
                 ["ls-remote", "--heads", push_remote, branch],
                 env=push_env,
                 timeout=30,
             )
-            already_pushed = branch in ls_remote.stdout
-            if not already_pushed:
-                _git(
-                    local_repo_path,
-                    ["push", push_remote, branch],
-                    check=True,
-                    env=push_env,
-                    timeout=120,
-                )
-        finally:
+            remote_exists = f"refs/heads/{branch}" in ls.stdout
+        except Exception:
+            remote_exists = False
+
+        if has_staged:
+            # Scenario 1: Normal — stage, commit, push
+            if not on_feature_branch:
+                _git(local_repo_path, ["checkout", "-b", branch], check=True)
+            _git(local_repo_path, ["commit", "-m", title], check=True)
+            need_push = True
+        elif on_feature_branch:
+            # Scenario 2: Pre-committed on a local feature branch
+            branch = current_branch
+            need_push = not remote_exists
+        elif remote_exists:
+            # Scenario 3: Pre-pushed via HEAD:<remote-ref>
+            need_push = False
+        else:
+            # Nothing staged, not on feature branch, remote doesn't exist
             if askpass_path:
                 os.unlink(askpass_path)
+            return {"created": False, "pr_url": "", "reason": "No changes to submit"}
+
+        # --- Push if needed ---
+        if need_push:
+            _git(
+                local_repo_path,
+                ["push", push_remote, f"HEAD:{branch}"],
+                check=True,
+                env=push_env,
+                timeout=120,
+            )
+
+        if askpass_path:
+            os.unlink(askpass_path)
+
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         err = getattr(exc, "stderr", str(exc))
         return {"created": False, "error": f"git {exc.cmd} failed: {err}"}
     except FileNotFoundError:
         return {"created": False, "error": "git CLI not found"}
 
+    # --- Create MR/PR ---
     if provider == "gitlab":
         cmd = [
             "glab",
@@ -305,13 +306,23 @@ def create_pull_request(
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=30)
     except FileNotFoundError:
-        return {"created": False, "error": f"SCM CLI not found: {cmd[0]}"}
+        # glab/gh not installed — return branch info so user can create MR manually
+        return {
+            "created": False,
+            "pr_url": "",
+            "branch": branch,
+            "pushed": True,
+            "reason": f"Branch {branch} pushed but {cmd[0]} CLI not available to create MR",
+        }
     except subprocess.TimeoutExpired:
         return {"created": False, "error": "SCM CLI timed out creating PR"}
+
+    pr_url = _extract_url(result.stdout + result.stderr)
     return {
         "created": result.returncode == 0,
-        "pr_url": _extract_url(result.stdout + result.stderr),
+        "pr_url": pr_url,
         "branch": branch,
+        "pushed": True,
     }
 
 
