@@ -272,25 +272,24 @@ def create_pull_request(
 
     # --- Create MR/PR ---
     if provider == "gitlab":
-        cmd = [
-            "glab",
-            "mr",
-            "create",
-            "--source-branch",
-            branch,
-            "--target-branch",
-            base,
-            "--title",
-            title,
-            "--description",
-            body,
-            "--yes",
-        ]
+        # Use GitLab API directly — glab CLI has issues outside git repos
+        mr_result = _create_gitlab_mr(host, token, repo_url, branch, base, title, body)
+        return {
+            "created": mr_result.get("iid") is not None,
+            "pr_url": mr_result.get("web_url", ""),
+            "branch": branch,
+            "pushed": True,
+            "mr_iid": mr_result.get("iid"),
+            "error": mr_result.get("error", ""),
+        }
     elif provider == "github":
+        scm_repo_path = _extract_repo_path(repo_url)
         cmd = [
             "gh",
             "pr",
             "create",
+            "--repo",
+            scm_repo_path,
             "--base",
             base,
             "--head",
@@ -304,9 +303,11 @@ def create_pull_request(
         return {"created": False, "error": f"Unsupported provider: {provider}"}
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=30)
+        run_cwd = local_repo_path if os.path.isdir(local_repo_path) else None
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, env=env, timeout=30, cwd=run_cwd
+        )
     except FileNotFoundError:
-        # glab/gh not installed — return branch info so user can create MR manually
         return {
             "created": False,
             "pr_url": "",
@@ -327,6 +328,62 @@ def create_pull_request(
 
 
 create_pull_request_tool = FunctionTool(create_pull_request, require_confirmation=False)
+
+
+def _create_gitlab_mr(
+    host: str,
+    token: str,
+    repo_url: str,
+    source_branch: str,
+    target_branch: str,
+    title: str,
+    description: str,
+) -> dict[str, Any]:
+    """Create a GitLab merge request using the REST API directly.
+
+    More reliable than glab CLI which requires a local git repo context.
+    """
+    import json as _json
+    import ssl
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    repo_path = _extract_repo_path(repo_url)
+    encoded_path = urllib.parse.quote(repo_path, safe="")
+
+    url = f"https://{host}/api/v4/projects/{encoded_path}/merge_requests"
+    payload = _json.dumps(
+        {
+            "source_branch": source_branch,
+            "target_branch": target_branch,
+            "title": title,
+            "description": description,
+            "remove_source_branch": False,
+        }
+    ).encode()
+
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        headers={
+            "PRIVATE-TOKEN": token,
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        resp = urllib.request.urlopen(req, context=ctx, timeout=15)
+        return _json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")
+        return {"error": f"GitLab API {e.code}: {body[:200]}"}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 def _scm_env(provider: str, host: str, token: str) -> dict[str, str]:
