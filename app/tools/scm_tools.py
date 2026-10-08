@@ -206,7 +206,32 @@ def create_pull_request(
                 # Already on a feature branch with commits — skip to MR
                 branch = current_branch
             else:
-                return {"created": False, "pr_url": "", "reason": "No changes to submit"}
+                # Local is on base branch — check if remote branch already exists
+                # (planner may have pushed via HEAD:<remote-ref>)
+                scm_path = _extract_repo_path(repo_url)
+                check_remote = f"https://{username}@{host}/{scm_path}.git"
+                askpass_tmp, check_env = _setup_git_credential_helper(
+                    local_repo_path, host, username, token
+                )
+                try:
+                    ls = _git(
+                        local_repo_path,
+                        ["ls-remote", "--heads", check_remote, branch],
+                        env=check_env,
+                        timeout=30,
+                    )
+                finally:
+                    if askpass_tmp:
+                        os.unlink(askpass_tmp)
+                if branch in ls.stdout:
+                    # Remote branch exists — skip commit+push, go straight to MR
+                    pass
+                else:
+                    return {
+                        "created": False,
+                        "pr_url": "",
+                        "reason": "No changes to submit",
+                    }
         else:
             _git(local_repo_path, ["checkout", "-b", branch], check=True)
             _git(local_repo_path, ["commit", "-m", title], check=True)
