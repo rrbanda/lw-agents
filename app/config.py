@@ -186,24 +186,14 @@ def build_bash_tool(workspace: str | None = None) -> FunctionTool:
                 env["GIT_ASKPASS"] = askpass.name
                 env["GIT_TERMINAL_PROMPT"] = "0"
 
-            # Run subprocess asynchronously — keeps the event loop responsive
-            # ADK runs sync tool functions in a thread via to_thread(),
-            # so we use asyncio.run_coroutine_threadsafe to call back into the loop
-            loop = _asyncio.get_event_loop()
-            if loop.is_running():
-                future = _asyncio.run_coroutine_threadsafe(
-                    _run_async_subprocess(
-                        ["bash", "-c", cmd], cwd=run_cwd, timeout=timeout, env=env
-                    ),
-                    loop,
-                )
-                result = future.result(timeout=timeout + 10)
-            else:
-                result = loop.run_until_complete(
-                    _run_async_subprocess(
-                        ["bash", "-c", cmd], cwd=run_cwd, timeout=timeout, env=env
-                    )
-                )
+            result = subprocess.run(
+                ["bash", "-c", cmd],
+                cwd=run_cwd,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                env=env,
+            )
             output = result.stdout
             if result.returncode != 0:
                 output += f"\nSTDERR: {result.stderr}" if result.stderr else ""
