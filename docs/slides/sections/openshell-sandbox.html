@@ -1,0 +1,180 @@
+  <div class="rh-bar-t"></div>
+  <div class="rh-bar-b"></div>
+  <div class="rh-privacy">Confidential: Red Hat associate and NDA partner use only. No further distribution.</div>
+  <div class="rh-section-footer"><span class="rh-fn">10</span><span class="rh-fl"><img class="rh-logo-img" alt="Red Hat"></span></div>
+
+  <span class="section-label">OpenShell Sandbox</span>
+  <h2 style="margin-bottom:4px">End-to-End User Journey: Securing an AI Agent with OpenShell</h2>
+
+  <svg viewBox="0 0 1100 520" style="width:1100px;height:520px;font-family:'Red Hat Text','Red Hat Display',Arial,sans-serif" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="os-ar" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#666"/></marker>
+      <marker id="os-ar-red" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#EE0000"/></marker>
+      <marker id="os-ar-teal" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#009596"/></marker>
+      <linearGradient id="os-red" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#EE0000"/><stop offset="100%" stop-color="#AA0000"/></linearGradient>
+      <linearGradient id="os-teal" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#009596"/><stop offset="100%" stop-color="#007070"/></linearGradient>
+      <linearGradient id="os-purple" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6753AC"/><stop offset="100%" stop-color="#4a3a80"/></linearGradient>
+      <linearGradient id="os-blue" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0066CC"/><stop offset="100%" stop-color="#004499"/></linearGradient>
+      <filter id="os-glow"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#009596" flood-opacity="0.3"/></filter>
+    </defs>
+
+    <!-- ═══ JOURNEY STEPS — horizontal flow ═══ -->
+
+    <!-- Step 1: Login -->
+    <text x="30" y="22" font-size="15" font-weight="800" fill="#009596">1</text>
+    <g transform="translate(30,30)">
+      <rect width="190" height="100" rx="8" fill="url(#os-teal)" filter="url(#os-glow)"/>
+      <text x="95" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">Dashboard Login</text>
+      <text x="95" y="44" text-anchor="middle" font-size="11" fill="#b3e6e6">Keycloak OIDC auth</text>
+      <text x="95" y="60" text-anchor="middle" font-size="11" fill="#b3e6e6">Platform admin role</text>
+      <text x="95" y="76" text-anchor="middle" font-size="11" fill="#b3e6e6">Gateway health check</text>
+      <text x="95" y="92" text-anchor="middle" font-size="11" fill="#b3e6e6">4 workspaces visible</text>
+    </g>
+
+    <!-- Arrow 1→2 -->
+    <line x1="220" y1="80" x2="248" y2="80" stroke="#666" stroke-width="1.5" marker-end="url(#os-ar)"/>
+
+    <!-- Step 2: Explore Workspaces -->
+    <text x="252" y="22" font-size="15" font-weight="800" fill="#009596">2</text>
+    <g transform="translate(252,30)">
+      <rect width="190" height="100" rx="8" fill="url(#os-teal)" filter="url(#os-glow)"/>
+      <text x="95" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">Explore Sandboxes</text>
+      <text x="95" y="44" text-anchor="middle" font-size="11" fill="#b3e6e6">Click into lw-agents sandbox</text>
+      <text x="95" y="60" text-anchor="middle" font-size="11" fill="#b3e6e6">Details · Logs · Terminal</text>
+      <text x="95" y="76" text-anchor="middle" font-size="11" fill="#b3e6e6">Providers (managed keys)</text>
+      <text x="95" y="92" text-anchor="middle" font-size="11" fill="#b3e6e6">Policy (network rules)</text>
+    </g>
+
+    <!-- Arrow 2→3 -->
+    <line x1="442" y1="80" x2="470" y2="80" stroke="#666" stroke-width="1.5" marker-end="url(#os-ar)"/>
+
+    <!-- Step 3: Credential + Policy -->
+    <text x="474" y="22" font-size="15" font-weight="800" fill="#6753AC">3</text>
+    <g transform="translate(474,30)">
+      <rect width="190" height="100" rx="8" fill="url(#os-purple)"/>
+      <text x="95" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">Security Controls</text>
+      <text x="95" y="46" text-anchor="middle" font-size="11" fill="#d4c8f0">API key managed by gateway</text>
+      <text x="95" y="62" text-anchor="middle" font-size="11" fill="#d4c8f0">Agent never sees raw key</text>
+      <text x="95" y="80" text-anchor="middle" font-size="11" fill="#d4c8f0">L7 egress per-binary:</text>
+      <text x="95" y="94" text-anchor="middle" font-size="10" fill="#d4c8f0" font-family="monospace">googleapis.com:443 only</text>
+    </g>
+
+    <!-- Arrow 3→4 -->
+    <line x1="664" y1="80" x2="692" y2="80" stroke="#666" stroke-width="1.5" marker-end="url(#os-ar)"/>
+
+    <!-- Step 4: Agent Web UI -->
+    <text x="696" y="22" font-size="15" font-weight="800" fill="#EE0000">4</text>
+    <g transform="translate(696,30)">
+      <rect width="190" height="100" rx="8" fill="url(#os-red)"/>
+      <text x="95" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">Agent Web UI</text>
+      <text x="95" y="44" text-anchor="middle" font-size="11" fill="#ffcccc">Served via OpenShell</text>
+      <text x="95" y="60" text-anchor="middle" font-size="11" fill="#ffcccc">service routing</text>
+      <text x="95" y="78" text-anchor="middle" font-size="11" fill="#ffcccc">Chat with CVE agent</text>
+      <text x="95" y="94" text-anchor="middle" font-size="11" fill="#ffcccc">Gemini through policy</text>
+    </g>
+
+    <!-- Arrow 4→5 -->
+    <line x1="886" y1="80" x2="914" y2="80" stroke="#666" stroke-width="1.5" marker-end="url(#os-ar)"/>
+
+    <!-- Step 5: Verify -->
+    <text x="918" y="22" font-size="15" font-weight="800" fill="#3E8635">5</text>
+    <g transform="translate(918,30)">
+      <rect width="160" height="100" rx="8" fill="#f0f8f0" stroke="#3E8635" stroke-width="2"/>
+      <text x="80" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#3E8635">Verify Audit</text>
+      <text x="80" y="44" text-anchor="middle" font-size="11" fill="#555">Supervisor logs show</text>
+      <text x="80" y="60" text-anchor="middle" font-size="11" fill="#3E8635" font-weight="600">NET:OPEN ✓</text>
+      <text x="80" y="76" text-anchor="middle" font-size="11" fill="#555">for allowed endpoints</text>
+      <text x="80" y="92" text-anchor="middle" font-size="11" fill="#EE0000" font-weight="600">NET:DENIED ✗</text>
+    </g>
+
+    <!-- ═══ SECURITY LAYER — below the journey ═══ -->
+    <text x="30" y="165" font-size="13" font-weight="700" fill="#6753AC">What OpenShell Enforces at Every Step</text>
+
+    <g transform="translate(30,178)">
+      <rect width="250" height="80" rx="8" fill="#f8f5ff" stroke="#6753AC" stroke-width="1.5"/>
+      <text x="125" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#6753AC">🔑 Credential Management</text>
+      <text x="125" y="42" text-anchor="middle" font-size="11" fill="#555">API keys in gateway credential store</text>
+      <text x="125" y="58" text-anchor="middle" font-size="11" fill="#555">Injected at runtime as env var</text>
+      <text x="125" y="74" text-anchor="middle" font-size="11" fill="#555">Agent process never sees raw key</text>
+    </g>
+
+    <g transform="translate(295,178)">
+      <rect width="250" height="80" rx="8" fill="#f8f5ff" stroke="#6753AC" stroke-width="1.5"/>
+      <text x="125" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#6753AC">🌐 Network Policy</text>
+      <text x="125" y="42" text-anchor="middle" font-size="11" fill="#555">L7 egress control per-binary</text>
+      <text x="125" y="58" text-anchor="middle" font-size="11" fill="#555">Per-endpoint, per-port rules</text>
+      <text x="125" y="74" text-anchor="middle" font-size="11" fill="#555">Every connection logged + auditable</text>
+    </g>
+
+    <g transform="translate(560,178)">
+      <rect width="250" height="80" rx="8" fill="#f8f5ff" stroke="#6753AC" stroke-width="1.5"/>
+      <text x="125" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#6753AC">📁 Filesystem Isolation</text>
+      <text x="125" y="42" text-anchor="middle" font-size="11" fill="#555">Landlock enforcement</text>
+      <text x="125" y="58" text-anchor="middle" font-size="11" fill="#555">Read-only system paths</text>
+      <text x="125" y="74" text-anchor="middle" font-size="11" fill="#555">Writable sandbox directory only</text>
+    </g>
+
+    <g transform="translate(825,178)">
+      <rect width="250" height="80" rx="8" fill="#f8f5ff" stroke="#6753AC" stroke-width="1.5"/>
+      <text x="125" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#6753AC">⚙️ Process Supervision</text>
+      <text x="125" y="42" text-anchor="middle" font-size="11" fill="#555">OpenShell supervisor as PID 1</text>
+      <text x="125" y="58" text-anchor="middle" font-size="11" fill="#555">Agent lifecycle management</text>
+      <text x="125" y="74" text-anchor="middle" font-size="11" fill="#555">Configurable restart policies</text>
+    </g>
+
+    <!-- ═══ COMPARISON TABLE ═══ -->
+    <text x="30" y="292" font-size="13" font-weight="700" fill="#151515">With vs Without OpenShell</text>
+
+    <!-- Table header -->
+    <rect x="30" y="300" width="520" height="26" rx="4" fill="#151515"/>
+    <text x="170" y="318" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Without OpenShell</text>
+    <text x="420" y="318" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">With OpenShell</text>
+
+    <!-- Row 1 -->
+    <rect x="30" y="326" width="250" height="28" fill="#fff8f8" stroke="#eee" stroke-width="0.5"/>
+    <text x="45" y="344" font-size="11" fill="#CC0000">API keys in env vars — agent reads them</text>
+    <rect x="280" y="326" width="270" height="28" fill="#f0fff0" stroke="#eee" stroke-width="0.5"/>
+    <text x="295" y="344" font-size="11" fill="#3E8635">Keys in gateway — agent never sees raw value</text>
+
+    <!-- Row 2 -->
+    <rect x="30" y="354" width="250" height="28" fill="#fff" stroke="#eee" stroke-width="0.5"/>
+    <text x="45" y="372" font-size="11" fill="#CC0000">K8s NetworkPolicy — coarse, namespace-level</text>
+    <rect x="280" y="354" width="270" height="28" fill="#f0fff0" stroke="#eee" stroke-width="0.5"/>
+    <text x="295" y="372" font-size="11" fill="#3E8635">L7 policy per-binary, per-endpoint</text>
+
+    <!-- Row 3 -->
+    <rect x="30" y="382" width="250" height="28" fill="#fff8f8" stroke="#eee" stroke-width="0.5"/>
+    <text x="45" y="400" font-size="11" fill="#CC0000">Container has full filesystem access</text>
+    <rect x="280" y="382" width="270" height="28" fill="#f0fff0" stroke="#eee" stroke-width="0.5"/>
+    <text x="295" y="400" font-size="11" fill="#3E8635">Landlock restricts reads/writes per-path</text>
+
+    <!-- Row 4 -->
+    <rect x="30" y="410" width="250" height="28" fill="#fff" stroke="#eee" stroke-width="0.5"/>
+    <text x="45" y="428" font-size="11" fill="#CC0000">Agent runs unsupervised as PID 1</text>
+    <rect x="280" y="410" width="270" height="28" fill="#f0fff0" stroke="#eee" stroke-width="0.5"/>
+    <text x="295" y="428" font-size="11" fill="#3E8635">Supervisor manages lifecycle + recovery</text>
+
+    <!-- Row 5 -->
+    <rect x="30" y="438" width="250" height="28" fill="#fff8f8" stroke="#eee" stroke-width="0.5"/>
+    <text x="45" y="456" font-size="11" fill="#CC0000">Manual namespace/SCC setup</text>
+    <rect x="280" y="438" width="270" height="28" fill="#f0fff0" stroke="#eee" stroke-width="0.5"/>
+    <text x="295" y="456" font-size="11" fill="#3E8635">Managed workspace — auto-creates everything</text>
+
+    <!-- ═══ KEY INSIGHT ═══ -->
+    <g transform="translate(580,300)">
+      <rect width="490" height="170" rx="8" fill="#e8f8f8" stroke="#009596" stroke-width="1.5"/>
+      <text x="245" y="24" text-anchor="middle" font-size="13" font-weight="700" fill="#009596">Key Insight</text>
+      <text x="245" y="48" text-anchor="middle" font-size="12" fill="#333">The same container image runs with or without OpenShell.</text>
+      <text x="245" y="68" text-anchor="middle" font-size="12" fill="#333">OpenShell adds the security layer on top —</text>
+      <text x="245" y="88" text-anchor="middle" font-size="12" fill="#333">isolation, credential management, network policy,</text>
+      <text x="245" y="108" text-anchor="middle" font-size="12" fill="#333">filesystem enforcement — without any code</text>
+      <text x="245" y="128" text-anchor="middle" font-size="12" fill="#333">changes to the agent.</text>
+      <text x="245" y="156" text-anchor="middle" font-size="11" fill="#009596" font-weight="600">Zero agent code changes. Full enterprise security.</text>
+    </g>
+
+    <!-- ═══ URLS ═══ -->
+    <g transform="translate(30,480)">
+      <text font-size="10" fill="#888"><tspan font-weight="600">Dashboard:</tspan> openshell-dashboard-013.apps.ocp.qn6c5.sandbox1388.opentlc.com</text>
+      <text y="16" font-size="10" fill="#888"><tspan font-weight="600">Agent UI (via OpenShell):</tspan> lightwell-agents--lightwell-agents--agent-ui.openshell-svc.apps.ocp.qn6c5.sandbox1388.opentlc.com/dev-ui/</text>
+    </g>
+  </svg>

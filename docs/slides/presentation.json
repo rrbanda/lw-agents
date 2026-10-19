@@ -11,6 +11,7 @@
     { "id": "agentic-ssc",         "file": "sections/agentic-ssc.html",         "navLabel": "Art of the Possible" },
     { "id": "unified-pipeline",    "file": "sections/unified-pipeline.html",    "navLabel": "The Pipeline" },
     { "id": "platform",            "file": "sections/platform.html",            "navLabel": "OpenShift AI Platform" },
+    { "id": "openshell-sandbox",   "file": "sections/openshell-sandbox.html",   "navLabel": "OpenShell Sandbox" },
     { "id": "architecture",        "file": "sections/architecture.html",        "navLabel": "System Context" },
     { "id": "agents",              "file": "sections/agents.html",              "navLabel": "Agent Hierarchy" },
     { "id": "skills",              "file": "sections/skills.html",              "navLabel": "Skills-First" },
